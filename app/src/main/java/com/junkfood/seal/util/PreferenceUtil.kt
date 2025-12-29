@@ -566,7 +566,7 @@ object PreferenceStrings {
     }
 
     @Composable
-    fun getAudioPresetText(preferences: DownloadUtil.DownloadPreferences): String {
+    fun getAudioPresetText(preferences: DownloadPreferences): String {
         return with(preferences) {
             when {
                 formatSorting -> {
@@ -607,7 +607,7 @@ object PreferenceStrings {
     }
 
     @Composable
-    fun getVideoPresetText(preferences: DownloadUtil.DownloadPreferences): String {
+    fun getVideoPresetText(preferences: DownloadPreferences): String {
         return with(preferences) {
             when {
                 formatSorting -> {

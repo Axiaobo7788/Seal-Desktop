@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.download.DownloaderV2
 import com.junkfood.seal.download.Task
+import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.VideoInfo
@@ -56,24 +57,24 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
         data class FetchPlaylist(
             val url: String,
-            val preferences: DownloadUtil.DownloadPreferences,
+            val preferences: DownloadPreferences,
         ) : Action
 
         data class FetchFormats(
             val url: String,
             val audioOnly: Boolean,
-            val preferences: DownloadUtil.DownloadPreferences,
+            val preferences: DownloadPreferences,
         ) : Action
 
         data class DownloadWithPreset(
             val urlList: List<String>,
-            val preferences: DownloadUtil.DownloadPreferences,
+            val preferences: DownloadPreferences,
         ) : Action
 
         data class RunCommand(
             val url: String,
             val template: CommandTemplate,
-            val preferences: DownloadUtil.DownloadPreferences,
+            val preferences: DownloadPreferences,
         ) : Action
 
         data object Cancel : Action
@@ -176,7 +177,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
     private fun downloadWithPreset(
         urlList: List<String>,
-        preferences: DownloadUtil.DownloadPreferences,
+        preferences: DownloadPreferences,
     ) {
         urlList.forEach { downloader.enqueue(Task(url = it, preferences = preferences)) }
         hideDialog()
@@ -185,7 +186,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
     private fun runCommand(
         url: String,
         template: CommandTemplate,
-        preferences: DownloadUtil.DownloadPreferences,
+        preferences: DownloadPreferences,
     ) {
         val task =
             Task(

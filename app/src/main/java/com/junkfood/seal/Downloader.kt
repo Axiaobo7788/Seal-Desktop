@@ -14,6 +14,8 @@ import com.junkfood.seal.App.Companion.startService
 import com.junkfood.seal.App.Companion.stopService
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.util.COMMAND_DIRECTORY
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.NotificationUtil
@@ -291,8 +293,7 @@ object Downloader {
 
     fun getInfoAndDownload(
         url: String,
-        preferences: DownloadUtil.DownloadPreferences =
-            DownloadUtil.DownloadPreferences.createFromPreferences(),
+        preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ) {
         currentJob =
             applicationScope.launch(Dispatchers.IO) {
@@ -316,8 +317,7 @@ object Downloader {
     fun addToDownloadQueue(
         videoInfo: VideoInfo? = null,
         url: String = videoInfo?.originalUrl ?: "",
-        preferences: DownloadUtil.DownloadPreferences =
-            DownloadUtil.DownloadPreferences.createFromPreferences(),
+        preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ) {
         require(url.isNotEmpty() || videoInfo != null)
 
@@ -342,8 +342,7 @@ object Downloader {
 
     fun downloadVideoWithInfo(
         info: VideoInfo,
-        preferences: DownloadUtil.DownloadPreferences =
-            DownloadUtil.DownloadPreferences.createFromPreferences(),
+        preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ) {
         currentJob =
             applicationScope.launch(Dispatchers.IO) {
@@ -363,8 +362,7 @@ object Downloader {
         playlistIndex: Int = 0,
         playlistUrl: String = "",
         videoInfo: VideoInfo,
-        preferences: DownloadUtil.DownloadPreferences =
-            DownloadUtil.DownloadPreferences.createFromPreferences(),
+        preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ): Result<List<String>> {
 
         Log.d(TAG, preferences.subtitleLanguage)
@@ -435,8 +433,7 @@ object Downloader {
         url: String,
         indexList: List<Int>,
         playlistItemList: List<PlaylistEntry> = emptyList(),
-        preferences: DownloadUtil.DownloadPreferences =
-            DownloadUtil.DownloadPreferences.createFromPreferences(),
+        preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ) {
         val itemCount = indexList.size
 

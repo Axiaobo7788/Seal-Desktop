@@ -17,6 +17,7 @@ import com.junkfood.seal.ui.theme.SealTheme
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.matchUrlFromSharedText
 import com.junkfood.seal.util.setLanguage
+import com.junkfood.seal.shared.SharedInfo
 import kotlinx.coroutines.runBlocking
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
@@ -27,6 +28,9 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Sanity check: ensure :shared is linked and usable on Android.
+        SharedInfo.greeting()
 
         if (Build.VERSION.SDK_INT < 33) {
             runBlocking { setLanguage(PreferenceUtil.getLocaleFromPreference()) }

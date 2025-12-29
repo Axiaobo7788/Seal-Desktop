@@ -17,3 +17,7 @@
 local.properties
 /keystore.properties
 .kotlin
+.devcontainer
+.gradle.properties
+/desktop/build
+/shared/build

@@ -129,6 +129,8 @@ import com.junkfood.seal.util.DownloadType.Command
 import com.junkfood.seal.util.DownloadType.Playlist
 import com.junkfood.seal.util.DownloadType.Video
 import com.junkfood.seal.util.DownloadType.entries
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_SELECTION
 import com.junkfood.seal.util.PreferenceStrings
@@ -156,7 +158,7 @@ private fun DownloadType.label(): String =
         }
     )
 
-val PreferencesMock = DownloadUtil.DownloadPreferences.EMPTY
+val PreferencesMock = DownloadPreferences.EMPTY
 
 data class Config(
     val downloadType: DownloadType? = PreferenceUtil.getDownloadType(),
@@ -191,8 +193,8 @@ fun DownloadDialog(
     modifier: Modifier = Modifier,
     config: Config,
     sheetState: SheetState,
-    preferences: DownloadUtil.DownloadPreferences,
-    onPreferencesUpdate: (DownloadUtil.DownloadPreferences) -> Unit,
+    preferences: DownloadPreferences,
+    onPreferencesUpdate: (DownloadPreferences) -> Unit,
     state: DownloadDialogViewModel.SheetState = InputUrl,
     onActionPost: (Action) -> Unit = {},
 ) {
@@ -236,7 +238,7 @@ fun DownloadDialog(
             onSave = {
                 VIDEO_FORMAT.updateInt(format)
                 VIDEO_QUALITY.updateInt(res)
-                onPreferencesUpdate(DownloadUtil.DownloadPreferences.createFromPreferences())
+                onPreferencesUpdate(DownloadPreferences.createFromPreferences())
             },
         )
     }
@@ -270,7 +272,7 @@ fun DownloadDialog(
                 AUDIO_CONVERSION_FORMAT.updateInt(conversionFmt)
                 AUDIO_CONVERT.updateBoolean(convertAudio)
                 AUDIO_FORMAT.updateInt(preferredFormat)
-                onPreferencesUpdate(DownloadUtil.DownloadPreferences.createFromPreferences())
+                onPreferencesUpdate(DownloadPreferences.createFromPreferences())
             },
         )
     }
@@ -338,8 +340,8 @@ private fun DownloadDialogContent(
     modifier: Modifier = Modifier,
     state: DownloadDialogViewModel.SheetState,
     config: Config,
-    preferences: DownloadUtil.DownloadPreferences,
-    onPreferencesUpdate: (DownloadUtil.DownloadPreferences) -> Unit,
+    preferences: DownloadPreferences,
+    onPreferencesUpdate: (DownloadPreferences) -> Unit,
     onPresetEdit: (DownloadType?) -> Unit,
     onActionPost: (Action) -> Unit,
 ) {
@@ -371,7 +373,7 @@ private fun DownloadDialogContent(
                                 selectedType = config.downloadType,
                                 onPreferenceUpdate = {
                                     onPreferencesUpdate(
-                                        DownloadUtil.DownloadPreferences.createFromPreferences()
+                                        DownloadPreferences.createFromPreferences()
                                     )
                                 },
                             )
@@ -517,7 +519,7 @@ private fun ConfigurePage(
     modifier: Modifier = Modifier,
     url: String = "",
     config: Config,
-    preferences: DownloadUtil.DownloadPreferences,
+    preferences: DownloadPreferences,
     settingChips: @Composable () -> Unit,
     onPresetEdit: (DownloadType?) -> Unit = {},
     onConfigSave: (Config) -> Unit,
@@ -682,8 +684,8 @@ private fun ConfigurePage(
 fun ConfigurePagePlaylistVariant(
     modifier: Modifier = Modifier,
     initialDownloadType: DownloadType,
-    preferences: DownloadUtil.DownloadPreferences,
-    onPreferencesUpdate: (DownloadUtil.DownloadPreferences) -> Unit,
+    preferences: DownloadPreferences,
+    onPreferencesUpdate: (DownloadPreferences) -> Unit,
     onPresetEdit: (DownloadType?) -> Unit = {},
     onDismissRequest: () -> Unit,
     onDownload: (DownloadType) -> Unit,
@@ -726,7 +728,7 @@ fun ConfigurePagePlaylistVariant(
                 preference = preferences,
                 selectedType = Audio,
                 onPreferenceUpdate = {
-                    onPreferencesUpdate(DownloadUtil.DownloadPreferences.createFromPreferences())
+                    onPreferencesUpdate(DownloadPreferences.createFromPreferences())
                 },
             )
         }
@@ -752,7 +754,7 @@ private fun AdditionalSettings(
     modifier: Modifier = Modifier,
     isQuickDownload: Boolean,
     selectedType: DownloadType?,
-    preference: DownloadUtil.DownloadPreferences,
+    preference: DownloadPreferences,
     onNavigateToCookieGeneratorPage: (String) -> Unit = {},
     onPreferenceUpdate: () -> Unit,
 ) {
@@ -977,7 +979,7 @@ private fun DownloadTypeSelectionGroup(
 @Composable
 private fun Preset(
     modifier: Modifier = Modifier,
-    preference: DownloadUtil.DownloadPreferences,
+    preference: DownloadPreferences,
     downloadType: DownloadType?,
     selected: Boolean,
     showEditIcon: Boolean,

@@ -70,6 +70,8 @@ import com.junkfood.seal.util.AUDIO_FORMAT
 import com.junkfood.seal.util.AUDIO_QUALITY
 import com.junkfood.seal.util.DownloadType.Audio
 import com.junkfood.seal.util.DownloadType.Video
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.PreferenceUtil.updateBoolean
@@ -88,7 +90,7 @@ fun PlaylistSelectionPage(
     onDismissRequest: () -> Unit = {},
 ) {
     var preferences by remember {
-        mutableStateOf(DownloadUtil.DownloadPreferences.createFromPreferences())
+        mutableStateOf(DownloadPreferences.createFromPreferences())
     }
     var showVideoPresetDialog by remember { mutableStateOf(false) }
     var showAudioPresetDialog by remember { mutableStateOf(false) }
@@ -173,7 +175,7 @@ fun PlaylistSelectionPage(
             onSave = {
                 VIDEO_FORMAT.updateInt(format)
                 VIDEO_QUALITY.updateInt(res)
-                preferences = DownloadUtil.DownloadPreferences.createFromPreferences()
+                preferences = DownloadPreferences.createFromPreferences()
             },
         )
     }
@@ -207,7 +209,7 @@ fun PlaylistSelectionPage(
                 AUDIO_CONVERSION_FORMAT.updateInt(conversionFmt)
                 AUDIO_CONVERT.updateBoolean(convertAudio)
                 AUDIO_FORMAT.updateInt(preferredFormat)
-                preferences = DownloadUtil.DownloadPreferences.createFromPreferences()
+                preferences = DownloadPreferences.createFromPreferences()
             },
         )
     }
@@ -273,7 +275,7 @@ fun PlaylistSelectionPageImpl(
                                         result.originalUrl ?: result.webpageUrl.toString(),
                                     indexList = selectedItems,
                                     playlistResult = result,
-                                    preferences = DownloadUtil.DownloadPreferences.EMPTY,
+                                    preferences = DownloadPreferences.EMPTY,
                                 )
                             )
                         },

@@ -13,9 +13,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Compose Multiplatform artifacts may be published here (kept for compatibility)
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         mavenLocal()
     }
 }
 rootProject.name = "Seal"
-include (":app")
+include(":app")
 include(":color")
+include(":shared")
+include(":desktop")

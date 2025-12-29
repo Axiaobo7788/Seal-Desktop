@@ -113,6 +113,8 @@ import com.junkfood.seal.util.CONFIGURE
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DEBUG
 import com.junkfood.seal.util.DISABLE_PREVIEW
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.NOTIFICATION
 import com.junkfood.seal.util.PreferenceUtil
@@ -289,7 +291,7 @@ fun DownloadPage(
         }
 
         var preferences by remember {
-            mutableStateOf(DownloadUtil.DownloadPreferences.createFromPreferences())
+            mutableStateOf(DownloadPreferences.createFromPreferences())
         }
         val sheetValue = dialogViewModel.sheetValueFlow.collectAsStateWithLifecycle().value
         val state = dialogViewModel.sheetStateFlow.collectAsStateWithLifecycle().value

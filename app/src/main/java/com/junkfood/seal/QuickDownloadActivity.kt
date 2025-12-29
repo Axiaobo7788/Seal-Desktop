@@ -28,6 +28,8 @@ import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel.Se
 import com.junkfood.seal.ui.page.downloadv2.configure.FormatPage
 import com.junkfood.seal.ui.page.downloadv2.configure.PlaylistSelectionPage
 import com.junkfood.seal.ui.theme.SealTheme
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.matchUrlFromSharedText
@@ -102,7 +104,7 @@ class QuickDownloadActivity : ComponentActivity() {
                     isHighContrastModeEnabled = LocalDarkTheme.current.isHighContrastModeEnabled,
                 ) {
                     var preferences by remember {
-                        mutableStateOf(DownloadUtil.DownloadPreferences.createFromPreferences())
+                        mutableStateOf(DownloadPreferences.createFromPreferences())
                     }
 
                     val sheetValue = viewModel.sheetValueFlow.collectAsStateWithLifecycle().value

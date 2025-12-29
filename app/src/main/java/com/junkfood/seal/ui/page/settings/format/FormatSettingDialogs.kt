@@ -83,6 +83,7 @@ import com.junkfood.seal.util.CONVERT_MP3
 import com.junkfood.seal.util.CONVERT_SUBTITLE
 import com.junkfood.seal.util.CONVERT_VTT
 import com.junkfood.seal.util.DEFAULT
+import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_COMPATIBILITY
 import com.junkfood.seal.util.FORMAT_QUALITY
@@ -372,7 +373,7 @@ private fun AudioQualitySelectField(
 @Composable
 fun AudioQuickSettingsDialog(
     modifier: Modifier = Modifier,
-    preferences: DownloadUtil.DownloadPreferences,
+    preferences: DownloadPreferences,
     onDismissRequest: () -> Unit = {},
     useCustomAudioPreset: Boolean,
     onCustomPresetToggle: (Boolean) -> Unit,

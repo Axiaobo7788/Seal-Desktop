@@ -294,13 +294,11 @@ private fun FormatPageImpl(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    if (videoInfo.formats.isNullOrEmpty()) return
-    val videoOnlyFormats =
-        videoInfo.formats.filter { it.vcodec != "none" && it.acodec == "none" }.reversed()
-    val audioOnlyFormats =
-        videoInfo.formats.filter { it.acodec != "none" && it.vcodec == "none" }.reversed()
-    val videoAudioFormats =
-        videoInfo.formats.filter { it.acodec != "none" && it.vcodec != "none" }.reversed()
+    val formats = videoInfo.formats ?: return
+    if (formats.isEmpty()) return
+    val videoOnlyFormats = formats.filter { it.vcodec != "none" && it.acodec == "none" }.reversed()
+    val audioOnlyFormats = formats.filter { it.acodec != "none" && it.vcodec == "none" }.reversed()
+    val videoAudioFormats = formats.filter { it.acodec != "none" && it.vcodec != "none" }.reversed()
 
     val duration = videoInfo.duration ?: 0.0
 

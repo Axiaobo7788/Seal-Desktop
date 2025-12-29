@@ -3,7 +3,7 @@ package com.junkfood.seal.download
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.download.Task.TypeInfo
 import com.junkfood.seal.download.Task.ViewState
-import com.junkfood.seal.util.DownloadUtil
+import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.VideoInfo
 import com.junkfood.seal.util.toHttpsUrl
@@ -20,14 +20,14 @@ private val TypeInfo.id: String
             TypeInfo.URL -> ""
         }
 
-private fun makeId(url: String, type: TypeInfo, preferences: DownloadUtil.DownloadPreferences): String =
+private fun makeId(url: String, type: TypeInfo, preferences: DownloadPreferences): String =
     "${url}_${type.id}_${preferences.hashCode()}"
 
 @Serializable
 data class Task(
     val url: String,
     val type: TypeInfo = TypeInfo.URL,
-    val preferences: DownloadUtil.DownloadPreferences,
+    val preferences: DownloadPreferences,
     val id: String = makeId(url, type, preferences),
 ) : Comparable<Task> {
 

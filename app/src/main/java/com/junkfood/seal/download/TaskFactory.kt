@@ -3,7 +3,8 @@ package com.junkfood.seal.download
 import androidx.annotation.CheckResult
 import com.junkfood.seal.download.Task.DownloadState.Idle
 import com.junkfood.seal.download.Task.DownloadState.ReadyWithInfo
-import com.junkfood.seal.util.DownloadUtil.DownloadPreferences
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.VideoClip
@@ -89,8 +90,8 @@ object TaskFactory {
         playlistResult: PlaylistResult,
         preferences: DownloadPreferences,
     ): List<TaskWithState> {
-        checkNotNull(playlistResult.entries)
-        val indexEntryMap = indexList.associateWith { index -> playlistResult.entries[index - 1] }
+        val entries = playlistResult.entries ?: return emptyList()
+        val indexEntryMap = indexList.associateWith { index -> entries[index - 1] }
 
         val taskList =
             indexEntryMap.map { (index, entry) ->

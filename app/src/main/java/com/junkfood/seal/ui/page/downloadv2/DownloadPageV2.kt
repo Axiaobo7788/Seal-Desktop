@@ -116,6 +116,8 @@ import com.junkfood.seal.ui.page.downloadv2.configure.PreferencesMock
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.download
 import com.junkfood.seal.ui.theme.SealTheme
+import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.getErrorReport
@@ -251,7 +253,7 @@ fun DownloadPageV2(
     }
 
     var preferences by remember {
-        mutableStateOf(DownloadUtil.DownloadPreferences.createFromPreferences())
+        mutableStateOf(DownloadPreferences.createFromPreferences())
     }
     val sheetValue by dialogViewModel.sheetValueFlow.collectAsStateWithLifecycle()
     val state by dialogViewModel.sheetStateFlow.collectAsStateWithLifecycle()

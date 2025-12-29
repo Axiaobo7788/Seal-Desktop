@@ -160,6 +160,7 @@ kotlin { jvmToolchain(21) }
 
 dependencies {
     implementation(project(":color"))
+    implementation(project(":shared"))
 
     implementation(libs.bundles.core)
 

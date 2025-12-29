@@ -275,16 +275,17 @@ fun FormatItem(
         val codec =
             connectWithBlank(vcodecText, acodecText).run { if (isNotBlank()) "($this)" else this }
 
+        val tbrValue = tbr
         val tbrText =
             when {
-                tbr == null -> "" // i don't care
-                tbr < 1024f -> "%.1f Kbps".format(tbr)
+                tbrValue == null -> ""
+                tbrValue < 1024f -> "%.1f Kbps".format(tbrValue)
 
-                else -> "%.2f Mbps".format(tbr / 1024f)
+                else -> "%.2f Mbps".format(tbrValue / 1024f)
             }
 
-        val fileSize = fileSize ?: fileSizeApprox ?: (tbr?.times(duration * 125))
-        val fileSizeText = fileSize.toFileSizeText()
+        val fileSizeValue = fileSize ?: fileSizeApprox ?: tbrValue?.times(duration * 125)
+        val fileSizeText = fileSizeValue.toFileSizeText()
 
         val firstLineText = connectWithDelimiter(fileSizeText, tbrText, delimiter = " ")
 
