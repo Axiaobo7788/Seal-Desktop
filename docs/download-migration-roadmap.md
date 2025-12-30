@@ -88,13 +88,14 @@
 可迁移的核心其实是：
 - 依据 `DownloadPreferences`、`VideoInfo`、用户选择（formatId、字幕语言、clip、splitByChapter、outputTemplate 等），生成一组参数（`List<String>`）与输出模板（`-o` 的值）
 
-建议在 shared 定义一个纯数据计划：
-- `data class DownloadPlan(val args: List<String>, val outputTemplate: String, val downloadPathHint: String? = null, ...)`
-- 或更结构化：`sealed interface YtdlpOption`（最后再 flatten 成 `List<String>`）
+建议在 shared 定义一个纯数据计划（已有骨架 `DownloadPlan / YtDlpOption / DownloadPlanBuilder`）：
+- `data class DownloadPlan(val options: List<YtDlpOption>, val outputTemplate: String, val downloadPathHint: String? = null, ...)`
+- sealed `YtDlpOption`（Flag/KeyValue），最终可 flatten 成 `List<String>`
 
 然后：
-- app：`DownloadPlan -> YoutubeDLRequest`（Android-only adapter）
-- desktop：`DownloadPlan -> ProcessBuilder` 或其他执行器（JVM adapter）
+- shared：实现 `DownloadPreferences` + 选择信息 → `DownloadPlan` 的纯映射（只生成参数/模板，不含路径）；
+- app：`DownloadPlan -> YoutubeDLRequest`（Android-only adapter）；
+- desktop：`DownloadPlan -> ProcessBuilder` 或其他执行器（JVM adapter）。
 
 从 `DownloadUtil` 中可拆出来的子块（强烈建议先做“只拆参数”）：
 - `applyFormatSorter(...)`
@@ -113,6 +114,11 @@
 验收：
 - 先做功能等价：比较迁移前后 request.buildCommand() 输出（可在 debug 日志对比）。
 - `./gradlew :app:assembleDebug` + 手动下载一条视频/音频回归。
+
+### 4.2 desktop 执行适配补充
+- 在 desktop 模块提供 `DownloadPlanExecutor`（封装 ProcessBuilder），处理取消、stdout/stderr 捕获、退出码映射。
+- desktop 自己的 cookies/archive/temp 目录策略（不要复用 Android 路径）。
+- 记录日志以便与 app 端参数对比，确保行为等价。
 
 ---
 
@@ -166,8 +172,8 @@
 
 ## 8. 迁移记录（留空，供你逐步填）
 
-- [ ] Step 1：工具函数迁移（PR #___）
-- [ ] Step 2：FormatSorter 迁移（PR #___）
-- [ ] Step 3：DownloadPlan 引入（PR #___）
+- [x] Step 1：工具函数迁移（main）
+- [x] Step 2：FormatSorter 迁移（main）
+- [x] Step 3：DownloadPlan 引入（main）
 - [ ] Step 4：app 侧适配替换（PR #___）
 - [ ] Step 5：TaskFactory 计算下沉（PR #___）

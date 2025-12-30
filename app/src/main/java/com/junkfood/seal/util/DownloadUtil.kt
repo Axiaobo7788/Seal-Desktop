@@ -22,6 +22,9 @@ import com.junkfood.seal.R
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.database.objects.DownloadedVideoInfo
 import com.junkfood.seal.ui.page.settings.network.Cookie
+import com.junkfood.seal.download.DownloadPlan
+import com.junkfood.seal.download.YtDlpOption
+import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.util.FileUtil.getArchiveFile
 import com.junkfood.seal.util.FileUtil.getConfigFile
 import com.junkfood.seal.util.FileUtil.getCookiesFile
@@ -49,7 +52,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.Locale
 
 object DownloadUtil {
 
@@ -443,160 +445,136 @@ object DownloadUtil {
         if (videoInfo == null)
             return Result.failure(Throwable(context.getString(R.string.fetch_info_error_msg)))
 
-        with(downloadPreferences) {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = videoInfo,
+                preferences = downloadPreferences,
+                playlistUrl = playlistUrl,
+                playlistItem = playlistItem,
+            )
+
+        val (request, downloadPath) =
+            buildRequestFromPlan(
+                    plan = plan,
+                    videoInfo = videoInfo,
+                    preferences = downloadPreferences,
+                    playlistUrl = playlistUrl,
+                )
+                .getOrElse { return Result.failure(it) }
+
+        for (s in request.buildCommand()) Log.d(TAG, s)
+
+        request
+            .runCatching {
+                YoutubeDL.getInstance()
+                    .execute(request = this, processId = taskId, callback = progressCallback)
+            }
+            .onFailure { th ->
+                return if (
+                    downloadPreferences.sponsorBlock &&
+                        th.message?.contains("Unable to communicate with SponsorBlock API") == true
+                ) {
+                    th.printStackTrace()
+                    onFinishDownloading(
+                        preferences = downloadPreferences,
+                        videoInfo = videoInfo,
+                        downloadPath = downloadPath,
+                        sdcardUri = downloadPreferences.sdcardUri,
+                    )
+                } else Result.failure(th)
+            }
+
+        return onFinishDownloading(
+            preferences = downloadPreferences,
+            videoInfo = videoInfo,
+            downloadPath = downloadPath,
+            sdcardUri = downloadPreferences.sdcardUri,
+        )
+    }
+
+    private fun buildRequestFromPlan(
+        plan: DownloadPlan,
+        videoInfo: VideoInfo,
+        preferences: DownloadPreferences,
+        playlistUrl: String,
+    ): Result<Pair<YoutubeDLRequest, String>> =
+        runCatching {
             val url =
                 playlistUrl.ifEmpty {
                     videoInfo.originalUrl
                         ?: videoInfo.webpageUrl
-                        ?: return Result.failure(
-                            Throwable(context.getString(R.string.fetch_info_error_msg))
-                        )
+                        ?: throw Throwable(context.getString(R.string.fetch_info_error_msg))
                 }
+
             val request = YoutubeDLRequest(url)
-            val pathBuilder = StringBuilder()
-            val outputBuilder = StringBuilder()
-
-            request
-                .apply {
-                    addOption("--no-mtime")
-                    //                addOption("-v")
-                    if (cookies) {
-                        enableCookies(userAgentString)
-                    }
-                    if (restrictFilenames) {
-                        addOption("--restrict-filenames")
-                    }
-                    if (proxy) {
-                        enableProxy(proxyUrl)
-                    }
-                    if (forceIpv4) {
-                        addOption("-4")
-                    }
-                    if (debug) {
-                        addOption("-v")
-                    }
-                    if (useDownloadArchive) {
-                        val archiveFile = context.getArchiveFile()
-                        val archiveFileContent = archiveFile.readText()
-                        if (archiveFileContent.contains("${videoInfo.extractor} ${videoInfo.id}")) {
-                            return Result.failure(
-                                YoutubeDLException(
-                                    context.getString(R.string.download_archive_error)
-                                )
-                            )
-                        } else {
-                            useDownloadArchive()
-                        }
-                    }
-
-                    if (rateLimit && maxDownloadRate.isNumberInRange(1, 1000000)) {
-                        addOption("-r", "${maxDownloadRate}K")
-                    }
-
-                    if (playlistItem != 0 && downloadPlaylist) {
-                        addOption("--playlist-items", playlistItem)
-                        if (subdirectoryPlaylistTitle && !videoInfo.playlist.isNullOrEmpty()) {
-                            outputBuilder.append(PLAYLIST_TITLE_SUBDIRECTORY_PREFIX)
-                        }
-                        //                    addOption("--compat-options",
-                        // "no-youtube-unavailable-videos")
-                    } else {
-                        addOption("--no-playlist")
-                    }
-
-                    if (aria2c) {
-                        enableAria2c()
-                    } else if (concurrentFragments > 1) {
-                        addOption("--concurrent-fragments", concurrentFragments)
-                    }
-
-                    if (extractAudio || (videoInfo.vcodec == "none")) {
-                        if (privateDirectory) pathBuilder.append(App.privateDownloadDir)
-                        else pathBuilder.append(audioDownloadDir)
-                        addOptionsForAudioDownloads(
-                            id = videoInfo.id,
-                            preferences = downloadPreferences,
-                            playlistUrl = playlistUrl,
-                        )
-                    } else {
-                        if (privateDirectory) pathBuilder.append(App.privateDownloadDir)
-                        else pathBuilder.append(videoDownloadDir)
-                        addOptionsForVideoDownloads(downloadPreferences)
-                    }
-                    if (sponsorBlock) {
-                        addOption("--sponsorblock-remove", sponsorBlockCategory)
-                    }
-
-                    if (createThumbnail) {
-                        addOption("--write-thumbnail")
-                        addOption("--convert-thumbnails", "png")
-                    }
-                    if (subdirectoryExtractor) {
-                        pathBuilder.append("/${videoInfo.extractorKey}")
-                    }
-
-                    if (sdcard) {
-                        addOption("-P", context.getSdcardTempDir(videoInfo.id).absolutePath)
-                    } else {
-                        addOption("-P", pathBuilder.toString())
-                    }
-
-                    videoClips.forEach {
-                        addOption(
-                            "--download-sections",
-                            "*%d-%d".format(locale = Locale.US, it.start, it.end),
-                        )
-                    }
-                    if (newTitle.isNotEmpty()) {
-                        addCommands(listOf("--replace-in-metadata", "title", ".+", newTitle))
-                    }
-                    if (Build.VERSION.SDK_INT > 23 && !sdcard)
-                        addOption("-P", "temp:" + getExternalTempDir())
-
-                    if (splitByChapter) {
-                        addOption("-o", OUTPUT_TEMPLATE_CHAPTERS)
-                        addOption("--split-chapters")
-                    }
-
-                    val output =
-                        if (splitByChapter) {
-                            OUTPUT_TEMPLATE_SPLIT
-                        } else if (videoClips.isEmpty()) {
-                            outputTemplate
-                        } else {
-                            OUTPUT_TEMPLATE_CLIPS
-                        }
-
-                    addOption("-o", outputBuilder.append(output).toString())
-
-                    for (s in request.buildCommand()) Log.d(TAG, s)
-                }
-                .runCatching {
-                    YoutubeDL.getInstance()
-                        .execute(request = this, processId = taskId, callback = progressCallback)
-                }
-                .onFailure { th ->
-                    return if (
-                        sponsorBlock &&
-                            th.message?.contains("Unable to communicate with SponsorBlock API") ==
-                                true
-                    ) {
-                        th.printStackTrace()
-                        onFinishDownloading(
-                            preferences = this,
-                            videoInfo = videoInfo,
-                            downloadPath = pathBuilder.toString(),
-                            sdcardUri = sdcardUri,
-                        )
-                    } else Result.failure(th)
-                }
-            return onFinishDownloading(
-                preferences = this,
-                videoInfo = videoInfo,
-                downloadPath = pathBuilder.toString(),
-                sdcardUri = sdcardUri,
-            )
+            val downloadPath = configureDownloadPaths(request, preferences, videoInfo)
+            applyPlanToRequest(request, plan, preferences, videoInfo)
+            request to downloadPath
         }
+
+    private fun configureDownloadPaths(
+        request: YoutubeDLRequest,
+        preferences: DownloadPreferences,
+        videoInfo: VideoInfo,
+    ): String {
+        val pathBuilder = StringBuilder()
+        val isAudioLike = preferences.extractAudio || videoInfo.vcodec == "none"
+
+        if (isAudioLike) {
+            if (preferences.privateDirectory) pathBuilder.append(App.privateDownloadDir)
+            else pathBuilder.append(audioDownloadDir)
+        } else {
+            if (preferences.privateDirectory) pathBuilder.append(App.privateDownloadDir)
+            else pathBuilder.append(videoDownloadDir)
+        }
+
+        if (preferences.subdirectoryExtractor) {
+            pathBuilder.append("/${videoInfo.extractorKey}")
+        }
+
+        if (preferences.sdcard) {
+            request.addOption("-P", context.getSdcardTempDir(videoInfo.id).absolutePath)
+        } else {
+            request.addOption("-P", pathBuilder.toString())
+        }
+
+        if (Build.VERSION.SDK_INT > 23 && !preferences.sdcard) {
+            request.addOption("-P", "temp:" + getExternalTempDir())
+        }
+
+        return pathBuilder.toString()
+    }
+
+    private fun applyPlanToRequest(
+        request: YoutubeDLRequest,
+        plan: DownloadPlan,
+        preferences: DownloadPreferences,
+        videoInfo: VideoInfo,
+    ) {
+        plan.options.forEach { option ->
+            when (option) {
+                is YtDlpOption.Flag -> request.addOption(option.name)
+                is YtDlpOption.KeyValue -> request.addOption(option.name, option.value)
+                is YtDlpOption.Multi -> request.addCommands(listOf(option.name) + option.values)
+            }
+        }
+
+        if (preferences.cookies && plan.needsCookiesFile) {
+            request.enableCookies(preferences.userAgentString)
+        } else if (preferences.userAgentString.isNotEmpty()) {
+            request.addOption("--add-header", "User-Agent:${preferences.userAgentString}")
+        }
+
+        if (preferences.useDownloadArchive && plan.needsArchiveFile) {
+            val archiveFile = context.getArchiveFile()
+            val archiveFileContent = archiveFile.readText()
+            if (archiveFileContent.contains("${videoInfo.extractor} ${videoInfo.id}")) {
+                throw YoutubeDLException(context.getString(R.string.download_archive_error))
+            }
+            request.useDownloadArchive()
+        }
+
+        request.addOption("-o", plan.outputTemplate)
     }
 
     private fun onFinishDownloading(
