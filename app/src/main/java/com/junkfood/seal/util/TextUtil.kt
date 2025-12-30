@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import androidx.core.text.isDigitsOnly
 import com.junkfood.seal.App
 import com.junkfood.seal.App.Companion.applicationScope
 import com.junkfood.seal.App.Companion.context
@@ -61,24 +60,12 @@ fun Int.toDurationText(): String =
         else "%02d:%02d".format(this / 60, this % 60)
     }
 
-fun String.isNumberInRange(start: Int, end: Int): Boolean {
-    return this.isNotEmpty() &&
-        this.isDigitsOnly() &&
-        this.length < 10 &&
-        this.toInt() >= start &&
-        this.toInt() <= end
-}
 
 private const val URL_REGEX_PATTERN =
     "(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?"
 
-fun String.isNumberInRange(range: IntRange): Boolean = this.isNumberInRange(range.first, range.last)
-
 fun ClosedFloatingPointRange<Float>.toIntRange() =
     IntRange(start.roundToInt(), endInclusive.roundToInt())
-
-fun String?.toHttpsUrl(): String =
-    this?.run { if (matches(Regex("^(http:).*"))) replaceFirst("http", "https") else this } ?: ""
 
 fun matchUrlFromClipboard(string: String, isMatchingMultiLink: Boolean = false): String {
     findURLsFromString(string, !isMatchingMultiLink).joinToString(separator = "\n").run {
@@ -131,12 +118,6 @@ fun findURLsFromString(input: String, firstMatchOnly: Boolean = false): List<Str
     }
     return result
 }
-
-fun connectWithDelimiter(vararg strings: String?, delimiter: String): String =
-    strings
-        .toList()
-        .filter { !it.isNullOrBlank() }
-        .joinToString(separator = delimiter) { it.toString() }
 
 fun connectWithBlank(s1: String, s2: String): String {
     val blank = if (s1.isEmpty() || s2.isEmpty()) "" else " "

@@ -49,7 +49,7 @@ import com.junkfood.seal.util.CROP_ARTWORK
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
-import com.junkfood.seal.util.DownloadUtil.toFormatSorter
+import com.junkfood.seal.util.toFormatSorter
 import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.EMBED_METADATA
 import com.junkfood.seal.util.EMBED_SUBTITLE

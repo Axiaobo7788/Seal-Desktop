@@ -85,7 +85,7 @@ import com.junkfood.seal.util.DOWNLOAD_TYPE_INITIALIZATION
 import com.junkfood.seal.util.DatabaseUtil
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
-import com.junkfood.seal.util.DownloadUtil.toFormatSorter
+import com.junkfood.seal.util.toFormatSorter
 import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.EXTRACT_AUDIO
 import com.junkfood.seal.util.FORMAT_SELECTION
