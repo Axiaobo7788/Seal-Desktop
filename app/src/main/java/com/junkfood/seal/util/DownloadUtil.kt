@@ -34,6 +34,13 @@ import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import com.junkfood.seal.util.PreferenceUtil.getInt
 import com.junkfood.seal.util.PreferenceUtil.getString
 import com.junkfood.seal.util.PreferenceUtil.updateBoolean
+import com.junkfood.seal.util.PreferenceUtil.updateInt
+import com.junkfood.seal.util.PreferenceUtil.updateString
+import com.junkfood.seal.util.connectWithDelimiter
+import com.junkfood.seal.util.isNumberInRange
+import com.junkfood.seal.util.toHttpsUrl
+import com.junkfood.seal.util.toAudioFormatSorter
+import com.junkfood.seal.util.toFormatSorter
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
@@ -315,77 +322,6 @@ object DownloadUtil {
             }
         }
 
-    @CheckResult
-    private fun DownloadPreferences.toAudioFormatSorter(): String =
-        this.run {
-            if (!useCustomAudioPreset) return@run ""
-            val format =
-                when (audioFormat) {
-                    M4A -> "acodec:aac"
-                    OPUS -> "acodec:opus"
-                    else -> ""
-                }
-            val quality =
-                when (audioQuality) {
-                    HIGH -> "abr~192"
-                    MEDIUM -> "abr~128"
-                    LOW -> "abr~64"
-                    else -> ""
-                }
-            return@run connectWithDelimiter(format, quality, delimiter = ",")
-        }
-
-    @CheckResult
-    private fun DownloadPreferences.toVideoFormatSorter(): String =
-        this.run {
-            val format =
-                when (videoFormat) {
-                    FORMAT_COMPATIBILITY -> "proto,vcodec:h264,ext"
-                    FORMAT_QUALITY ->
-                        if (supportAv1HardwareDecoding) {
-                            "vcodec:av01"
-                        } else {
-                            "vcodec:vp9.2"
-                        }
-
-                    else -> ""
-                }
-            val res =
-                when (videoResolution) {
-                    1 -> "res:2160"
-                    2 -> "res:1440"
-                    3 -> "res:1080"
-                    4 -> "res:720"
-                    5 -> "res:480"
-                    6 -> "res:360"
-                    7 -> "+res"
-                    else -> ""
-                }
-            val sorter = if (videoFormat == FORMAT_COMPATIBILITY) {
-                connectWithDelimiter(format, res, delimiter = ",")
-            } else {
-                connectWithDelimiter(res, format, delimiter = ",")
-            }
-            return@run sorter
-        }
-
-    private fun YoutubeDLRequest.applyFormatSorter(
-        preferences: DownloadPreferences,
-        sorter: String,
-    ) =
-        preferences.run {
-            if (formatSorting && sortingFields.isNotEmpty()) addOption("-S", sortingFields)
-            else if (sorter.isNotEmpty()) addOption("-S", sorter) else {}
-        }
-
-    @CheckResult
-    fun DownloadPreferences.toFormatSorter(): String =
-        connectWithDelimiter(
-            this.toVideoFormatSorter(),
-            this.toAudioFormatSorter(),
-            delimiter = ",",
-        )
-
     private fun YoutubeDLRequest.addOptionsForAudioDownloads(
         id: String,
         preferences: DownloadPreferences,
@@ -453,6 +389,15 @@ object DownloadUtil {
                     addOption("--parse-metadata", "%(album,title)s:%(meta_album)s")
                 }
             }
+        }
+
+    private fun YoutubeDLRequest.applyFormatSorter(
+        preferences: DownloadPreferences,
+        sorter: String,
+    ) =
+        preferences.run {
+            if (formatSorting && sortingFields.isNotEmpty()) addOption("-S", sortingFields)
+            else if (sorter.isNotEmpty()) addOption("-S", sorter) else {}
         }
 
     private fun insertInfoIntoDownloadHistory(

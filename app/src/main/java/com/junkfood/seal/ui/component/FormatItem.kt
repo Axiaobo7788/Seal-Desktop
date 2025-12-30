@@ -31,8 +31,8 @@ import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material.icons.rounded.Audiotrack
 import androidx.compose.material.icons.rounded.QuestionMark
 import androidx.compose.material.icons.rounded.Videocam
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu as M3DropdownMenu
+import androidx.compose.material3.DropdownMenuItem as M3DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -133,13 +133,13 @@ fun FormatVideoPreview(
                 )
             }
 
-            DropdownMenu(
+            M3DropdownMenu(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 scrollState = rememberScrollState(),
             ) {
-                DropdownMenuItem(
+                M3DropdownMenuItem(
                     leadingIcon = { Icon(imageVector = Icons.Outlined.Edit, null) },
                     text = { Text(text = stringResource(id = R.string.rename)) },
                     onClick = {
@@ -147,7 +147,7 @@ fun FormatVideoPreview(
                         expanded = false
                     },
                 )
-                DropdownMenuItem(
+                M3DropdownMenuItem(
                     leadingIcon = { Icon(imageVector = Icons.Outlined.Image, null) },
                     text = { Text(text = stringResource(id = R.string.thumbnail)) },
                     onClick = {
@@ -156,7 +156,7 @@ fun FormatVideoPreview(
                     },
                 )
                 if (isClippingAvailable && !isClippingVideo && !isSplittingVideo) {
-                    DropdownMenuItem(
+                    M3DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Outlined.ContentCut, null) },
                         text = { Text(text = stringResource(id = R.string.clip_video)) },
                         onClick = {
@@ -166,7 +166,7 @@ fun FormatVideoPreview(
                     )
                 }
                 if (isSplitByChapterAvailable && !isClippingVideo && !isSplittingVideo) {
-                    DropdownMenuItem(
+                    M3DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Outlined.VerticalSplit, null) },
                         text = { Text(text = stringResource(id = R.string.split_video)) },
                         onClick = {
