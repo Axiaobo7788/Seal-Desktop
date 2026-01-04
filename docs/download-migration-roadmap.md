@@ -175,5 +175,5 @@
 - [x] Step 1：工具函数迁移（main）
 - [x] Step 2：FormatSorter 迁移（main）
 - [x] Step 3：DownloadPlan 引入（main）
-- [ ] Step 4：app 侧适配替换（PR #___）
+- [x] Step 4：app 侧适配替换（main）
 - [ ] Step 5：TaskFactory 计算下沉（PR #___）
