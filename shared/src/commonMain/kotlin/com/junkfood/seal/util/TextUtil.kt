@@ -1,3 +1,5 @@
+@file:JvmName("SharedTextUtil")
+
 package com.junkfood.seal.util
 
 /** Join non-blank strings with a delimiter. */

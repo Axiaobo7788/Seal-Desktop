@@ -17,7 +17,11 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
-        val commonTest by getting
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
 
         val androidMain by getting
         val androidUnitTest by getting

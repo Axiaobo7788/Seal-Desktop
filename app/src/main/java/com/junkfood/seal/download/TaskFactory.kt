@@ -3,6 +3,8 @@ package com.junkfood.seal.download
 import androidx.annotation.CheckResult
 import com.junkfood.seal.download.Task.DownloadState.Idle
 import com.junkfood.seal.download.Task.DownloadState.ReadyWithInfo
+import com.junkfood.seal.download.PlaylistSelectionMapper
+import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.Format
@@ -31,43 +33,22 @@ object TaskFactory {
                 acc + (format.fileSize ?: format.fileSizeApprox ?: .0)
             }
 
-        val info =
-            videoInfo
-                .run { if (fileSize != .0) copy(fileSize = fileSize) else this }
-                .run { if (newTitle.isNotEmpty()) copy(title = newTitle) else this }
-
-        val audioOnlyFormats = formatList.filter { it.isAudioOnly() }
-        val videoFormats = formatList.filter { it.containsVideo() }
-        val audioOnly = audioOnlyFormats.isNotEmpty() && videoFormats.isEmpty()
-        val mergeAudioStream = audioOnlyFormats.size > 1
-        val formatId = formatList.joinToString(separator = "+") { it.formatId.toString() }
-
-        val subtitleLanguage =
-            (selectedSubtitles + selectedAutoCaptions).joinToString(separator = ",")
-
-        val preferences =
-            DownloadPreferences.createFromPreferences()
-                .run {
-                    copy(
-                        formatIdString = formatId,
-                        videoClips = videoClips,
-                        splitByChapter = splitByChapter,
-                        newTitle = newTitle,
-                        mergeAudioStream = mergeAudioStream,
-                        extractAudio = extractAudio || audioOnly,
-                    )
-                }
-                .run {
-                    if (subtitleLanguage.isNotEmpty()) {
-                        copy(
-                            downloadSubtitle = true,
-                            autoSubtitle = selectedAutoCaptions.isNotEmpty(),
-                            subtitleLanguage = subtitleLanguage,
-                        )
-                    } else {
-                        this
-                    }
-                }
+        val basePreferences = DownloadPreferences.createFromPreferences()
+        val merged =
+            SelectionMerge.merge(
+                basePreferences = basePreferences,
+                videoInfo = videoInfo,
+                formatList = formatList,
+                videoClips = videoClips,
+                splitByChapter = splitByChapter,
+                newTitle = newTitle,
+                selectedSubtitles = selectedSubtitles,
+                selectedAutoCaptions = selectedAutoCaptions,
+            )
+        val info = merged.videoInfo
+        val preferences = merged.preferences
+        val audioOnlyFormats = merged.audioFormats
+        val videoFormats = merged.videoFormats
 
         val task = Task(url = info.originalUrl.toString(), preferences = preferences)
         val state =
@@ -90,22 +71,20 @@ object TaskFactory {
         playlistResult: PlaylistResult,
         preferences: DownloadPreferences,
     ): List<TaskWithState> {
-        val entries = playlistResult.entries ?: return emptyList()
-        val indexEntryMap = indexList.associateWith { index -> entries[index - 1] }
+        val mapped = PlaylistSelectionMapper.map(playlistResult, indexList)
 
         val taskList =
-            indexEntryMap.map { (index, entry) ->
+            mapped.map { (index, itemView) ->
                 val viewState =
                     Task.ViewState(
-                        url = entry.url ?: "",
-                        title = entry.title ?: "${playlistResult.title} - $index",
-                        duration = entry.duration?.roundToInt() ?: 0,
-                        uploader = entry.uploader ?: entry.channel ?: playlistResult.channel ?: "",
-                        thumbnailUrl = (entry.thumbnails?.lastOrNull()?.url) ?: "",
+                        url = itemView.url,
+                        title = itemView.title,
+                        duration = itemView.duration,
+                        uploader = itemView.uploader,
+                        thumbnailUrl = itemView.thumbnailUrl,
                     )
                 val task = Task(url = playlistUrl, preferences = preferences, type = Task.TypeInfo.Playlist(index))
-                val state =
-                    Task.State(downloadState = Idle, videoInfo = null, viewState = viewState)
+                val state = Task.State(downloadState = Idle, videoInfo = null, viewState = viewState)
                 TaskWithState(task, state)
             }
 
