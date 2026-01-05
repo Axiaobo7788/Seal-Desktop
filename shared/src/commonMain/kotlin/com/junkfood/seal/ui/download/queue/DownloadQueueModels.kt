@@ -1,0 +1,96 @@
+package com.junkfood.seal.ui.download.queue
+
+/**
+ * 平台无关的下载队列模型，供 Android/desktop 通过适配层输入。
+ */
+
+enum class DownloadQueueFilter { All, Downloading, Canceled, Finished }
+
+enum class DownloadQueueViewMode { Grid, List }
+
+enum class DownloadQueueStatus {
+    Idle,
+    FetchingInfo,
+    Ready,
+    Running,
+    Completed,
+    Canceled,
+    Error,
+}
+
+enum class DownloadQueueMediaType { Video, Audio, Unknown }
+
+/**
+ * 单条任务的展示状态。
+ */
+data class DownloadQueueItemState(
+    val id: String,
+    val title: String,
+    val author: String = "",
+    val url: String = "",
+    val mediaType: DownloadQueueMediaType = DownloadQueueMediaType.Unknown,
+    val durationSeconds: Int? = null,
+    val fileSizeApproxBytes: Double? = null,
+    val progress: Float? = null, // 0f..1f，null 表示未知
+    val progressText: String = "",
+    val status: DownloadQueueStatus = DownloadQueueStatus.Idle,
+    val thumbnailUrl: String? = null,
+    val filePath: String? = null,
+    val errorMessage: String? = null,
+)
+
+/**
+ * 队列整体状态。
+ */
+data class DownloadQueueState(
+    val items: List<DownloadQueueItemState> = emptyList(),
+    val filter: DownloadQueueFilter = DownloadQueueFilter.All,
+    val viewMode: DownloadQueueViewMode = DownloadQueueViewMode.Grid,
+    val isLoading: Boolean = false,
+    val selectedItemId: String? = null,
+)
+
+/**
+ * 用户触发的队列动作意图，平台层自行实现。
+ */
+sealed interface DownloadQueueAction {
+    data object Cancel : DownloadQueueAction
+    data object Resume : DownloadQueueAction
+    data object Delete : DownloadQueueAction
+    data object OpenFile : DownloadQueueAction
+    data object ShareFile : DownloadQueueAction
+    data object CopyVideoUrl : DownloadQueueAction
+    data object OpenVideoUrl : DownloadQueueAction
+    data object OpenThumbnailUrl : DownloadQueueAction
+    data object CopyError : DownloadQueueAction
+    data object ShowDetails : DownloadQueueAction
+}
+
+/**
+ * UI 文案，平台负责提供本地化字符串。
+ */
+data class DownloadQueueStrings(
+    val queueTitle: String,
+    val addLabel: String,
+    val filterAll: String,
+    val filterDownloading: String,
+    val filterCanceled: String,
+    val filterFinished: String,
+    val emptyTitle: String,
+    val emptyBody: String,
+    val gridLabel: String,
+    val listLabel: String,
+    val videoCountLabel: (Int) -> String = { count -> "Video: $count" },
+    val audioCountLabel: (Int) -> String = { count -> "Audio: $count" },
+    val openActionsLabel: String = "Actions",
+    val resumeLabel: String = "Resume",
+    val cancelLabel: String = "Cancel",
+    val deleteLabel: String = "Delete",
+    val openFileLabel: String = "Open file",
+    val shareFileLabel: String = "Share file",
+    val copyUrlLabel: String = "Copy link",
+    val openUrlLabel: String = "Open link",
+    val openThumbLabel: String = "Thumbnail",
+    val copyErrorLabel: String = "Copy error",
+    val showDetailsLabel: String = "Details",
+)

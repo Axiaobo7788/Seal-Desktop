@@ -8,9 +8,7 @@ import android.util.Log
 import android.webkit.CookieManager
 import androidx.annotation.CheckResult
 import com.junkfood.seal.App
-import com.junkfood.seal.App.Companion.audioDownloadDir
 import com.junkfood.seal.App.Companion.context
-import com.junkfood.seal.App.Companion.videoDownloadDir
 import com.junkfood.seal.Downloader
 import com.junkfood.seal.Downloader.onProcessEnded
 import com.junkfood.seal.Downloader.onProcessStarted
@@ -19,16 +17,17 @@ import com.junkfood.seal.Downloader.onTaskError
 import com.junkfood.seal.Downloader.onTaskStarted
 import com.junkfood.seal.Downloader.toNotificationId
 import com.junkfood.seal.R
+import com.junkfood.seal.BuildConfig
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.database.objects.DownloadedVideoInfo
 import com.junkfood.seal.ui.page.settings.network.Cookie
+import com.junkfood.seal.download.CustomCommandPlan
 import com.junkfood.seal.download.DownloadPlan
-import com.junkfood.seal.download.YtDlpOption
+import com.junkfood.seal.download.YoutubeDlRequestAdapter
 import com.junkfood.seal.download.buildDownloadPlan
-import com.junkfood.seal.util.FileUtil.getArchiveFile
+import com.junkfood.seal.download.buildCustomCommandPlan
 import com.junkfood.seal.util.FileUtil.getConfigFile
 import com.junkfood.seal.util.FileUtil.getCookiesFile
-import com.junkfood.seal.util.FileUtil.getExternalTempDir
 import com.junkfood.seal.util.FileUtil.getFileName
 import com.junkfood.seal.util.FileUtil.getSdcardTempDir
 import com.junkfood.seal.util.FileUtil.moveFilesToSdcard
@@ -52,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.File
 
 object DownloadUtil {
 
@@ -88,9 +88,6 @@ object DownloadUtil {
     private const val OUTPUT_TEMPLATE_SPLIT = "$BASENAME/$OUTPUT_TEMPLATE_DEFAULT"
 
     private const val PLAYLIST_TITLE_SUBDIRECTORY_PREFIX = "%(playlist)s/"
-
-    private const val CROP_ARTWORK_COMMAND =
-        """--ppa "ffmpeg: -c:v mjpeg -vf crop=\"'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'\"""""
 
     @CheckResult
     fun getPlaylistOrVideoInfo(
@@ -207,9 +204,6 @@ object DownloadUtil {
     private fun YoutubeDLRequest.enableProxy(proxyUrl: String): YoutubeDLRequest =
         this.addOption("--proxy", proxyUrl)
 
-    private fun YoutubeDLRequest.useDownloadArchive(): YoutubeDLRequest =
-        this.addOption("--download-archive", context.getArchiveFile().absolutePath)
-
     @CheckResult
     fun getCookieListFromDatabase(): Result<List<Cookie>> = runCatching {
         CookieManager.getInstance().run {
@@ -269,130 +263,6 @@ object DownloadUtil {
     fun getCookiesContentFromDatabase(): Result<String> =
         getCookieListFromDatabase().mapCatching { it.toCookiesFileContent() }
 
-    private fun YoutubeDLRequest.enableAria2c(): YoutubeDLRequest =
-        this.addOption("--downloader", "libaria2c.so")
-
-    private fun YoutubeDLRequest.addOptionsForVideoDownloads(
-        downloadPreferences: DownloadPreferences
-    ): YoutubeDLRequest =
-        this.apply {
-            downloadPreferences.run {
-                addOption("--add-metadata")
-                addOption("--no-embed-info-json")
-                if (formatIdString.isNotEmpty()) {
-                    addOption("-f", formatIdString)
-                    if (mergeAudioStream) {
-                        addOption("--audio-multistreams")
-                    }
-                } else {
-                    applyFormatSorter(this, toFormatSorter())
-                }
-                if (downloadSubtitle) {
-                    if (autoSubtitle) {
-                        addOption("--write-auto-subs")
-                        if (!autoTranslatedSubtitles) {
-                            addOption("--extractor-args", "youtube:skip=translated_subs")
-                        }
-                    }
-                    subtitleLanguage
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { addOption("--sub-langs", it) }
-                    if (embedSubtitle) {
-                        addOption("--embed-subs")
-                        if (keepSubtitle) {
-                            addOption("--write-subs")
-                        }
-                    } else {
-                        addOption("--write-subs")
-                    }
-                    when (convertSubtitle) {
-                        CONVERT_ASS -> addOption("--convert-subs", "ass")
-                        CONVERT_SRT -> addOption("--convert-subs", "srt")
-                        CONVERT_VTT -> addOption("--convert-subs", "vtt")
-                        CONVERT_LRC -> addOption("--convert-subs", "lrc")
-                        else -> {}
-                    }
-                }
-                if (mergeToMkv) {
-                    addOption("--remux-video", "mkv")
-                    addOption("--merge-output-format", "mkv")
-                }
-                if (embedThumbnail) {
-                    addOption("--embed-thumbnail")
-                }
-                if (videoClips.isEmpty()) addOption("--embed-chapters")
-            }
-        }
-
-    private fun YoutubeDLRequest.addOptionsForAudioDownloads(
-        id: String,
-        preferences: DownloadPreferences,
-        playlistUrl: String,
-    ): YoutubeDLRequest =
-        this.apply {
-            with(preferences) {
-                addOption("-x")
-                if (downloadSubtitle) {
-                    addOption("--write-subs")
-
-                    if (autoSubtitle) {
-                        addOption("--write-auto-subs")
-                        if (!autoTranslatedSubtitles) {
-                            addOption("--extractor-args", "youtube:skip=translated_subs")
-                        }
-                    }
-                    subtitleLanguage
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { addOption("--sub-langs", it) }
-                    when (convertSubtitle) {
-                        CONVERT_ASS -> addOption("--convert-subs", "ass")
-                        CONVERT_SRT -> addOption("--convert-subs", "srt")
-                        CONVERT_VTT -> addOption("--convert-subs", "vtt")
-                        CONVERT_LRC -> addOption("--convert-subs", "lrc")
-                        else -> {}
-                    }
-                }
-                if (formatIdString.isNotEmpty()) {
-                    addOption("-f", formatIdString)
-                    if (mergeAudioStream) {
-                        addOption("--audio-multistreams")
-                    }
-                } else if (convertAudio) {
-                    when (audioConvertFormat) {
-                        CONVERT_MP3 -> {
-                            addOption("--audio-format", "mp3")
-                        }
-
-                        CONVERT_M4A -> {
-                            addOption("--audio-format", "m4a")
-                        }
-                    }
-                } else {
-                    applyFormatSorter(preferences, toAudioFormatSorter())
-                }
-
-                if (embedMetadata) {
-                    addOption("--embed-metadata")
-                    addOption("--embed-thumbnail")
-                    addOption("--convert-thumbnails", "jpg")
-
-                    if (cropArtwork) {
-                        val configFile = context.getConfigFile(id)
-                        FileUtil.writeContentToFile(CROP_ARTWORK_COMMAND, configFile)
-                        addOption("--config", configFile.absolutePath)
-                    }
-                }
-                addOption("--parse-metadata", "%(release_year,upload_date)s:%(meta_date)s")
-
-                if (playlistUrl.isNotEmpty()) {
-                    addOption("--parse-metadata", "%(album,playlist,title)s:%(meta_album)s")
-                    addOption("--parse-metadata", "%(track_number,playlist_index)d:%(meta_track)s")
-                } else {
-                    addOption("--parse-metadata", "%(album,title)s:%(meta_album)s")
-                }
-            }
-        }
-
     private fun YoutubeDLRequest.applyFormatSorter(
         preferences: DownloadPreferences,
         sorter: String,
@@ -433,6 +303,36 @@ object DownloadUtil {
             )
         }
 
+    /**
+     * Debug aid: log shared plan options vs the request's final command to spot drift/regressions.
+     * Emits in debug builds or when preferences.debug=true.
+     */
+    private fun logPlanDebug(plan: DownloadPlan, request: YoutubeDLRequest) {
+        val flattenedPlan =
+            plan.options.flatMap { opt ->
+                when (opt) {
+                    is com.junkfood.seal.download.YtDlpOption.Flag -> listOf(opt.name)
+                    is com.junkfood.seal.download.YtDlpOption.KeyValue -> listOf(opt.name, opt.value)
+                    is com.junkfood.seal.download.YtDlpOption.Multi -> listOf(opt.name) + opt.values
+                }
+            }
+        val planLine = "plan options => ${flattenedPlan.joinToString(" ")}".also { Log.d(TAG, it) }
+        val built = request.buildCommand().joinToString(" ")
+        val reqLine = "request command => $built".also { Log.d(TAG, it) }
+        appendPlanLog(listOf(planLine, reqLine))
+    }
+
+    /** Write plan debug info to a file so devices without logcat/adb can still export it. */
+    private fun appendPlanLog(lines: List<String>) {
+        runCatching {
+            val logDir = context.getExternalFilesDir("logs") ?: return
+            logDir.mkdirs()
+            val logFile = File(logDir, "download-plan.txt")
+            val header = "==== ${System.currentTimeMillis()} ===="
+            logFile.appendText((listOf(header) + lines + "").joinToString(separator = "\n"))
+        }.onFailure { Log.w(TAG, "plan log write failed", it) }
+    }
+
     @CheckResult
     fun downloadVideo(
         videoInfo: VideoInfo? = null,
@@ -454,7 +354,7 @@ object DownloadUtil {
             )
 
         val (request, downloadPath) =
-            buildRequestFromPlan(
+            YoutubeDlRequestAdapter.buildRequestFromPlan(
                     plan = plan,
                     videoInfo = videoInfo,
                     preferences = downloadPreferences,
@@ -462,7 +362,10 @@ object DownloadUtil {
                 )
                 .getOrElse { return Result.failure(it) }
 
-        for (s in request.buildCommand()) Log.d(TAG, s)
+        if (downloadPreferences.debug || BuildConfig.DEBUG) {
+            // Log in debug builds even if the user toggle is off, to ease regression checks.
+            logPlanDebug(plan, request)
+        }
 
         request
             .runCatching {
@@ -490,91 +393,6 @@ object DownloadUtil {
             downloadPath = downloadPath,
             sdcardUri = downloadPreferences.sdcardUri,
         )
-    }
-
-    private fun buildRequestFromPlan(
-        plan: DownloadPlan,
-        videoInfo: VideoInfo,
-        preferences: DownloadPreferences,
-        playlistUrl: String,
-    ): Result<Pair<YoutubeDLRequest, String>> =
-        runCatching {
-            val url =
-                playlistUrl.ifEmpty {
-                    videoInfo.originalUrl
-                        ?: videoInfo.webpageUrl
-                        ?: throw Throwable(context.getString(R.string.fetch_info_error_msg))
-                }
-
-            val request = YoutubeDLRequest(url)
-            val downloadPath = configureDownloadPaths(request, preferences, videoInfo)
-            applyPlanToRequest(request, plan, preferences, videoInfo)
-            request to downloadPath
-        }
-
-    private fun configureDownloadPaths(
-        request: YoutubeDLRequest,
-        preferences: DownloadPreferences,
-        videoInfo: VideoInfo,
-    ): String {
-        val pathBuilder = StringBuilder()
-        val isAudioLike = preferences.extractAudio || videoInfo.vcodec == "none"
-
-        if (isAudioLike) {
-            if (preferences.privateDirectory) pathBuilder.append(App.privateDownloadDir)
-            else pathBuilder.append(audioDownloadDir)
-        } else {
-            if (preferences.privateDirectory) pathBuilder.append(App.privateDownloadDir)
-            else pathBuilder.append(videoDownloadDir)
-        }
-
-        if (preferences.subdirectoryExtractor) {
-            pathBuilder.append("/${videoInfo.extractorKey}")
-        }
-
-        if (preferences.sdcard) {
-            request.addOption("-P", context.getSdcardTempDir(videoInfo.id).absolutePath)
-        } else {
-            request.addOption("-P", pathBuilder.toString())
-        }
-
-        if (Build.VERSION.SDK_INT > 23 && !preferences.sdcard) {
-            request.addOption("-P", "temp:" + getExternalTempDir())
-        }
-
-        return pathBuilder.toString()
-    }
-
-    private fun applyPlanToRequest(
-        request: YoutubeDLRequest,
-        plan: DownloadPlan,
-        preferences: DownloadPreferences,
-        videoInfo: VideoInfo,
-    ) {
-        plan.options.forEach { option ->
-            when (option) {
-                is YtDlpOption.Flag -> request.addOption(option.name)
-                is YtDlpOption.KeyValue -> request.addOption(option.name, option.value)
-                is YtDlpOption.Multi -> request.addCommands(listOf(option.name) + option.values)
-            }
-        }
-
-        if (preferences.cookies && plan.needsCookiesFile) {
-            request.enableCookies(preferences.userAgentString)
-        } else if (preferences.userAgentString.isNotEmpty()) {
-            request.addOption("--add-header", "User-Agent:${preferences.userAgentString}")
-        }
-
-        if (preferences.useDownloadArchive && plan.needsArchiveFile) {
-            val archiveFile = context.getArchiveFile()
-            val archiveFileContent = archiveFile.readText()
-            if (archiveFileContent.contains("${videoInfo.extractor} ${videoInfo.id}")) {
-                throw YoutubeDLException(context.getString(R.string.download_archive_error))
-            }
-            request.useDownloadArchive()
-        }
-
-        request.addOption("-o", plan.outputTemplate)
     }
 
     private fun onFinishDownloading(
@@ -635,30 +453,15 @@ object DownloadUtil {
     ): Result<YoutubeDLResponse> {
         val urlList = urlString.split(Regex("[\n ]")).filter { it.isNotBlank() }
 
-        val request =
-            with(preferences) {
-                YoutubeDLRequest(urlList).apply {
-                    commandDirectory.takeIf { it.isNotEmpty() }?.let { addOption("-P", it) }
-                    addOption("--newline")
-                    if (aria2c) {
-                        enableAria2c()
-                    }
-                    if (useDownloadArchive) {
-                        useDownloadArchive()
-                    }
-                    if (restrictFilenames) {
-                        addOption("--restrict-filenames")
-                    }
-                    addOption(
-                        "--config-locations",
-                        FileUtil.writeContentToFile(template.template, context.getConfigFile())
-                            .absolutePath,
-                    )
-                    if (cookies) {
-                        enableCookies(userAgentString)
-                    }
-                }
-            }
+        val plan = buildCustomCommandPlan(urlList, preferences, preferences.commandDirectory)
+        val request = YoutubeDLRequest(urlList).apply {
+            YoutubeDlRequestAdapter.applyCustomCommandPlan(this, plan, preferences)
+            addOption(
+                "--config-locations",
+                FileUtil.writeContentToFile(template.template, context.getConfigFile())
+                    .absolutePath,
+            )
+        }
 
         return runCatching {
             YoutubeDL.getInstance()
@@ -677,27 +480,19 @@ object DownloadUtil {
             val urlList = url.split(Regex("[\n ]")).filter { it.isNotBlank() }
 
             ToastUtil.makeToastSuspend(context.getString(R.string.start_execute))
+            val plan = buildCustomCommandPlan(urlList, downloadPreferences, commandDirectory)
             val request =
                 YoutubeDLRequest(urlList).apply {
-                    commandDirectory.takeIf { it.isNotEmpty() }?.let { addOption("-P", it) }
-                    addOption("--newline")
-                    if (aria2c) {
-                        enableAria2c()
-                    }
-                    if (useDownloadArchive) {
-                        useDownloadArchive()
-                    }
-                    if (restrictFilenames) {
-                        addOption("--restrict-filenames")
-                    }
+                    YoutubeDlRequestAdapter.applyCustomCommandPlan(
+                        this,
+                        plan,
+                        downloadPreferences,
+                    )
                     addOption(
                         "--config-locations",
                         FileUtil.writeContentToFile(template.template, context.getConfigFile())
                             .absolutePath,
                     )
-                    if (cookies) {
-                        enableCookies(userAgentString)
-                    }
                 }
 
             onProcessStarted()

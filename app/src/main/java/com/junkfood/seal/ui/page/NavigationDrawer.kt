@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,7 +50,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,7 +65,6 @@ import androidx.compose.ui.zIndex
 import com.junkfood.seal.R
 import com.junkfood.seal.ui.common.LocalWindowWidthState
 import com.junkfood.seal.ui.common.Route
-import com.junkfood.seal.ui.page.downloadv2.DownloadPageImplV2
 import kotlinx.coroutines.launch
 
 @Composable
@@ -229,7 +228,6 @@ fun NavigationDrawerSheetContent(
 
             if (showQuickSettings) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
                 Column(
                     modifier = Modifier.padding(start = 16.dp).padding(top = 16.dp, bottom = 12.dp),
                     verticalArrangement = Arrangement.Center,
@@ -421,9 +419,7 @@ private fun ExpandedPreview() {
                 onNavigateToRoute = { currentRoute.value = it },
                 onDismissRequest = {},
             ) {
-                DownloadPageImplV2(taskDownloadStateMap = remember { mutableStateMapOf() }) { _, _
-                    ->
-                }
+                Box(modifier = Modifier.fillMaxSize()) {}
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.junkfood.seal.ui.svg.drawablevectors
 
-import androidx.compose.foundation.Image
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -11,10 +10,7 @@ import androidx.compose.ui.graphics.StrokeJoin.Companion.Miter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.ImageVector.Builder
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.junkfood.seal.ui.common.LocalFixedColorRoles
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 
 @Composable
@@ -104,7 +100,7 @@ fun DynamicColorImageVectors.download(): ImageVector {
                 close()
             }
             path(
-                fill = SolidColor(LocalFixedColorRoles.current.primaryFixedDim),
+                fill = SolidColor(MaterialTheme.colorScheme.primaryContainer),
                 stroke = null,
                 strokeLineWidth = 0.0f,
                 strokeLineCap = Butt,
@@ -118,7 +114,7 @@ fun DynamicColorImageVectors.download(): ImageVector {
                 arcToRelative(84.446f, 84.446f, 0.0f, true, true, -168.892f, 0.0f)
             }
             path(
-                fill = SolidColor(LocalFixedColorRoles.current.onPrimaryFixedVariant),
+                fill = SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
                 stroke = null,
                 strokeLineWidth = 0.0f,
                 strokeLineCap = Butt,
@@ -401,11 +397,4 @@ fun DynamicColorImageVectors.download(): ImageVector {
             }
         }
         .build()
-}
-
-@Preview
-@Composable
-private fun Preview() {
-    val painter = rememberVectorPainter(DynamicColorImageVectors.download())
-    Image(painter, null)
 }

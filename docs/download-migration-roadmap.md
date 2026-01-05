@@ -12,6 +12,11 @@
 - 下载相关模型（唯一来源）：
   - `VideoInfo / Format / PlaylistResult`：shared/src/commonMain/kotlin/com/junkfood/seal/util/VideoInfo.kt
   - `DownloadPreferences`：shared/src/commonMain/kotlin/com/junkfood/seal/util/DownloadPreferences.kt
+- 下载“纯计算/纯映射”能力（commonMain，无平台依赖）：
+  - `DownloadPlan / buildDownloadPlan(...)`：shared/src/commonMain/kotlin/com/junkfood/seal/download/
+  - 自定义格式选择页的偏好合成：shared/src/commonMain/kotlin/com/junkfood/seal/download/SelectionMerge.kt
+  - Playlist 条目 viewState 映射：shared/src/commonMain/kotlin/com/junkfood/seal/download/PlaylistSelectionMapper.kt
+  - 自定义命令参数计划：shared/src/commonMain/kotlin/com/junkfood/seal/download/CustomCommandPlan.kt
 
 ### app（Android-only，保持不动或最后再动）
 - 执行与平台集成：
@@ -45,7 +50,7 @@
   - app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
 
 ### shared 端现状
-- 目前没有 `com.junkfood.seal.download.*` 的 shared 实现（这是好事：避免把执行层误迁进去）。
+- 已有 `com.junkfood.seal.download.*` 的 shared 实现，但**仅包含纯数据/纯映射**（DownloadPlan/Factory/SelectionMerge 等），不包含执行层。
 
 ---
 
@@ -104,6 +109,7 @@
 - 输出模板选择（默认/ID/clip/chapter/split）
 - 字幕/自动字幕/翻译字幕/convert-subs 的决策树
 - sponsorblock / rate limit / proxy / ipv4 / restrict-filenames 的参数规则
+- 自定义命令参数拼装（已下沉为 CustomCommandPlan）
 
 不能迁（留在 app）：
 - cookies 文件路径（`context.getCookiesFile()`）
@@ -120,6 +126,12 @@
 - desktop 自己的 cookies/archive/temp 目录策略（不要复用 Android 路径）。
 - 记录日志以便与 app 端参数对比，确保行为等价。
 
+现状（main）：
+- `YtDlpFetcher`：desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpFetcher.kt
+- `DownloadPlanExecutor`：desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DownloadPlanExecutor.kt
+- `DesktopYtDlpPaths`：desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopYtDlpPaths.kt
+- `YtDlpMetadataFetcher` + 最小可用 UI：desktop/src/main/kotlin/com/junkfood/seal/desktop/Main.kt
+
 ---
 
 ## 5. 第三批“任务编排逻辑”迁移方向（取舍要明确）
@@ -134,16 +146,20 @@
 
 但它目前直接调用 `DownloadPreferences.createFromPreferences()`（Android-only 适配入口）
 
-迁移建议：
-- shared 提供：
-  - `fun mergePreferences(base: DownloadPreferences, selection: FormatSelection, ...): DownloadPreferences`
-- app 保留：
+迁移建议（已落地）：
+- shared 提供纯函数：
+  - `SelectionMerge.merge(...)`：合成 `formatIdString`、subtitleLanguage、mergeAudioStream、extractAudio、clips 等
+  - `PlaylistSelectionMapper.map(...)`：把 playlist 选中条目映射为 UI 需要的轻量 view 数据
+- app 保留 Android-only 入口：
   - `val base = DownloadPreferences.createFromPreferences()`
-  - 然后调用 shared 的 merge。
+  - 然后调用 shared 的纯函数完成合成
 
-验收：
-- `./gradlew :shared:check` + `./gradlew :app:assembleDebug`
-- UI 流程：格式选择页确认下载，检查参数是否与之前一致。
+验收（已通过）：
+- `./gradlew :shared:check`
+- `./gradlew :app:assembleDebug`
+- shared 单元测试：
+  - shared/src/commonTest/kotlin/SelectionMergeTest.kt
+  - shared/src/commonTest/kotlin/PlaylistSelectionMapperTest.kt
 
 ### 5.2 DownloaderV2/Task 状态机建议仍留在 app
 原因：它强依赖 Android（通知/服务/持久化备份/并发控制 + Compose state）。
@@ -176,4 +192,21 @@
 - [x] Step 2：FormatSorter 迁移（main）
 - [x] Step 3：DownloadPlan 引入（main）
 - [x] Step 4：app 侧适配替换（main）
-- [ ] Step 5：TaskFactory 计算下沉（PR #___）
+- [x] Step 5：TaskFactory 计算下沉（main：SelectionMerge + PlaylistSelectionMapper + tests）
+- [x] Step 6：desktop 侧执行适配（main：YtDlpFetcher + DownloadPlanExecutor + 最小 UI 验证）
+  - 额外：自定义命令参数计划下沉（CustomCommandPlan + tests）
+
+  ## 9. 下载队列共享化（新增规划）
+
+  - 范围：将 Android DownloadPageV2 的队列观感下沉为 shared 纯 Compose 组件和平台无关状态模型，Android/desktop 通过适配层接入。
+  - 约束：commonMain 禁用 Android API（通知、Intent、UriHandler、Clipboard、FileUtil、LocalView 等）；仅保留纯 UI 与回调意图。
+
+  ### 9.1 待办拆解
+  - [ ] 定义跨平台队列模型：`DownloadQueueItemState`（标题/作者/缩略图/时长/大小/进度/状态/错误/文件路径）、`DownloadQueueState`（集合、过滤器、视图模式、选中项），`DownloadQueueAction`（Cancel/Resume/Delete/OpenFile/CopyURL/OpenURL/OpenThumbURL/CopyError/ShareFile/ShowDetails 等）。
+  - [ ] 抽取共享队列 UI：从 DownloadPageV2 拆出过滤条、SubHeader、网格/列表切换、空态、卡片/列表项、动作面板内容，全部改为纯回调，参数化窗口宽度，不依赖 `LocalWindowWidthState`/Android 资源。
+  - [ ] Android 适配：`Task` + `Task.State` → 共享模型，回调转发到 `DownloaderV2`/文件/分享/剪贴板/URL 打开；DownloadDialog 维持原逻辑。
+  - [ ] desktop 适配：基于 `DownloadPlanExecutor` 维护最小队列状态（Idle/Running/Completed/Error），接入共享 UI；取消/删除/打开文件按桌面能力实现或暂留空。
+  - [ ] 验收：Android 队列功能不回归；desktop 可展示/更新任务，空态与切换正常；shared/commonMain 无平台依赖且编译通过。
+
+  ### 9.2 当前进度
+  - 开始执行 9.1 前两项（模型定义与共享 UI 提炼）。

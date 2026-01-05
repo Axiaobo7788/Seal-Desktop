@@ -91,6 +91,7 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.junkfood.seal.App
+import com.junkfood.seal.BuildConfig
 import com.junkfood.seal.Downloader
 import com.junkfood.seal.R
 import com.junkfood.seal.download.DownloaderV2
@@ -101,11 +102,15 @@ import com.junkfood.seal.ui.component.ClearButton
 import com.junkfood.seal.ui.component.NavigationBarSpacer
 import com.junkfood.seal.ui.component.OutlinedButtonWithIcon
 import com.junkfood.seal.ui.component.VideoCard
+import com.junkfood.seal.ui.page.download.DownloadSharedPaneAndroid
 import com.junkfood.seal.ui.page.downloadv2.configure.Config
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialog
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel.Action
 import com.junkfood.seal.ui.page.downloadv2.configure.FormatPage
+import com.junkfood.seal.ui.download.DownloadUnifiedContent
+import com.junkfood.seal.ui.download.DownloadUnifiedState
+import com.junkfood.seal.ui.download.DownloadUnifiedStrings
 import com.junkfood.seal.ui.theme.PreviewThemeLight
 import com.junkfood.seal.ui.theme.SealTheme
 import com.junkfood.seal.util.CELLULAR_DOWNLOAD
@@ -466,69 +471,49 @@ fun DownloadPageImpl(
         Column(
             modifier = Modifier.padding(it).fillMaxSize().verticalScroll(rememberScrollState())
         ) {
-            TitleWithProgressIndicator(
-                showProgressIndicator = downloaderState is Downloader.State.FetchingInfo,
-                isDownloadingPlaylist = downloaderState is Downloader.State.DownloadingPlaylist,
-                showDownloadText = showCancelButton,
-                currentIndex =
-                    downloaderState.run {
-                        if (this is Downloader.State.DownloadingPlaylist) currentItem else 0
-                    },
-                downloadItemCount =
-                    downloaderState.run {
-                        if (this is Downloader.State.DownloadingPlaylist) itemCount else 0
-                    },
-            )
-
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 24.dp)) {
-                with(taskState) {
-                    AnimatedVisibility(visible = showDownloadProgress && showVideoCard) {
-                        Box() {
-                            VideoCard(
-                                modifier = Modifier,
-                                title = title,
-                                author = uploader,
-                                thumbnailUrl = thumbnailUrl,
-                                progress = progress,
-                                showCancelButton =
-                                    downloaderState is Downloader.State.DownloadingPlaylist ||
-                                        downloaderState is Downloader.State.DownloadingVideo,
-                                onCancel = cancelCallback,
-                                fileSizeApprox = fileSizeApprox,
-                                duration = duration,
-                                onClick = onVideoCardClicked,
-                                isPreview = isPreview,
-                            )
-                        }
-                    }
-                    InputUrl(
+                val unifiedState =
+                    DownloadUnifiedState(
                         url = viewState.url,
-                        progress = progress,
-                        showDownloadProgress = showDownloadProgress && !showVideoCard,
-                        error = errorState != Downloader.ErrorState.None,
+                        title = stringResource(id = R.string.app_name),
+                        showProgressIndicator = downloaderState is Downloader.State.FetchingInfo,
+                        showDownloadText = showCancelButton,
+                        isDownloadingPlaylist = downloaderState is Downloader.State.DownloadingPlaylist,
+                        currentIndex = (downloaderState as? Downloader.State.DownloadingPlaylist)?.currentItem ?: 0,
+                        downloadItemCount = (downloaderState as? Downloader.State.DownloadingPlaylist)?.itemCount ?: 0,
+                        badge = processCount,
+                        showDownloadProgress = showDownloadProgress,
+                        progress = taskState.progress,
+                        progressText = taskState.progressText,
+                        showVideoCard = showVideoCard,
                         showCancelButton = showCancelButton && !showVideoCard,
-                        onCancel = cancelCallback,
-                        onDone = downloadCallback,
-                    ) { url ->
-                        onUrlChanged(url)
-                    }
-                    AnimatedVisibility(
-                        modifier = Modifier.fillMaxWidth(),
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                        visible = progressText.isNotEmpty() && showOutput,
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(bottom = 12.dp),
-                            text = progressText,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
-                AnimatedVisibility(visible = errorState != Downloader.ErrorState.None) {
-                    ErrorMessage(title = errorState.title, errorReport = errorState.report) {
+                        errorTitle = errorState.title,
+                        errorReport = errorState.report,
+                        hasError = errorState != Downloader.ErrorState.None,
+                        showOutput = showOutput,
+                    )
+
+                DownloadUnifiedContent(
+                    state = unifiedState,
+                    strings =
+                        DownloadUnifiedStrings(
+                            videoUrlLabel = stringResource(R.string.video_url),
+                            cancelLabel = stringResource(R.string.cancel),
+                            copyErrorLabel = stringResource(R.string.copy_error_report),
+                            historyLabel = stringResource(id = R.string.downloads_history),
+                        ),
+                    downloadIndicatorText =
+                        if (downloaderState is Downloader.State.DownloadingPlaylist)
+                            stringResource(
+                                R.string.playlist_indicator_text,
+                                unifiedState.currentIndex,
+                                unifiedState.downloadItemCount,
+                            )
+                        else stringResource(R.string.downloading_indicator_text),
+                    onUrlChange = { url -> onUrlChanged(url) },
+                    onDownloadClick = downloadCallback,
+                    onCancelClick = cancelCallback,
+                    onCopyErrorClick = {
                         view.longPressHapticFeedback()
                         clipboardManager.setText(
                             AnnotatedString(
@@ -537,10 +522,38 @@ fun DownloadPageImpl(
                             )
                         )
                         ToastUtil.makeToast(R.string.error_copied)
-                    }
-                }
-                content()
-                NavigationBarSpacer()
+                    },
+                    onHistoryClick = navigateToDownloads,
+                    inputTrailingIcon = {
+                        if (unifiedState.url.isNotEmpty()) ClearButton { onUrlChanged("") }
+                    },
+                    videoCard = {
+                        if (showVideoCard) {
+                            Box {
+                                VideoCard(
+                                    modifier = Modifier,
+                                    title = taskState.title,
+                                    author = taskState.uploader,
+                                    thumbnailUrl = taskState.thumbnailUrl,
+                                    progress = taskState.progress,
+                                    showCancelButton =
+                                        downloaderState is Downloader.State.DownloadingPlaylist ||
+                                            downloaderState is Downloader.State.DownloadingVideo,
+                                    onCancel = cancelCallback,
+                                    fileSizeApprox = taskState.fileSizeApprox,
+                                    duration = taskState.duration,
+                                    onClick = onVideoCardClicked,
+                                    isPreview = isPreview,
+                                )
+                            }
+                        }
+                    },
+                    extraContent = {
+                        content()
+                        NavigationBarSpacer()
+                    },
+                )
+
                 Spacer(modifier = Modifier.height(160.dp))
             }
         }
