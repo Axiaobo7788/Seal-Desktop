@@ -82,6 +82,7 @@ fun DownloadQueueScreenShared(
     modifier: Modifier = Modifier,
     isCompact: Boolean = true,
     showAddButton: Boolean = true,
+    showMenuButton: Boolean = true,
 ) {
     var sheetItemId by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -102,7 +103,7 @@ fun DownloadQueueScreenShared(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        HeaderShared(strings = strings, onMenuClick = onMenuClick, onAddClick = onAddClick, isCompact = isCompact, showAddButton = showAddButton)
+        HeaderShared(strings = strings, onMenuClick = onMenuClick, onAddClick = onAddClick, isCompact = isCompact, showAddButton = showAddButton, showMenuButton = showMenuButton)
 
         FilterRowShared(
             strings = strings,
@@ -184,12 +185,19 @@ private fun HeaderShared(
     onAddClick: () -> Unit,
     isCompact: Boolean,
     showAddButton: Boolean,
+    showMenuButton: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (showMenuButton) {
+            IconButton(onClick = onMenuClick) {
+                Icon(Icons.Outlined.Menu, contentDescription = null)
+            }
+            Spacer(Modifier.width(8.dp))
+        }
         Text(
             text = strings.queueTitle,
             style = if (isCompact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,

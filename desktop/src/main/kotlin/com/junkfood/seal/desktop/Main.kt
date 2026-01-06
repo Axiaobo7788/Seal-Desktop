@@ -39,12 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
@@ -62,6 +66,7 @@ import com.junkfood.seal.ui.download.queue.DownloadQueueStatus
 import com.junkfood.seal.ui.download.queue.DownloadQueueMediaType
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.VideoInfo
+import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -95,9 +100,10 @@ private fun DesktopApp() {
             NavLayout.ModalDrawer -> {
                 ModalNavigationDrawer(
                     drawerState = drawerState,
+                    scrimColor = Color.Black.copy(alpha = 0.2f),
                     drawerContent = {
                         Surface(
-                            modifier = Modifier.fillMaxHeight(),
+                            modifier = Modifier.width(320.dp).fillMaxHeight(),
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             tonalElevation = 2.dp,
                         ) {
@@ -120,9 +126,30 @@ private fun DesktopApp() {
             }
 
             NavLayout.NavigationRail -> {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    NavigationRailMenu(current = current, onSelect = { current = it })
-                    ContentArea(current, modifier = Modifier.weight(1f), isCompact = false)
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    scrimColor = Color.Black.copy(alpha = 0.2f),
+                    drawerContent = {
+                        Surface(
+                            modifier = Modifier.width(320.dp).fillMaxHeight(),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            tonalElevation = 2.dp,
+                        ) {
+                            DrawerContent(current = current, onSelect = {
+                                current = it
+                                scope.launch { drawerState.close() }
+                            })
+                        }
+                    },
+                ) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        NavigationRailMenu(
+                            current = current,
+                            onSelect = { current = it },
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                        )
+                        ContentArea(current, modifier = Modifier.weight(1f), isCompact = false)
+                    }
                 }
             }
 
@@ -174,8 +201,16 @@ private fun PermanentNav(current: Destination, onSelect: (Destination) -> Unit) 
 }
 
 @Composable
-private fun NavigationRailMenu(current: Destination, onSelect: (Destination) -> Unit) {
+private fun NavigationRailMenu(current: Destination, onSelect: (Destination) -> Unit, onOpenDrawer: (() -> Unit)? = null) {
     NavigationRail(modifier = Modifier.fillMaxHeight()) {
+        onOpenDrawer?.let {
+            NavigationRailItem(
+                selected = false,
+                onClick = it,
+                icon = { Icon(Icons.Outlined.Menu, contentDescription = "展开导航") },
+                label = { Text("导航") },
+            )
+        }
         Destination.entries.forEach { dest ->
             NavigationRailItem(
                 selected = current == dest,
@@ -197,13 +232,13 @@ private fun ContentArea(
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     when (current) {
         Destination.Download -> DownloadScreen(contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
-        Destination.Settings -> PlaceholderScreen("设置（待接入更多选项）", contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+        Destination.Settings -> DesktopSettingsScreen(modifier = contentModifier, isCompact = isCompact, onMenuClick = onMenuClick)
         Destination.Templates -> PlaceholderScreen("命令模板（待接入）", contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
     }
 }
 
 private enum class Destination(val label: String, val icon: ImageVector) {
-    Download("下载", Icons.Outlined.Menu),
+    Download("下载", Icons.Outlined.FileDownload),
     Settings("设置", Icons.Outlined.Settings),
     Templates("模板", Icons.Outlined.Add),
 }
@@ -375,6 +410,7 @@ private fun DownloadScreen(modifier: Modifier = Modifier, onMenuClick: () -> Uni
             onMenuClick = onMenuClick,
             isCompact = isCompact,
             showAddButton = false,
+            showMenuButton = isCompact,
         )
 
         FloatingActionButton(

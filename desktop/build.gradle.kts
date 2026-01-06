@@ -8,6 +8,18 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+val syncAndroidStringsXml by tasks.registering(Copy::class) {
+    from(project(":app").layout.projectDirectory.dir("src/main/res")) {
+        include("values*/strings.xml")
+    }
+    into(layout.buildDirectory.dir("generated/androidStringResources"))
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(syncAndroidStringsXml)
+    from(layout.buildDirectory.dir("generated/androidStringResources"))
+}
+
 kotlin {
     jvmToolchain(21)
 }
@@ -16,6 +28,8 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 }

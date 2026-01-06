@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="version">ସଂସ୍କରଣ</string>
+    <string name="credits">ଶ୍ରେୟ</string>
+    <string name="follow_system">ସିଷ୍ଟମ୍</string>
+    <string name="on">ଚାଲୁ</string>
+    <string name="defaults">ଡିଫଲ୍ଟ</string>
+    <string name="settings">ସେଟିଂ</string>
+    <string name="audio">ଅଡ଼ିଓ</string>
+    <string name="about">ସମ୍ବନ୍ଧରେ</string>
+    <string name="general_settings">ସାଧାରଣ</string>
+    <string name="advanced_settings">ଵିକଶିତ</string>
+    <string name="video">ଵିଡ଼ିଓ</string>
+    <string name="edit">ସମ୍ପାଦନା</string>
+    <string name="display">ପ୍ରଦର୍ଶନ</string>
+    <string name="off">ବନ୍ଦ</string>
+    <string name="options">ଵିକଳ୍ପ</string>
+    <string name="translate">ଅନୁଵାଦ କରନ୍ତୁ</string>
+    <string name="status_error">ତ୍ରୁଟି</string>
+    <string name="private_mode">ଅପରିଚିତ ମୋଡ୍</string>
+    <string name="download_error_msg">ଫାଇଲ୍ ଡାଉନଲୋଡ୍ କରିହେଲା ନାହିଁ</string>
+    <string name="extract_audio">ଅଡିଓ ଭାବରେ ସେଭ୍ କରନ୍ତୁ</string>
+    <string name="download">ଡାଉନଲୋଡ୍</string>
+    <string name="url_empty">ଲିଙ୍କ ଖାଲି ରହିପାରିବ ନାହିଁ</string>
+    <string name="extract_audio_summary">ଭିଡିଓର ଅପେକ୍ଷା ଧ୍ୱନିକୁ ଡାଉନଲୋଡ୍ ଓ ସଞ୍ଚୟ କରନ୍ତୁ</string>
+    <string name="create_thumbnail_summary">ଭିଡିଓର ଥମ୍ନେଲ୍‌କୁ ଏକ ଫାଇଲ୍ ଭାବରେ ସଞ୍ଚୟ କରନ୍ତୁ</string>
+    <string name="yt_dlp_up_to_date">ନୂତନ ସଂସ୍କରଣର yt-dlp ବ୍ୟବହାର କରନ୍ତୁ</string>
+    <string name="fetching_info">ଭିଡିଓ ସୂଚନା ଆହରଣ କରାଯାଉଛି…</string>
+    <string name="fetch_info_error_msg">ଭିଡିଓ ସୂଚନା ଆହରଣ କରିପାରିଲା ନାହିଁ</string>
+    <string name="language">ଭାଷା ଦେଖାନ୍ତୁ</string>
+    <string name="permission_denied">ଅନୁମତି ଅସ୍ବୀକୃତ</string>
+    <string name="download_success_msg">ଡାଉନଲୋଡ୍ ସମ୍ପୂର୍ଣ୍ଣ ହେଲା</string>
+</resources>
