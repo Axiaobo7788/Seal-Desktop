@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Folder
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.VideoFile
 import androidx.compose.material.icons.rounded.ViewComfy
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -121,7 +123,7 @@ private fun SettingsHeader(isCompact: Boolean, onMenuClick: () -> Unit) {
         if (isCompact) {
             IconButton(onClick = onMenuClick) {
                 Icon(
-                    Icons.Rounded.SettingsApplications,
+                    Icons.Outlined.Menu,
                     contentDescription = stringResource(Res.string.expand),
                 )
             }
@@ -175,7 +177,10 @@ private data class SettingsEntry(
 @Composable
 private fun SettingRow(entry: SettingsEntry) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { entry.onClick?.invoke() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable { entry.onClick?.invoke() },
         shape = MaterialTheme.shapes.extraLarge,
         tonalElevation = 1.dp,
     ) {
