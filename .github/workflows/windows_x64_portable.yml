@@ -25,6 +25,28 @@ jobs:
           mkdir -Force dist-bin
           mv yt-dlp.exe dist-bin/
 
+      - name: Download FFmpeg (x64)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $url = "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip"
+          Write-Host "Downloading FFmpeg from: $url"
+          curl -L $url -o ffmpeg.zip
+
+          $outDir = Join-Path "$env:GITHUB_WORKSPACE" "ffmpeg-unpacked"
+          if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+          Expand-Archive -Path ffmpeg.zip -DestinationPath $outDir -Force
+
+          $ffmpegExe = Get-ChildItem $outDir -Recurse -File -Filter ffmpeg.exe | Select-Object -First 1
+          $ffprobeExe = Get-ChildItem $outDir -Recurse -File -Filter ffprobe.exe | Select-Object -First 1
+          if (-not $ffmpegExe) { throw "ffmpeg.exe not found in downloaded archive" }
+
+          mkdir -Force dist-bin | Out-Null
+          Copy-Item $ffmpegExe.FullName -Destination (Join-Path "dist-bin" "ffmpeg.exe") -Force
+          if ($ffprobeExe) {
+            Copy-Item $ffprobeExe.FullName -Destination (Join-Path "dist-bin" "ffprobe.exe") -Force
+          }
+
       # 如需 x86/arm64 可再加下载，改文件名存放到 dist-bin/ 并在后续打包时挑选
       # - name: Download yt-dlp (arm64)
       #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
@@ -110,6 +132,16 @@ jobs:
           $binDir = Join-Path $appRoot "bin"
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir "yt-dlp.exe") -Force
+
+          # 同目录注入 ffmpeg/ffprobe（yt-dlp postprocessing 需要）
+          $ffmpegSrc = Join-Path $workspace "dist-bin/ffmpeg.exe"
+          if (Test-Path $ffmpegSrc) {
+            Copy-Item $ffmpegSrc -Destination (Join-Path $binDir "ffmpeg.exe") -Force
+          }
+          $ffprobeSrc = Join-Path $workspace "dist-bin/ffprobe.exe"
+          if (Test-Path $ffprobeSrc) {
+            Copy-Item $ffprobeSrc -Destination (Join-Path $binDir "ffprobe.exe") -Force
+          }
 
           # 强校验：必须存在 launcher（优先 .exe，若没有则至少有 .bat）
           $launcherExe = Get-ChildItem $appRoot -File -Filter *.exe -ErrorAction SilentlyContinue |

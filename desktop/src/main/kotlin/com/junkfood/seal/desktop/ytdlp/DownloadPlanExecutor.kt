@@ -2,6 +2,7 @@ package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.download.DownloadPlan
 import java.io.InputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.concurrent.thread
 
@@ -100,7 +101,14 @@ class DownloadPlanExecutor(
         config: ExecutionConfig,
     ): List<String> {
         val args = mutableListOf<String>()
-        args += binary.toAbsolutePath().toString()
+        val absBinary = binary.toAbsolutePath()
+        args += absBinary.toString()
+
+        val ffmpegLocation = findBundledFfmpegLocation(absBinary)
+        if (ffmpegLocation != null) {
+            args += listOf("--ffmpeg-location", ffmpegLocation.toString())
+        }
+
         args += plan.asCliArgs()
         if (plan.needsCookiesFile && config.cookiesFile != null) {
             args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
@@ -110,6 +118,16 @@ class DownloadPlanExecutor(
         }
         args += config.url
         return args
+    }
+
+    private fun findBundledFfmpegLocation(ytDlpBinary: Path): Path? {
+        val os = System.getProperty("os.name")?.lowercase().orEmpty()
+        val isWindows = os.contains("win")
+        val ffmpegName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
+
+        val dir = ytDlpBinary.parent ?: return null
+        val ffmpeg = dir.resolve(ffmpegName)
+        return if (Files.exists(ffmpeg)) dir else null
     }
 
     private fun streamLines(
