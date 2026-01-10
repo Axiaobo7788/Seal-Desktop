@@ -104,14 +104,28 @@ jobs:
             throw "Cannot build portable package: no zip and no distributable directory"
           }
 
-          $binDir2 = Join-Path $distRoot "bin"
-          if (-not (Test-Path $binDir2)) { throw "Cannot find bin/ under $distRoot" }
-          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir2 "yt-dlp.exe") -Force
+          # Windows distributable 目录结构可能是 app/<AppName>/bin，递归定位 bin/
+          $binDir2 = Get-ChildItem $distRoot -Recurse -Directory -Filter bin | Select-Object -First 1
+          if (-not $binDir2) {
+            Write-Host "Cannot find bin/ under $distRoot"
+            Write-Host "Directories under $distRoot (depth<=3):"
+            Get-ChildItem $distRoot -Directory -Recurse -Depth 3 | ForEach-Object { Write-Host "- $($_.FullName)" }
+            throw "Cannot find bin/ under $distRoot"
+          }
+
+          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir2.FullName "yt-dlp.exe") -Force
+
+          # 以包含 bin/ 的目录作为 portable 根目录（通常是 <AppName>/）
+          $appRoot = Split-Path -Parent $binDir2.FullName
+          $parentDir = Split-Path -Parent $appRoot
+          $leafDir = Split-Path -Leaf $appRoot
 
           $newZip2 = Join-Path $workspace "desktop-portable-win-x64.zip"
           if (Test-Path $newZip2) { Remove-Item $newZip2 -Force }
-          Compress-Archive -Path (Join-Path $distRoot '*') -DestinationPath $newZip2
-          Write-Host "Packaged $newZip2 from distributable dir $distRoot"
+          Push-Location $parentDir
+          Compress-Archive -Path $leafDir -DestinationPath $newZip2
+          Pop-Location
+          Write-Host "Packaged $newZip2 from distributable dir $appRoot"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
