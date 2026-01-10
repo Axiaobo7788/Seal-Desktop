@@ -82,6 +82,11 @@ class YtDlpFetcher(
             candidates.add(Path.of(System.getProperty("user.dir")).resolve(platform.binaryName))
         }
 
+        // 1a) Common distributable layout: <root>/bin/yt-dlp(.exe)
+        runCatching {
+            candidates.add(Path.of(System.getProperty("user.dir")).resolve("bin").resolve(platform.binaryName))
+        }
+
         // 2) Directory of the running code source (works well for packaged distributions).
         runCatching {
             val location = YtDlpFetcher::class.java.protectionDomain.codeSource.location
@@ -91,6 +96,10 @@ class YtDlpFetcher(
                 candidates.add(baseDir.resolve(platform.binaryName))
                 // common layout: app/<something>.jar, binary placed next to exe one level above
                 baseDir.parent?.resolve(platform.binaryName)?.let(candidates::add)
+
+                // distributable layout: <root>/app/lib/*.jar -> <root>/app/bin or <root>/bin
+                candidates.add(baseDir.resolve("bin").resolve(platform.binaryName))
+                baseDir.parent?.resolve("bin")?.resolve(platform.binaryName)?.let(candidates::add)
             }
         }
 

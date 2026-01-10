@@ -39,34 +39,46 @@ jobs:
         run: |
           # 使用工作区绝对路径，避免嵌套 checkout 造成相对路径偏移
           $workspace = "$env:GITHUB_WORKSPACE"
-          $buildRoot = Join-Path $workspace "desktop/build"
-          if (-not (Test-Path $buildRoot)) {
-            throw "Build output not found: $buildRoot"
+          $binariesRoot = Join-Path $workspace "desktop/build/compose/binaries"
+          if (-not (Test-Path $binariesRoot)) {
+            throw "Compose binaries path not found: $binariesRoot"
           }
 
-          # 直接从 build 产物里找应用 exe（不同 OS/Compose 版本目录结构会变，这个方式最稳）
-          $appExe = Get-ChildItem $buildRoot -Recurse -File -Filter *.exe |
-            Where-Object { $_.Name -notlike "yt-dlp*.exe" } |
-            Select-Object -First 1
-          if (-not $appExe) {
-            Write-Host "No exe found under $buildRoot. Top-level directories:" 
-            Get-ChildItem $buildRoot -Directory | ForEach-Object { Write-Host "- $($_.FullName)" }
-            throw "Cannot find app .exe under $buildRoot"
+          # 1) 优先使用 Compose 直接生成的 zip（最接近 portable 的分发形式）
+          $pkg = Get-ChildItem $binariesRoot -Recurse -File -Filter *.zip | Select-Object -First 1
+          if ($pkg) {
+            $outDir = Join-Path $workspace "dist-unpacked"
+            Expand-Archive $pkg.FullName -DestinationPath $outDir -Force
+
+            # 把 yt-dlp 放到启动脚本/launcher 所在目录（通常是 /bin）
+            $binDir = Get-ChildItem $outDir -Recurse -Directory -Filter bin | Select-Object -First 1
+            if (-not $binDir) { throw "Cannot find bin/ directory inside extracted distribution" }
+            Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir.FullName "yt-dlp.exe") -Force
+
+            $newZip = Join-Path $workspace "desktop-portable-win-x64.zip"
+            if (Test-Path $newZip) { Remove-Item $newZip -Force }
+            Compress-Archive -Path (Join-Path $outDir '*') -DestinationPath $newZip
+            Write-Host "Packaged $newZip from zip $($pkg.FullName)"
+            exit 0
           }
 
-          $appDir = Split-Path -Parent $appExe.FullName
-          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $appDir "yt-dlp.exe") -Force
+          # 2) 如果没有 zip（某些配置只产出 msi），则从 createReleaseDistributable 生成的目录自己打包
+          $distRoot = Join-Path $workspace "desktop/build/compose/binaries/main-release/app"
+          if (-not (Test-Path $distRoot)) {
+            Write-Host "No zip found, and distributable dir not found at $distRoot"
+            Write-Host "Available files under $binariesRoot:" 
+            Get-ChildItem $binariesRoot -Recurse -File | ForEach-Object { Write-Host "- $($_.FullName)" }
+            throw "Cannot build portable package: no zip and no distributable directory"
+          }
 
-          # 以 exe 所在目录作为 portable 根目录，压缩出一个可解压即跑的 zip
-          $parentDir = Split-Path -Parent $appDir
-          $leafDir = Split-Path -Leaf $appDir
+          $binDir2 = Join-Path $distRoot "bin"
+          if (-not (Test-Path $binDir2)) { throw "Cannot find bin/ under $distRoot" }
+          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir2 "yt-dlp.exe") -Force
 
-          $newZip = Join-Path $workspace "desktop-portable-win-x64.zip"
-          if (Test-Path $newZip) { Remove-Item $newZip -Force }
-          Push-Location $parentDir
-          Compress-Archive -Path $leafDir -DestinationPath $newZip
-          Pop-Location
-          Write-Host "Packaged $newZip from $appDir"
+          $newZip2 = Join-Path $workspace "desktop-portable-win-x64.zip"
+          if (Test-Path $newZip2) { Remove-Item $newZip2 -Force }
+          Compress-Archive -Path (Join-Path $distRoot '*') -DestinationPath $newZip2
+          Write-Host "Packaged $newZip2 from distributable dir $distRoot"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
