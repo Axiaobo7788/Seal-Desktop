@@ -24,6 +24,7 @@ class YtDlpFetcher(
     private val platform: Platform = detectPlatform()
 
     fun ensureBinary(): Path {
+        findBundledBinary()?.let { return it }
         val target = cacheRoot.resolve(version).resolve(platform.binaryName)
         if (!target.exists()) {
             target.parent.createDirectories()
@@ -71,6 +72,50 @@ class YtDlpFetcher(
         if (!target.isExecutable()) {
             target.toFile().setExecutable(true, /*ownerOnly=*/false)
         }
+    }
+
+    private fun findBundledBinary(): Path? {
+        val candidates = mutableListOf<Path>()
+
+        // 1) Current working directory (best-effort; not always the app dir on Windows).
+        runCatching {
+            candidates.add(Path.of(System.getProperty("user.dir")).resolve(platform.binaryName))
+        }
+
+        // 2) Directory of the running code source (works well for packaged distributions).
+        runCatching {
+            val location = YtDlpFetcher::class.java.protectionDomain.codeSource.location
+            val codePath = Path.of(location.toURI())
+            val baseDir = if (Files.isDirectory(codePath)) codePath else codePath.parent
+            if (baseDir != null) {
+                candidates.add(baseDir.resolve(platform.binaryName))
+                // common layout: app/<something>.jar, binary placed next to exe one level above
+                baseDir.parent?.resolve(platform.binaryName)?.let(candidates::add)
+            }
+        }
+
+        // 3) Fallback: inspect classpath entries and try their parents.
+        runCatching {
+            val classPath = System.getProperty("java.class.path") ?: return@runCatching
+            classPath.split(System.getProperty("path.separator") ?: ";")
+                .asSequence()
+                .mapNotNull { runCatching { Path.of(it) }.getOrNull() }
+                .mapNotNull { p -> if (Files.isDirectory(p)) p else p.parent }
+                .take(5)
+                .forEach { dir ->
+                    candidates.add(dir.resolve(platform.binaryName))
+                    dir.parent?.resolve(platform.binaryName)?.let(candidates::add)
+                }
+        }
+
+        val found = candidates.firstOrNull { it.exists() }
+        if (found != null) {
+            if (!found.isExecutable()) {
+                markExecutable(found)
+            }
+            return found
+        }
+        return null
     }
 
     companion object {
