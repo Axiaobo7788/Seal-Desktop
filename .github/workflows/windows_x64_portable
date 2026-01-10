@@ -1,0 +1,54 @@
+name: desktop-windows-portable
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Download yt-dlp (x64)
+        run: |
+          $ErrorActionPreference = "Stop"
+          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -o yt-dlp.exe
+          mkdir -Force dist-bin
+          mv yt-dlp.exe dist-bin/
+
+      # 如需 x86/arm64 可再加下载，改文件名存放到 dist-bin/ 并在后续打包时挑选
+      # - name: Download yt-dlp (arm64)
+      #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
+
+      - name: Build portable zip (Windows)
+        run: |
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
+        shell: bash
+
+      - name: Inject yt-dlp into distribution
+        run: |
+          # 解包、放入 yt-dlp、再重新打包
+          $pkg = Get-ChildItem desktop/build/compose/binaries/main-distributable/*.zip | Select-Object -First 1
+          $outDir = "dist-unpacked"
+          Expand-Archive $pkg.FullName -DestinationPath $outDir -Force
+          Copy-Item dist-bin/yt-dlp.exe -Destination (Join-Path $outDir "yt-dlp.exe") -Force
+          # 重新打包
+          $newZip = "desktop-portable-win-x64.zip"
+          if (Test-Path $newZip) { Remove-Item $newZip -Force }
+          Compress-Archive -Path (Join-Path $outDir '*') -DestinationPath $newZip
+          Write-Host "Packaged $newZip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-win-x64
+          path: desktop-portable-win-x64.zip
