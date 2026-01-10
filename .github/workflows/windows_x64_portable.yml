@@ -50,7 +50,7 @@ jobs:
             Get-ChildItem $composeDir -Directory -Recurse -Depth 3 | ForEach-Object { Write-Host "- $($_.FullName)" }
           }
 
-      - name: Inject yt-dlp into distribution
+      - name: Inject yt-dlp into distribution (and locate app root)
         shell: pwsh
         run: |
           # 使用工作区绝对路径，避免嵌套 checkout 造成相对路径偏移
@@ -71,64 +71,75 @@ jobs:
             throw "Compose binaries path not found under: $desktopBuild"
           }
 
-          # 1) 优先使用 Compose 直接生成的 zip（最接近 portable 的分发形式）
-          $pkg = Get-ChildItem $binariesRoot -Recurse -File -Filter *.zip | Select-Object -First 1
-          if ($pkg) {
-            $outDir = Join-Path $workspace "dist-unpacked"
-            Expand-Archive $pkg.FullName -DestinationPath $outDir -Force
+          function Find-AppRoot([string]$root) {
+            # 首选：jpackage app-image 根目录（同时包含 app/ 与 runtime/）
+            $candidates = Get-ChildItem $root -Recurse -Directory -Depth 10 |
+              Where-Object { (Test-Path (Join-Path $_.FullName 'app')) -and (Test-Path (Join-Path $_.FullName 'runtime')) }
+            if ($candidates) {
+              return ($candidates | Sort-Object { $_.FullName.Length } | Select-Object -First 1)
+            }
 
-            # 把 yt-dlp 放到启动脚本/launcher 所在目录（通常是 /bin）
-            $binDir = Get-ChildItem $outDir -Recurse -Directory -Filter bin | Select-Object -First 1
-            if (-not $binDir) { throw "Cannot find bin/ directory inside extracted distribution" }
-            Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir.FullName "yt-dlp.exe") -Force
-
-            $newZip = Join-Path $workspace "desktop-portable-win-x64.zip"
-            if (Test-Path $newZip) { Remove-Item $newZip -Force }
-            Compress-Archive -Path (Join-Path $outDir '*') -DestinationPath $newZip
-            Write-Host "Packaged $newZip from zip $($pkg.FullName)"
-            exit 0
+            # 兜底：找“看起来像 launcher 根”的目录，避免误选到 runtime/bin
+            $binDirs = Get-ChildItem $root -Recurse -Directory -Filter bin -Depth 12
+            foreach ($bin in $binDirs) {
+              $parent = Split-Path -Parent $bin.FullName
+              if ($parent -like "*\\runtime") { continue }
+              if ($bin.FullName -like "*\\runtime\\bin") { continue }
+              $exe = Get-ChildItem $parent -File -Filter *.exe -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -ne 'yt-dlp.exe' } |
+                Select-Object -First 1
+              $bat = Get-ChildItem $parent -File -Filter *.bat -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($exe -or $bat) {
+                return Get-Item $parent
+              }
+            }
+            return $null
           }
 
-          # 2) 如果没有 zip（某些配置只产出 msi），则从 createReleaseDistributable 生成的目录自己打包
-          $distRoot = Join-Path $workspace "desktop/build/compose/binaries/main-release/app"
-          if (-not (Test-Path $distRoot)) {
-            # 兜底：找一个包含 bin/ 的 distributable 目录
-            $distRoot = (Get-ChildItem $binariesRoot -Recurse -Directory |
-              Where-Object { Test-Path (Join-Path $_.FullName "bin") } |
-              Select-Object -First 1).FullName
-          }
-          if (-not (Test-Path $distRoot)) {
-            Write-Host "No zip found, and distributable dir not found at $distRoot"
-            Write-Host "Available files under ${binariesRoot}:" 
-            Get-ChildItem $binariesRoot -Recurse -File | ForEach-Object { Write-Host "- $($_.FullName)" }
-            throw "Cannot build portable package: no zip and no distributable directory"
+          $appRootDir = Find-AppRoot $binariesRoot
+          if (-not $appRootDir) {
+            Write-Host "Available directories under ${binariesRoot} (depth<=4):"
+            Get-ChildItem $binariesRoot -Directory -Recurse -Depth 4 | ForEach-Object { Write-Host "- $($_.FullName)" }
+            throw "Cannot locate Windows distributable app root (expected a directory containing both app/ and runtime/)"
           }
 
-          # Windows distributable 目录结构可能是 app/<AppName>/bin，递归定位 bin/
-          $binDir2 = Get-ChildItem $distRoot -Recurse -Directory -Filter bin | Select-Object -First 1
-          if (-not $binDir2) {
-            Write-Host "Cannot find bin/ under $distRoot"
-            Write-Host "Directories under $distRoot (depth<=3):"
-            Get-ChildItem $distRoot -Directory -Recurse -Depth 3 | ForEach-Object { Write-Host "- $($_.FullName)" }
-            throw "Cannot find bin/ under $distRoot"
+          $appRoot = $appRootDir.FullName
+          Write-Host "Resolved app root: $appRoot"
+
+          # 注入到 <appRoot>/bin/yt-dlp.exe（与运行时查找逻辑对齐）
+          $binDir = Join-Path $appRoot "bin"
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir "yt-dlp.exe") -Force
+
+          # 强校验：必须存在 launcher（优先 .exe，若没有则至少有 .bat）
+          $launcherExe = Get-ChildItem $appRoot -File -Filter *.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne 'yt-dlp.exe' } |
+            Select-Object -First 1
+          if (-not $launcherExe) {
+            $launcherExe = Get-ChildItem $binDir -File -Filter *.exe -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -ne 'yt-dlp.exe' } |
+              Select-Object -First 1
+          }
+          if ($launcherExe) {
+            Write-Host "Launcher exe: $($launcherExe.FullName)"
+          } else {
+            $launcherBat = Get-ChildItem $appRoot -File -Filter *.bat -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($launcherBat) {
+              Write-Host "No launcher .exe found; launcher bat: $($launcherBat.FullName)"
+            } else {
+              Write-Host "Files at app root:" 
+              Get-ChildItem $appRoot -File | ForEach-Object { Write-Host "- $($_.Name)" }
+              Write-Host "Files at app root/bin:" 
+              Get-ChildItem $binDir -File | ForEach-Object { Write-Host "- $($_.Name)" }
+              throw "No launcher (.exe/.bat) found in distributable; packaging root is likely wrong"
+            }
           }
 
-          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir2.FullName "yt-dlp.exe") -Force
-
-          # 以包含 bin/ 的目录作为 portable 根目录（通常是 <AppName>/）
-          $appRoot = Split-Path -Parent $binDir2.FullName
-          $parentDir = Split-Path -Parent $appRoot
-          $leafDir = Split-Path -Leaf $appRoot
-
-          $newZip2 = Join-Path $workspace "desktop-portable-win-x64.zip"
-          if (Test-Path $newZip2) { Remove-Item $newZip2 -Force }
-          Push-Location $parentDir
-          Compress-Archive -Path $leafDir -DestinationPath $newZip2
-          Pop-Location
-          Write-Host "Packaged $newZip2 from distributable dir $appRoot"
+          # 将 appRoot 作为 artifact 上传路径（避免我们自己再套一层 zip）
+          "PORTABLE_DIR=$appRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: desktop-portable-win-x64
-          path: desktop-portable-win-x64.zip
+          path: ${{ env.PORTABLE_DIR }}
