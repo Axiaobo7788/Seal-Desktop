@@ -39,32 +39,34 @@ jobs:
         run: |
           # 使用工作区绝对路径，避免嵌套 checkout 造成相对路径偏移
           $workspace = "$env:GITHUB_WORKSPACE"
-          $binariesRoot = Join-Path $workspace "desktop/build/compose/binaries"
-
-          if (-not (Test-Path $binariesRoot)) {
-            throw "Compose binaries path not found: $binariesRoot"
+          $buildRoot = Join-Path $workspace "desktop/build"
+          if (-not (Test-Path $buildRoot)) {
+            throw "Build output not found: $buildRoot"
           }
 
-          # 查找 compose 生成的 zip（Windows 分发通常在 main-distributable/main-release 等目录）
-          $pkg = Get-ChildItem $binariesRoot -Recurse -File -Filter *.zip | Select-Object -First 1
-          if (-not $pkg) { throw "No distribution zip found under $binariesRoot" }
-
-          $outDir = Join-Path $workspace "dist-unpacked"
-          Expand-Archive $pkg.FullName -DestinationPath $outDir -Force
-
-          # 将 yt-dlp 放到应用 exe 同目录（比放 zip 根目录更可靠）
-          $appExe = Get-ChildItem $outDir -Recurse -File -Filter *.exe |
+          # 直接从 build 产物里找应用 exe（不同 OS/Compose 版本目录结构会变，这个方式最稳）
+          $appExe = Get-ChildItem $buildRoot -Recurse -File -Filter *.exe |
             Where-Object { $_.Name -notlike "yt-dlp*.exe" } |
             Select-Object -First 1
-          if (-not $appExe) { throw "Cannot find app .exe under $outDir" }
+          if (-not $appExe) {
+            Write-Host "No exe found under $buildRoot. Top-level directories:" 
+            Get-ChildItem $buildRoot -Directory | ForEach-Object { Write-Host "- $($_.FullName)" }
+            throw "Cannot find app .exe under $buildRoot"
+          }
+
           $appDir = Split-Path -Parent $appExe.FullName
           Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $appDir "yt-dlp.exe") -Force
 
-          # 重新打包
+          # 以 exe 所在目录作为 portable 根目录，压缩出一个可解压即跑的 zip
+          $parentDir = Split-Path -Parent $appDir
+          $leafDir = Split-Path -Leaf $appDir
+
           $newZip = Join-Path $workspace "desktop-portable-win-x64.zip"
           if (Test-Path $newZip) { Remove-Item $newZip -Force }
-          Compress-Archive -Path (Join-Path $outDir '*') -DestinationPath $newZip
-          Write-Host "Packaged $newZip from $($pkg.FullName)"
+          Push-Location $parentDir
+          Compress-Archive -Path $leafDir -DestinationPath $newZip
+          Pop-Location
+          Write-Host "Packaged $newZip from $appDir"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
