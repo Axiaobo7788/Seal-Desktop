@@ -53,7 +53,10 @@ class YtDlpFetcher(
     }
 
     private fun markExecutable(target: Path) {
-        if (platform == Platform.Windows) return
+        when (platform) {
+            Platform.WindowsX64, Platform.WindowsX86, Platform.WindowsArm64 -> return
+            else -> Unit
+        }
         try {
             target.setPosixFilePermissions(setOf(
                 java.nio.file.attribute.PosixFilePermission.OWNER_READ,
@@ -83,33 +86,29 @@ class YtDlpFetcher(
 }
 
 private enum class Platform(val binaryName: String) {
-    Windows("yt-dlp.exe"),
-    MacArm64("yt-dlp_macos_aarch64"),
-    MacX64("yt-dlp_macos"),
+    WindowsX64("yt-dlp.exe"),
+    WindowsX86("yt-dlp_x86.exe"),
+    WindowsArm64("yt-dlp_arm64.exe"),
+    MacUniversal("yt-dlp_macos"),
     LinuxArm64("yt-dlp_linux_aarch64"),
-    LinuxX64("yt-dlp_linux"),
-    LinuxFallback("yt-dlp"),
-    MacFallback("yt-dlp_macos"),
-    WindowsFallback("yt-dlp.exe");
+    LinuxX64("yt-dlp_linux");
 
     fun primaryDownloadUrl(version: String): String =
         when (this) {
-            Windows -> assetUrl(version, "yt-dlp.exe")
-            MacArm64 -> assetUrl(version, "yt-dlp_macos_aarch64")
-            MacX64 -> assetUrl(version, "yt-dlp_macos")
+            WindowsX64 -> assetUrl(version, "yt-dlp.exe")
+            WindowsX86 -> assetUrl(version, "yt-dlp_x86.exe")
+            WindowsArm64 -> assetUrl(version, "yt-dlp_arm64.exe")
+            MacUniversal -> assetUrl(version, "yt-dlp_macos")
             LinuxArm64 -> assetUrl(version, "yt-dlp_linux_aarch64")
             LinuxX64 -> assetUrl(version, "yt-dlp_linux")
-            LinuxFallback -> assetUrl(version, "yt-dlp")
-            MacFallback -> assetUrl(version, "yt-dlp_macos")
-            WindowsFallback -> assetUrl(version, "yt-dlp.exe")
         }
 
     fun fallbackDownloadUrl(version: String): String =
         when (this) {
-            LinuxX64, LinuxArm64 -> assetUrl(version, "yt-dlp")
-            MacX64, MacArm64 -> assetUrl(version, "yt-dlp_macos")
-            Windows -> assetUrl(version, "yt-dlp.exe")
-            else -> primaryDownloadUrl(version)
+            MacUniversal -> assetUrl(version, "yt-dlp_macos")
+            WindowsX64, WindowsX86, WindowsArm64 -> assetUrl(version, "yt-dlp.exe")
+            LinuxX64 -> assetUrl(version, "yt-dlp_linux")
+            LinuxArm64 -> assetUrl(version, "yt-dlp_linux_aarch64")
         }
 }
 
@@ -125,13 +124,15 @@ private fun detectPlatform(): Platform {
     val arch = System.getProperty("os.arch").lowercase()
 
     val isArm = arch.contains("aarch64") || arch.contains("arm64")
+    val isX86 = arch.contains("x86") || arch.contains("i386") || arch.contains("i686")
     val isMac = os.contains("mac") || os.contains("darwin")
     val isWin = os.contains("win")
 
     return when {
-        isWin -> Platform.Windows
-        isMac && isArm -> Platform.MacArm64
-        isMac -> Platform.MacX64
+        isWin && isArm -> Platform.WindowsArm64
+        isWin && isX86 -> Platform.WindowsX86
+        isWin -> Platform.WindowsX64
+        isMac -> Platform.MacUniversal
         !isMac && isArm -> Platform.LinuxArm64
         else -> Platform.LinuxX64
     }

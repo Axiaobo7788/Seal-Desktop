@@ -1,21 +1,37 @@
-@file:OptIn(ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class, org.jetbrains.compose.resources.ExperimentalResourceApi::class)
 
 package com.junkfood.seal.desktop.download
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.outlined.SettingsSuggest
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,8 +44,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FileDownload
+import com.junkfood.seal.desktop.settings.desktopDefaultPreferences
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
@@ -48,6 +63,37 @@ import com.junkfood.seal.util.VideoInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
+import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.additional_settings
+import com.junkfood.seal.shared.generated.resources.all
+import com.junkfood.seal.shared.generated.resources.auto
+import com.junkfood.seal.shared.generated.resources.audio
+import com.junkfood.seal.shared.generated.resources.best_quality
+import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.download
+import com.junkfood.seal.shared.generated.resources.download_hint
+import com.junkfood.seal.shared.generated.resources.download_queue
+import com.junkfood.seal.shared.generated.resources.download_subtitles
+import com.junkfood.seal.shared.generated.resources.embed_metadata
+import com.junkfood.seal.shared.generated.resources.lowest_quality
+import com.junkfood.seal.shared.generated.resources.new_task
+import com.junkfood.seal.shared.generated.resources.paste_msg
+import com.junkfood.seal.shared.generated.resources.playlist
+import com.junkfood.seal.shared.generated.resources.proceed
+import com.junkfood.seal.shared.generated.resources.preset
+import com.junkfood.seal.shared.generated.resources.reset
+import com.junkfood.seal.shared.generated.resources.settings_before_download
+import com.junkfood.seal.shared.generated.resources.sponsorblock
+import com.junkfood.seal.shared.generated.resources.start_download
+import com.junkfood.seal.shared.generated.resources.status_canceled
+import com.junkfood.seal.shared.generated.resources.status_completed
+import com.junkfood.seal.shared.generated.resources.status_downloading
+import com.junkfood.seal.shared.generated.resources.video
+import com.junkfood.seal.shared.generated.resources.video_url
+import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
+
+private enum class DesktopDownloadType { Audio, Video, Playlist }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +101,8 @@ fun DesktopDownloadScreen(
     modifier: Modifier = Modifier,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = true,
+    preferences: DownloadPreferences,
+    onPreferencesChange: (DownloadPreferences) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val executor = remember { DownloadPlanExecutor() }
@@ -65,8 +113,13 @@ fun DesktopDownloadScreen(
     val queueItems = remember { mutableStateListOf<DownloadQueueItemState>() }
 
     var showInputSheet by remember { mutableStateOf(false) }
+    var showOptionsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var inputUrl by remember { mutableStateOf("") }
+    var pendingUrl by remember { mutableStateOf<String?>(null) }
+    var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
+    var workingPreferences by remember { mutableStateOf(preferences) }
+    LaunchedEffect(preferences) { workingPreferences = preferences }
     var runningProcess by remember { mutableStateOf<DownloadPlanExecutor.RunningProcess?>(null) }
     var runningItemId by remember { mutableStateOf<String?>(null) }
     val logLines = remember { mutableStateListOf<String>() }
@@ -85,23 +138,25 @@ fun DesktopDownloadScreen(
         }
     }
 
-    fun startDownload(url: String) {
+    fun startDownload(url: String, type: DesktopDownloadType, basePreferences: DownloadPreferences) {
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
         val itemId = System.currentTimeMillis().toString()
+        val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
+        val effectivePreferences = preferencesForType(basePreferences, type)
+
         queueItems.add(
             DownloadQueueItemState(
                 id = itemId,
                 title = trimmed,
                 url = trimmed,
-                mediaType = DownloadQueueMediaType.Video,
+                mediaType = mediaType,
                 status = DownloadQueueStatus.FetchingInfo,
             ),
         )
-        showInputSheet = false
 
         scope.launch {
-            appendLog("start: $trimmed")
+            appendLog("start: $trimmed [${type.name.lowercase()}]")
 
             val videoInfo =
                 try {
@@ -119,8 +174,7 @@ fun DesktopDownloadScreen(
                 )
             }
 
-            val preferences = defaultDesktopPreferences()
-            val plan = buildDownloadPlan(videoInfo, preferences, playlistUrl = trimmed, playlistItem = 0)
+            val plan = buildDownloadPlan(videoInfo, effectivePreferences, playlistUrl = trimmed, playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0)
 
             try {
                 runningItemId = itemId
@@ -142,7 +196,7 @@ fun DesktopDownloadScreen(
                 updateItem(itemId) {
                     it.copy(
                         status = if (result.exitCode == 0) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
-                        progressText = "退出码 ${result.exitCode}",
+                        progressText = "Exit code ${result.exitCode}",
                     )
                 }
             } catch (e: Exception) {
@@ -155,26 +209,21 @@ fun DesktopDownloadScreen(
         }
     }
 
-    val queueStrings = DownloadQueueStrings(
-        queueTitle = "下载队列",
-        addLabel = "添加",
-        filterAll = "全部",
-        filterDownloading = "下载中",
-        filterCanceled = "已取消",
-        filterFinished = "已完成",
-        emptyTitle = "你会在这里找到下载文件",
-        emptyBody = "轻按下载按钮或分享视频链接到本应用来启动下载",
-        gridLabel = "网格",
-        listLabel = "列表",
-    )
+    val queueStrings =
+        DownloadQueueStrings(
+            queueTitle = stringResource(Res.string.download_queue),
+            addLabel = stringResource(Res.string.download),
+            filterAll = stringResource(Res.string.all),
+            filterDownloading = stringResource(Res.string.status_downloading),
+            filterCanceled = stringResource(Res.string.status_canceled),
+            filterFinished = stringResource(Res.string.status_completed),
+            emptyTitle = stringResource(Res.string.you_ll_find_your_downloads_here),
+            emptyBody = stringResource(Res.string.download_hint),
+            gridLabel = "Grid",
+            listLabel = "List",
+        )
 
     Column(modifier = modifier.fillMaxHeight()) {
-        runningItemId?.let { id ->
-            queueItems.find { it.id == id }?.let { item ->
-                RunningNowBanner(item)
-            }
-        }
-
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             DownloadQueueScreenShared(
                 state = DownloadQueueState(items = queueItems, filter = filter, viewMode = viewMode),
@@ -213,7 +262,7 @@ fun DesktopDownloadScreen(
                 onClick = { showInputSheet = true },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
             ) {
-                Icon(Icons.Outlined.FileDownload, contentDescription = "开始下载")
+                Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(Res.string.start_download))
             }
         }
 
@@ -231,7 +280,44 @@ fun DesktopDownloadScreen(
                 onPasteIntoUrl = { pasted -> inputUrl = pasted },
                 onDismissRequest = { showInputSheet = false },
                 onConfirm = {
-                    startDownload(inputUrl)
+                    pendingUrl = inputUrl
+                    showInputSheet = false
+                    showOptionsSheet = true
+                },
+            )
+        }
+    }
+
+    if (showOptionsSheet && pendingUrl != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showOptionsSheet = false
+                pendingUrl = null
+            },
+            sheetState = sheetState,
+        ) {
+            DownloadOptionsSheet(
+                urlPreview = pendingUrl.orEmpty(),
+                downloadType = downloadType,
+                onTypeChange = { newType ->
+                    downloadType = newType
+                    val updated = preferencesForType(workingPreferences, newType)
+                    workingPreferences = updated
+                    onPreferencesChange(updated)
+                },
+                preferences = workingPreferences,
+                onPreferencesChange = {
+                    workingPreferences = it
+                    onPreferencesChange(it)
+                },
+                onDismissRequest = {
+                    showOptionsSheet = false
+                    pendingUrl = null
+                },
+                onDownload = {
+                    pendingUrl?.let { url -> startDownload(url, downloadType, workingPreferences) }
+                    pendingUrl = null
+                    showOptionsSheet = false
                     inputUrl = ""
                 },
             )
@@ -250,11 +336,11 @@ private fun DownloadInputSheet(
     val clipboard = LocalClipboardManager.current
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("新建下载任务", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(Res.string.new_task), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(
             value = url,
             onValueChange = onUrlChange,
-            label = { Text("视频链接") },
+            label = { Text(stringResource(Res.string.video_url)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -262,12 +348,140 @@ private fun DownloadInputSheet(
             Button(onClick = {
                 val clip = clipboard.getText()?.text
                 if (!clip.isNullOrBlank()) onPasteIntoUrl(clip)
-            }) { Text("粘贴 URL") }
+            }) { Text(stringResource(Res.string.paste_msg)) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = onDismissRequest) { Text("取消") }
-                Button(onClick = onConfirm, enabled = url.isNotBlank()) { Text("继续") }
+                TextButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
+                Button(onClick = onConfirm, enabled = url.isNotBlank()) { Text(stringResource(Res.string.proceed)) }
             }
         }
+    }
+}
+
+@Composable
+private fun DownloadOptionsSheet(
+    urlPreview: String,
+    downloadType: DesktopDownloadType,
+    onTypeChange: (DesktopDownloadType) -> Unit,
+    preferences: DownloadPreferences,
+    onPreferencesChange: (DownloadPreferences) -> Unit,
+    onDismissRequest: () -> Unit,
+    onDownload: () -> Unit,
+) {
+    var showAdvanced by remember { mutableStateOf(false) }
+    val formatSummary = formatSummary(preferences, downloadType)
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Outlined.CheckCircle, contentDescription = null)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(Res.string.settings_before_download), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(urlPreview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+
+        TypeSelectorRow(selected = downloadType, onSelect = onTypeChange)
+
+        FormatPresetCard(summary = formatSummary) {
+            onPreferencesChange(preferencesForType(desktopDefaultPreferences(), downloadType))
+        }
+
+        HorizontalDivider()
+
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { showAdvanced = !showAdvanced }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(Res.string.additional_settings), style = MaterialTheme.typography.titleSmall)
+            Icon(if (showAdvanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
+        }
+
+        if (showAdvanced) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OptionToggleRow(
+                    title = stringResource(Res.string.embed_metadata),
+                    checked = preferences.embedMetadata,
+                    onCheckedChange = { onPreferencesChange(preferences.copy(embedMetadata = it)) },
+                )
+                OptionToggleRow(
+                    title = stringResource(Res.string.download_subtitles),
+                    checked = preferences.downloadSubtitle,
+                    onCheckedChange = { onPreferencesChange(preferences.copy(downloadSubtitle = it, embedSubtitle = it && preferences.embedSubtitle)) },
+                )
+                OptionToggleRow(
+                    title = stringResource(Res.string.sponsorblock),
+                    checked = preferences.sponsorBlock,
+                    onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
+                )
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
+            Spacer(Modifier.width(12.dp))
+            Button(onClick = onDownload) {
+                Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.start_download))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeSelectorRow(selected: DesktopDownloadType, onSelect: (DesktopDownloadType) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DesktopDownloadType.entries.forEach { type ->
+            val chosen = selected == type
+            val icon = when (type) {
+                DesktopDownloadType.Audio -> Icons.Outlined.LibraryMusic
+                DesktopDownloadType.Video -> Icons.Outlined.VideoFile
+                DesktopDownloadType.Playlist -> Icons.Outlined.PlaylistAdd
+            }
+            val label =
+                when (type) {
+                    DesktopDownloadType.Audio -> stringResource(Res.string.audio)
+                    DesktopDownloadType.Video -> stringResource(Res.string.video)
+                    DesktopDownloadType.Playlist -> stringResource(Res.string.playlist)
+                }
+
+            if (chosen) {
+                FilledTonalButton(onClick = { onSelect(type) }) {
+                    Icon(icon, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(label)
+                }
+            } else {
+                OutlinedButton(onClick = { onSelect(type) }) {
+                    Icon(icon, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(label)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FormatPresetCard(summary: String, onReset: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.medium,
+        onClick = onReset,
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Outlined.SettingsSuggest, contentDescription = null)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(Res.string.preset), style = MaterialTheme.typography.titleSmall)
+                Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            TextButton(onClick = onReset, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)) { Text(stringResource(Res.string.reset)) }
+        }
+    }
+}
+
+@Composable
+private fun OptionToggleRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -282,7 +496,7 @@ private fun RunningNowBanner(item: DownloadQueueItemState) {
             Icon(Icons.Outlined.FileDownload, contentDescription = null)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val statusText = item.progressText.ifBlank { "正在下载" }
+                val statusText = item.progressText.ifBlank { stringResource(Res.string.status_downloading) }
                 Text(statusText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -303,10 +517,45 @@ private fun LatestLogRow(line: String) {
     }
 }
 
-private fun defaultDesktopPreferences(): DownloadPreferences =
-    DownloadPreferences.EMPTY.copy(
-        formatSorting = true,
-        videoFormat = 2, // QUALITY
-        videoResolution = 3, // 1080p
-        embedMetadata = true,
+private fun preferencesForType(base: DownloadPreferences, type: DesktopDownloadType): DownloadPreferences =
+    base.copy(
+        extractAudio = type == DesktopDownloadType.Audio,
+        downloadPlaylist = type == DesktopDownloadType.Playlist,
+        subdirectoryPlaylistTitle = if (type == DesktopDownloadType.Playlist) true else base.subdirectoryPlaylistTitle,
+        embedMetadata = if (type == DesktopDownloadType.Audio) true else base.embedMetadata,
     )
+
+@Composable
+private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): String {
+    val resLabel = videoResolutionLabel(preferences.videoResolution)
+    val audioLabel = audioQualityLabel(preferences.audioQuality)
+    return when (type) {
+        DesktopDownloadType.Audio -> "${stringResource(Res.string.audio)} · $audioLabel"
+        DesktopDownloadType.Video -> "${stringResource(Res.string.video)} · $resLabel"
+        DesktopDownloadType.Playlist -> "${stringResource(Res.string.playlist)} · $resLabel"
+    }
+}
+
+@Composable
+private fun videoResolutionLabel(code: Int): String =
+    when (code) {
+        0 -> stringResource(Res.string.best_quality)
+        1 -> "2160p"
+        2 -> "1440p"
+        3 -> "1080p"
+        4 -> "720p"
+        5 -> "480p"
+        6 -> "360p"
+        7 -> stringResource(Res.string.lowest_quality)
+        else -> stringResource(Res.string.auto)
+    }
+
+@Composable
+private fun audioQualityLabel(code: Int): String =
+    when (code) {
+        1 -> stringResource(Res.string.best_quality)
+        2 -> "Medium"
+        3 -> "Low"
+        4 -> "Very low"
+        else -> stringResource(Res.string.auto)
+    }

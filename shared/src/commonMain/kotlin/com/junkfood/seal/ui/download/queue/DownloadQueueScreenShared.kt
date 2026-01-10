@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -65,6 +67,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.download
@@ -88,17 +93,15 @@ fun DownloadQueueScreenShared(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    val filteredItems = remember(state.items, state.filter) {
-        state.items.filter { item ->
-            when (state.filter) {
-                DownloadQueueFilter.All -> true
-                DownloadQueueFilter.Downloading ->
-                    item.status == DownloadQueueStatus.FetchingInfo ||
-                        item.status == DownloadQueueStatus.Ready ||
-                        item.status == DownloadQueueStatus.Running
-                DownloadQueueFilter.Canceled -> item.status == DownloadQueueStatus.Canceled || item.status == DownloadQueueStatus.Error
-                DownloadQueueFilter.Finished -> item.status == DownloadQueueStatus.Completed
-            }
+    val filteredItems = state.items.filter { item ->
+        when (state.filter) {
+            DownloadQueueFilter.All -> true
+            DownloadQueueFilter.Downloading ->
+                item.status == DownloadQueueStatus.FetchingInfo ||
+                    item.status == DownloadQueueStatus.Ready ||
+                    item.status == DownloadQueueStatus.Running
+            DownloadQueueFilter.Canceled -> item.status == DownloadQueueStatus.Canceled || item.status == DownloadQueueStatus.Error
+            DownloadQueueFilter.Finished -> item.status == DownloadQueueStatus.Completed
         }
     }
 
@@ -291,9 +294,16 @@ private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Uni
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
-                Spacer(modifier = Modifier.aspectRatio(16f / 9f))
-                ProgressBadge(item = item, modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            ) {
+                DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
+                StatusPill(item = item, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
+                DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
             }
             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -314,8 +324,16 @@ private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Uni
 @Composable
 private fun QueueListItemShared(item: DownloadQueueItemState, onMoreClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.width(120.dp).aspectRatio(16f / 9f).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
-            ProgressBadge(item = item, modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp))
+        Box(
+            modifier = Modifier
+                .width(120.dp)
+                .aspectRatio(16f / 9f)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        ) {
+            DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
+            StatusPill(item = item, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
+            DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -353,26 +371,45 @@ private fun ProgressText(item: DownloadQueueItemState) {
 }
 
 @Composable
-private fun ProgressBadge(item: DownloadQueueItemState, modifier: Modifier = Modifier) {
-    val bg = when (item.status) {
-        DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.secondaryContainer
-        DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer
-        DownloadQueueStatus.Canceled -> MaterialTheme.colorScheme.surfaceVariant
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+private fun StatusPill(item: DownloadQueueItemState, modifier: Modifier = Modifier) {
+    val (bg, text) = when (item.status) {
+        DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.secondaryContainer to "已完成"
+        DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer to "错误"
+        DownloadQueueStatus.Canceled -> MaterialTheme.colorScheme.surfaceVariant to "已取消"
+        DownloadQueueStatus.Running -> MaterialTheme.colorScheme.primaryContainer to "下载中"
+        DownloadQueueStatus.FetchingInfo -> MaterialTheme.colorScheme.primaryContainer to "获取中"
+        DownloadQueueStatus.Ready -> MaterialTheme.colorScheme.primaryContainer to "待开始"
+        DownloadQueueStatus.Idle -> MaterialTheme.colorScheme.surfaceContainerHigh to "排队"
     }
     Surface(color = bg, shape = MaterialTheme.shapes.extraSmall, modifier = modifier) {
-        val text = when (item.status) {
-            DownloadQueueStatus.Completed -> "Done"
-            DownloadQueueStatus.Error -> "Error"
-            DownloadQueueStatus.Canceled -> "Canceled"
-            DownloadQueueStatus.Running -> item.progress?.let { "${(it * 100).toInt()}%" } ?: "..."
-            DownloadQueueStatus.FetchingInfo -> "Info"
-            DownloadQueueStatus.Ready -> "Ready"
-            DownloadQueueStatus.Idle -> "Idle"
-        }
         Text(text = text, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
     }
 }
+
+@Composable
+private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = Modifier) {
+    val showProgress = item.status == DownloadQueueStatus.Running || item.status == DownloadQueueStatus.FetchingInfo || item.status == DownloadQueueStatus.Ready
+    if (!showProgress) return
+    Box(modifier = modifier.size(88.dp), contentAlignment = Alignment.Center) {
+        if (item.progress != null) {
+            CircularProgressIndicator(
+                progress = { item.progress!! },
+                strokeWidth = 6.dp,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            CircularProgressIndicator(strokeWidth = 6.dp, modifier = Modifier.fillMaxSize())
+        }
+        Surface(shape = CircleShape, tonalElevation = 3.dp, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
+            Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+    }
+}
+
+@Composable
+expect fun DownloadThumbnail(url: String?, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop)
 
 @Composable
 private fun EmptyPlaceholderShared(strings: DownloadQueueStrings, modifier: Modifier = Modifier) {

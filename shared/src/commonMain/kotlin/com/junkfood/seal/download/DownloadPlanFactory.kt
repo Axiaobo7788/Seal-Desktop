@@ -49,8 +49,8 @@ fun buildDownloadPlan(
 
     // Playlist scoping
     var outputPrefix = ""
-    if (playlistItem != 0 && preferences.downloadPlaylist) {
-        builder.option("--playlist-items", playlistItem.toString())
+    if (preferences.downloadPlaylist) {
+        if (playlistItem != 0) builder.option("--playlist-items", playlistItem.toString())
         if (preferences.subdirectoryPlaylistTitle && !videoInfo.playlist.isNullOrEmpty()) {
             outputPrefix = PLAYLIST_TITLE_SUBDIRECTORY_PREFIX
         }

@@ -1,208 +1,137 @@
-@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+@file:OptIn(
+    org.jetbrains.compose.resources.ExperimentalResourceApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+)
 
 package com.junkfood.seal.desktop.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.draw.clip
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BugReport
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.SettingsApplications
-import androidx.compose.material.icons.rounded.SignalWifi4Bar
-import androidx.compose.material.icons.rounded.Terminal
-import androidx.compose.material.icons.rounded.VideoFile
-import androidx.compose.material.icons.rounded.ViewComfy
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.junkfood.seal.shared.generated.resources.*
+import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.about
+import com.junkfood.seal.shared.generated.resources.about_page
+import com.junkfood.seal.shared.generated.resources.custom_command
+import com.junkfood.seal.shared.generated.resources.custom_command_desc
+import com.junkfood.seal.shared.generated.resources.interface_and_interaction
+import com.junkfood.seal.shared.generated.resources.settings_before_download
+import com.junkfood.seal.shared.generated.resources.trouble_shooting
+import com.junkfood.seal.shared.generated.resources.trouble_shooting_desc
 import org.jetbrains.compose.resources.stringResource
+
+internal enum class SettingsPage {
+    General,
+    Directory,
+    Format,
+    Network,
+    Commands,
+    Appearance,
+    Interaction,
+    Troubleshooting,
+    About,
+}
 
 @Composable
 fun DesktopSettingsScreen(
     modifier: Modifier = Modifier,
     isCompact: Boolean = false,
     onMenuClick: () -> Unit = {},
+    settingsState: DesktopSettingsState,
 ) {
-    val entries =
-        listOf(
-            SettingsEntry(
-                title = stringResource(Res.string.general_settings),
-                description = stringResource(Res.string.general_settings_desc),
-                icon = Icons.Rounded.SettingsApplications,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.download_directory),
-                description = stringResource(Res.string.download_directory_desc),
-                icon = Icons.Rounded.Folder,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.format),
-                description = stringResource(Res.string.format_settings_desc),
-                icon = Icons.Rounded.VideoFile,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.network),
-                description = stringResource(Res.string.network_settings_desc),
-                icon = Icons.Rounded.SignalWifi4Bar,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.custom_command),
-                description = stringResource(Res.string.custom_command_desc),
-                icon = Icons.Rounded.Terminal,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.look_and_feel),
-                description = stringResource(Res.string.display_settings),
-                icon = Icons.Rounded.Palette,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.interface_and_interaction),
-                description = stringResource(Res.string.settings_before_download),
-                icon = Icons.Rounded.ViewComfy,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.trouble_shooting),
-                description = stringResource(Res.string.trouble_shooting_desc),
-                icon = Icons.Rounded.BugReport,
-            ),
-            SettingsEntry(
-                title = stringResource(Res.string.about),
-                description = stringResource(Res.string.about_page),
-                icon = Icons.Rounded.Info,
-            ),
-        )
+    var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        SettingsHeader(isCompact = isCompact, onMenuClick = onMenuClick)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item { HighlightCard() }
-            items(entries) { entry ->
-                SettingRow(entry)
-            }
-        }
-    }
-}
+    AnimatedContent(
+        targetState = currentPage,
+        transitionSpec = {
+            val forward = targetState != null && initialState == null
+            val incomingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) 1 else -1 }
+            val outgoingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) -1 else 1 }
 
-@Composable
-private fun SettingsHeader(isCompact: Boolean, onMenuClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (isCompact) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    Icons.Outlined.Menu,
-                    contentDescription = stringResource(Res.string.expand),
-                )
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(Res.string.settings),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
+            (slideInHorizontally(animationSpec = tween(220), initialOffsetX = incomingOffset) +
+                fadeIn()).togetherWith(
+                slideOutHorizontally(animationSpec = tween(220), targetOffsetX = outgoingOffset) +
+                    fadeOut(),
             )
-        }
-    }
-}
-
-@Composable
-private fun HighlightCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Bolt,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(Res.string.battery_configuration), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = stringResource(Res.string.battery_configuration_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        },
+        modifier = modifier,
+        label = "settings-pages",
+    ) { page ->
+        when (page) {
+            null ->
+                SettingsHome(
+                    modifier = Modifier,
+                    isCompact = isCompact,
+                    onMenuClick = onMenuClick,
+                    onOpenPage = { target -> currentPage = target },
                 )
-            }
-        }
-    }
-}
 
-private data class SettingsEntry(
-    val title: String,
-    val description: String,
-    val icon: ImageVector,
-    val onClick: (() -> Unit)? = null,
-)
-
-@Composable
-private fun SettingRow(entry: SettingsEntry) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.extraLarge)
-            .clickable { entry.onClick?.invoke() },
-        shape = MaterialTheme.shapes.extraLarge,
-        tonalElevation = 1.dp,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Icon(
-                imageVector = entry.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = entry.title, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = entry.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SettingsPage.General ->
+                GeneralSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = null },
                 )
-            } 
+
+            SettingsPage.Directory ->
+                DirectorySettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.Format ->
+                FormatSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.Network ->
+                NetworkSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.Commands ->
+                PlaceholderPage(
+                    title = stringResource(Res.string.custom_command),
+                    body = stringResource(Res.string.custom_command_desc),
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.Appearance -> AppearanceSettingsPage(onBack = { currentPage = null })
+
+            SettingsPage.Interaction ->
+                PlaceholderPage(
+                    title = stringResource(Res.string.interface_and_interaction),
+                    body = stringResource(Res.string.settings_before_download),
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.Troubleshooting ->
+                PlaceholderPage(
+                    title = stringResource(Res.string.trouble_shooting),
+                    body = stringResource(Res.string.trouble_shooting_desc),
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.About ->
+                PlaceholderPage(
+                    title = stringResource(Res.string.about),
+                    body = stringResource(Res.string.about_page),
+                    onBack = { currentPage = null },
+                )
         }
     }
 }

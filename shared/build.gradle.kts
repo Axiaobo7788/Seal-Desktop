@@ -54,7 +54,11 @@ kotlin {
             }
         }
 
-        val androidMain by getting
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.coil.kt.compose)
+            }
+        }
         val androidUnitTest by getting
 
         val desktopMain by getting

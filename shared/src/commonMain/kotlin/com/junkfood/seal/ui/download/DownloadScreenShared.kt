@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+
 package com.junkfood.seal.ui.download
 
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +18,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.fetching_info
+import com.junkfood.seal.shared.generated.resources.start_download
+import com.junkfood.seal.shared.generated.resources.video_url
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Platform-neutral download screen UI. State and events are pure; platform hooks stay outside.
  */
+
 @Composable
 fun DownloadScreenShared(
     state: DownloadUiState,
@@ -33,20 +42,20 @@ fun DownloadScreenShared(
         OutlinedTextField(
             value = state.url,
             onValueChange = { onEvent(DownloadEvent.UrlChanged(it)) },
-            label = { Text("视频链接") },
+            label = { Text(stringResource(Res.string.video_url)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { onEvent(DownloadEvent.FetchInfo) }, enabled = !state.isRunning) {
-                Text("获取信息")
+                Text(stringResource(Res.string.fetching_info))
             }
             Button(onClick = { onEvent(DownloadEvent.StartDownload) }, enabled = !state.isRunning) {
-                Text("开始下载")
+                Text(stringResource(Res.string.start_download))
             }
             TextButton(onClick = { onEvent(DownloadEvent.Cancel) }, enabled = state.isRunning) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
         }
 

@@ -46,6 +46,8 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
+import com.junkfood.seal.desktop.settings.DesktopSettingsState
+import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
 import kotlinx.coroutines.launch
 
@@ -64,6 +66,7 @@ fun main() = application {
 @Composable
 private fun DesktopApp() {
     var current by remember { mutableStateOf(Destination.Download) }
+    val settingsState = rememberDesktopSettingsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -98,6 +101,7 @@ private fun DesktopApp() {
                             modifier = Modifier.fillMaxWidth(),
                             onMenuClick = { scope.launch { drawerState.open() } },
                             isCompact = true,
+                            settingsState = settingsState,
                         )
                     }
                 }
@@ -126,7 +130,12 @@ private fun DesktopApp() {
                             onSelect = { current = it },
                             onOpenDrawer = { scope.launch { drawerState.open() } },
                         )
-                        ContentArea(current, modifier = Modifier.weight(1f), isCompact = false)
+                        ContentArea(
+                            current,
+                            modifier = Modifier.weight(1f),
+                            isCompact = false,
+                            settingsState = settingsState,
+                        )
                     }
                 }
             }
@@ -134,7 +143,12 @@ private fun DesktopApp() {
             NavLayout.PermanentDrawer -> {
                 Row(modifier = Modifier.fillMaxSize()) {
                     PermanentNav(current = current, onSelect = { current = it })
-                    ContentArea(current, modifier = Modifier.weight(1f), isCompact = false)
+                    ContentArea(
+                        current,
+                        modifier = Modifier.weight(1f),
+                        isCompact = false,
+                        settingsState = settingsState,
+                    )
                 }
             }
         }
@@ -206,11 +220,25 @@ private fun ContentArea(
     modifier: Modifier = Modifier,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
+    settingsState: DesktopSettingsState,
 ) {
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     when (current) {
-        Destination.Download -> DesktopDownloadScreen(contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
-        Destination.Settings -> DesktopSettingsScreen(modifier = contentModifier, isCompact = isCompact, onMenuClick = onMenuClick)
+        Destination.Download ->
+            DesktopDownloadScreen(
+                contentModifier,
+                onMenuClick = onMenuClick,
+                isCompact = isCompact,
+                preferences = settingsState.preferences,
+                onPreferencesChange = settingsState::set,
+            )
+        Destination.Settings ->
+            DesktopSettingsScreen(
+                modifier = contentModifier,
+                isCompact = isCompact,
+                onMenuClick = onMenuClick,
+                settingsState = settingsState,
+            )
         Destination.Templates -> PlaceholderScreen("命令模板（待接入）", contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
     }
 }
