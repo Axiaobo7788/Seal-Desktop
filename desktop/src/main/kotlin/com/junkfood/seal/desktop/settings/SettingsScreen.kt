@@ -27,6 +27,7 @@ import com.junkfood.seal.shared.generated.resources.interface_and_interaction
 import com.junkfood.seal.shared.generated.resources.settings_before_download
 import com.junkfood.seal.shared.generated.resources.trouble_shooting
 import com.junkfood.seal.shared.generated.resources.trouble_shooting_desc
+import com.junkfood.seal.desktop.theme.DesktopThemeState
 import org.jetbrains.compose.resources.stringResource
 
 internal enum class SettingsPage {
@@ -36,6 +37,7 @@ internal enum class SettingsPage {
     Network,
     Commands,
     Appearance,
+    DarkTheme,
     Interaction,
     Troubleshooting,
     About,
@@ -47,6 +49,7 @@ fun DesktopSettingsScreen(
     isCompact: Boolean = false,
     onMenuClick: () -> Unit = {},
     settingsState: DesktopSettingsState,
+    themeState: DesktopThemeState,
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
 
@@ -110,7 +113,18 @@ fun DesktopSettingsScreen(
                     onBack = { currentPage = null },
                 )
 
-            SettingsPage.Appearance -> AppearanceSettingsPage(onBack = { currentPage = null })
+            SettingsPage.Appearance ->
+                AppearanceSettingsPage(
+                    themeState = themeState,
+                    onOpenDarkTheme = { currentPage = SettingsPage.DarkTheme },
+                    onBack = { currentPage = null },
+                )
+
+            SettingsPage.DarkTheme ->
+                DarkThemeSettingsPage(
+                    themeState = themeState,
+                    onBack = { currentPage = SettingsPage.Appearance },
+                )
 
             SettingsPage.Interaction ->
                 PlaceholderPage(

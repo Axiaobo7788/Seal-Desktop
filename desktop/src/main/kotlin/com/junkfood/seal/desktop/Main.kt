@@ -49,6 +49,9 @@ import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
 import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
+import com.junkfood.seal.desktop.theme.DesktopSealTheme
+import com.junkfood.seal.desktop.theme.DesktopThemeState
+import com.junkfood.seal.desktop.theme.rememberDesktopThemeState
 import kotlinx.coroutines.launch
 
 fun main() = application {
@@ -57,14 +60,15 @@ fun main() = application {
         title = "Seal Desktop",
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
-        MaterialTheme {
-            Surface { DesktopApp() }
+        val themeState = rememberDesktopThemeState()
+        DesktopSealTheme(themeState = themeState) {
+            Surface { DesktopApp(themeState = themeState) }
         }
     }
 }
 
 @Composable
-private fun DesktopApp() {
+private fun DesktopApp(themeState: DesktopThemeState) {
     var current by remember { mutableStateOf(Destination.Download) }
     val settingsState = rememberDesktopSettingsState()
 
@@ -102,6 +106,7 @@ private fun DesktopApp() {
                             onMenuClick = { scope.launch { drawerState.open() } },
                             isCompact = true,
                             settingsState = settingsState,
+                            themeState = themeState,
                         )
                     }
                 }
@@ -135,6 +140,7 @@ private fun DesktopApp() {
                             modifier = Modifier.weight(1f),
                             isCompact = false,
                             settingsState = settingsState,
+                            themeState = themeState,
                         )
                     }
                 }
@@ -148,6 +154,7 @@ private fun DesktopApp() {
                         modifier = Modifier.weight(1f),
                         isCompact = false,
                         settingsState = settingsState,
+                        themeState = themeState,
                     )
                 }
             }
@@ -221,6 +228,7 @@ private fun ContentArea(
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
     settingsState: DesktopSettingsState,
+    themeState: DesktopThemeState,
 ) {
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     when (current) {
@@ -238,6 +246,7 @@ private fun ContentArea(
                 isCompact = isCompact,
                 onMenuClick = onMenuClick,
                 settingsState = settingsState,
+                themeState = themeState,
             )
         Destination.Templates -> PlaceholderScreen("命令模板（待接入）", contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
     }
