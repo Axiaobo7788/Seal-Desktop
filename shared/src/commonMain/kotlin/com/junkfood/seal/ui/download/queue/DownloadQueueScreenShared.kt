@@ -61,7 +61,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -126,7 +125,11 @@ fun DownloadQueueScreenShared(
         )
 
         if (filteredItems.isEmpty()) {
-            EmptyPlaceholderShared(strings = strings, modifier = Modifier.fillMaxSize())
+            if (state.isLoading) {
+                LoadingPlaceholderShared(modifier = Modifier.fillMaxSize())
+            } else {
+                EmptyPlaceholderShared(strings = strings, modifier = Modifier.fillMaxSize())
+            }
         } else {
             if (state.viewMode == DownloadQueueViewMode.Grid) {
                 LazyVerticalGrid(
@@ -137,7 +140,9 @@ fun DownloadQueueScreenShared(
                     items(filteredItems, key = { it.id }) { item ->
                         QueueCardShared(
                             item = item,
+                            strings = strings,
                             onMoreClick = { sheetItemId = item.id },
+                            onClick = { sheetItemId = item.id },
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }
@@ -150,7 +155,9 @@ fun DownloadQueueScreenShared(
                     items(filteredItems, key = { it.id }) { item ->
                         QueueListItemShared(
                             item = item,
+                            strings = strings,
                             onMoreClick = { sheetItemId = item.id },
+                            onClick = { sheetItemId = item.id },
                         )
                     }
                 }
@@ -272,14 +279,19 @@ private fun SubHeaderShared(
         }
         Text(text = parts.joinToString(separator = "  "), style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.weight(1f))
+
+        val targetMode =
+            if (viewMode == DownloadQueueViewMode.Grid) DownloadQueueViewMode.List
+            else DownloadQueueViewMode.Grid
+
         FilledIconButton(
             onClick = onToggleView,
             modifier = Modifier.size(36.dp),
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
         ) {
             Icon(
-                imageVector = if (viewMode == DownloadQueueViewMode.Grid) Icons.Outlined.GridView else Icons.AutoMirrored.Outlined.List,
-                contentDescription = if (viewMode == DownloadQueueViewMode.Grid) strings.gridLabel else strings.listLabel,
+                imageVector = if (targetMode == DownloadQueueViewMode.Grid) Icons.Outlined.GridView else Icons.AutoMirrored.Outlined.List,
+                contentDescription = if (targetMode == DownloadQueueViewMode.Grid) strings.gridLabel else strings.listLabel,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -287,10 +299,16 @@ private fun SubHeaderShared(
 }
 
 @Composable
-private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun QueueCardShared(
+    item: DownloadQueueItemState,
+    strings: DownloadQueueStrings,
+    onMoreClick: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val container = MaterialTheme.colorScheme.surfaceContainerLow
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Column {
@@ -302,7 +320,7 @@ private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Uni
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             ) {
                 DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
-                StatusPill(item = item, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
+                StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
                 DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
             }
             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -311,7 +329,7 @@ private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Uni
                     if (item.author.isNotBlank()) {
                         Text(text = item.author, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    ProgressText(item)
+                    ProgressText(item = item, strings = strings)
                 }
                 IconButton(onClick = onMoreClick) {
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
@@ -322,8 +340,17 @@ private fun QueueCardShared(item: DownloadQueueItemState, onMoreClick: () -> Uni
 }
 
 @Composable
-private fun QueueListItemShared(item: DownloadQueueItemState, onMoreClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+private fun QueueListItemShared(
+    item: DownloadQueueItemState,
+    strings: DownloadQueueStrings,
+    onMoreClick: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable { onClick() }.padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(
             modifier = Modifier
                 .width(120.dp)
@@ -332,7 +359,7 @@ private fun QueueListItemShared(item: DownloadQueueItemState, onMoreClick: () ->
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         ) {
             DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
-            StatusPill(item = item, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
+            StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
             DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
@@ -340,7 +367,7 @@ private fun QueueListItemShared(item: DownloadQueueItemState, onMoreClick: () ->
             if (item.author.isNotBlank()) {
                 Text(text = item.author, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            ProgressText(item)
+            ProgressText(item = item, strings = strings)
         }
         IconButton(onClick = onMoreClick) {
             Icon(Icons.Outlined.MoreVert, contentDescription = null)
@@ -349,16 +376,17 @@ private fun QueueListItemShared(item: DownloadQueueItemState, onMoreClick: () ->
 }
 
 @Composable
-private fun ProgressText(item: DownloadQueueItemState) {
-    val statusLabel = when (item.status) {
-        DownloadQueueStatus.Idle -> "Idle"
-        DownloadQueueStatus.FetchingInfo -> "Fetching info"
-        DownloadQueueStatus.Ready -> "Ready"
-        DownloadQueueStatus.Running -> "Downloading"
-        DownloadQueueStatus.Completed -> "Completed"
-        DownloadQueueStatus.Canceled -> "Canceled"
-        DownloadQueueStatus.Error -> "Error"
-    }
+private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStrings) {
+    val statusLabel =
+        when (item.status) {
+            DownloadQueueStatus.Idle -> strings.statusIdle
+            DownloadQueueStatus.FetchingInfo -> strings.statusFetchingInfo
+            DownloadQueueStatus.Ready -> strings.statusReady
+            DownloadQueueStatus.Running -> strings.statusRunning
+            DownloadQueueStatus.Completed -> strings.statusCompleted
+            DownloadQueueStatus.Canceled -> strings.statusCanceled
+            DownloadQueueStatus.Error -> strings.statusError
+        }
     val progressPercent = item.progress?.let { " ${(it * 100f).toInt()}%" } ?: ""
     val extra = if (item.progressText.isNotBlank()) " • ${item.progressText}" else ""
     Text(
@@ -371,16 +399,17 @@ private fun ProgressText(item: DownloadQueueItemState) {
 }
 
 @Composable
-private fun StatusPill(item: DownloadQueueItemState, modifier: Modifier = Modifier) {
-    val (bg, text) = when (item.status) {
-        DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.secondaryContainer to "已完成"
-        DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer to "错误"
-        DownloadQueueStatus.Canceled -> MaterialTheme.colorScheme.surfaceVariant to "已取消"
-        DownloadQueueStatus.Running -> MaterialTheme.colorScheme.primaryContainer to "下载中"
-        DownloadQueueStatus.FetchingInfo -> MaterialTheme.colorScheme.primaryContainer to "获取中"
-        DownloadQueueStatus.Ready -> MaterialTheme.colorScheme.primaryContainer to "待开始"
-        DownloadQueueStatus.Idle -> MaterialTheme.colorScheme.surfaceContainerHigh to "排队"
-    }
+private fun StatusPill(item: DownloadQueueItemState, strings: DownloadQueueStrings, modifier: Modifier = Modifier) {
+    val (bg, text) =
+        when (item.status) {
+            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.secondaryContainer to strings.statusCompleted
+            DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer to strings.statusError
+            DownloadQueueStatus.Canceled -> MaterialTheme.colorScheme.surfaceVariant to strings.statusCanceled
+            DownloadQueueStatus.Running -> MaterialTheme.colorScheme.primaryContainer to strings.statusRunning
+            DownloadQueueStatus.FetchingInfo -> MaterialTheme.colorScheme.primaryContainer to strings.statusFetchingInfo
+            DownloadQueueStatus.Ready -> MaterialTheme.colorScheme.primaryContainer to strings.statusReady
+            DownloadQueueStatus.Idle -> MaterialTheme.colorScheme.surfaceContainerHigh to strings.statusIdle
+        }
     Surface(color = bg, shape = MaterialTheme.shapes.extraSmall, modifier = modifier) {
         Text(text = text, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
     }
@@ -434,6 +463,13 @@ private fun EmptyPlaceholderShared(strings: DownloadQueueStrings, modifier: Modi
             modifier = Modifier.padding(horizontal = 16.dp),
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+@Composable
+private fun LoadingPlaceholderShared(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
     }
 }
 
