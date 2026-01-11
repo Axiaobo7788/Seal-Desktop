@@ -26,11 +26,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
@@ -50,9 +52,13 @@ internal fun SettingsPageScaffold(
     onBack: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+            state = rememberTopAppBarState(),
+            canScroll = { true },
+        )
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
                 title = { Text(title) },
@@ -118,7 +124,7 @@ internal fun SettingRow(entry: SettingsEntry) {
 @Composable
 internal fun ToggleCard(
     title: String,
-    description: String,
+    description: String?,
     icon: ImageVector,
     checked: Boolean,
     enabled: Boolean = true,
@@ -140,11 +146,13 @@ internal fun ToggleCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (!description.isNullOrBlank()) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Switch(checked = checked, onCheckedChange = { onCheckedChange(it) }, enabled = enabled)
         }

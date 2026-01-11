@@ -61,7 +61,7 @@ fun DarkThemeSettingsPage(
 
         ToggleCard(
             title = stringResource(Res.string.high_contrast),
-            description = "",
+            description = null,
             icon = Icons.Outlined.Contrast,
             checked = prefs.highContrastEnabled,
         ) { checked -> themeState.update { it.copy(highContrastEnabled = checked) } }
