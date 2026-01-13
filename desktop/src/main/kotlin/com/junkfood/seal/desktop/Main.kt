@@ -1,5 +1,8 @@
+@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
+
 package com.junkfood.seal.desktop
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -43,21 +46,36 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
 import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
+import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
+import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryPage
 import com.junkfood.seal.desktop.theme.DesktopSealTheme
 import com.junkfood.seal.desktop.theme.DesktopThemeState
 import com.junkfood.seal.desktop.theme.rememberDesktopThemeState
+import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.app_name
+import com.junkfood.seal.shared.generated.resources.custom_command
+import com.junkfood.seal.shared.generated.resources.desktop_menu
+import com.junkfood.seal.shared.generated.resources.desktop_navigation
+import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
+import com.junkfood.seal.shared.generated.resources.download_queue
+import com.junkfood.seal.shared.generated.resources.downloads_history
+import com.junkfood.seal.shared.generated.resources.settings
+import com.junkfood.seal.shared.generated.resources.sponsor
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Seal Desktop",
+        title = stringResource(Res.string.app_name),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
         val themeState = rememberDesktopThemeState()
@@ -69,8 +87,9 @@ fun main() = application {
 
 @Composable
 private fun DesktopApp(themeState: DesktopThemeState) {
-    var current by remember { mutableStateOf(Destination.Download) }
+    var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
+    val downloadController = remember { DesktopDownloadController() }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -107,6 +126,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                             isCompact = true,
                             settingsState = settingsState,
                             themeState = themeState,
+                            downloadController = downloadController,
                         )
                     }
                 }
@@ -141,6 +161,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                             isCompact = false,
                             settingsState = settingsState,
                             themeState = themeState,
+                            downloadController = downloadController,
                         )
                     }
                 }
@@ -155,6 +176,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                         isCompact = false,
                         settingsState = settingsState,
                         themeState = themeState,
+                        downloadController = downloadController,
                     )
                 }
             }
@@ -171,18 +193,18 @@ private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit)
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = "Seal",
+            text = stringResource(Res.string.app_name),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
         Destination.entries.forEach { dest ->
             val selected = current == dest
             NavigationDrawerItem(
-                label = { Text(dest.label) },
+                label = { Text(stringResource(dest.labelRes)) },
                 selected = selected,
                 onClick = { onSelect(dest) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                icon = { Icon(dest.icon, contentDescription = dest.label) },
+                icon = { Icon(dest.icon, contentDescription = stringResource(dest.labelRes)) },
             )
         }
     }
@@ -206,16 +228,16 @@ private fun NavigationRailMenu(current: Destination, onSelect: (Destination) -> 
             NavigationRailItem(
                 selected = false,
                 onClick = it,
-                icon = { Icon(Icons.Outlined.Menu, contentDescription = "展开导航") },
-                label = { Text("导航") },
+                icon = { Icon(Icons.Outlined.Menu, contentDescription = stringResource(Res.string.desktop_open_navigation)) },
+                label = { Text(stringResource(Res.string.desktop_navigation)) },
             )
         }
         Destination.entries.forEach { dest ->
             NavigationRailItem(
                 selected = current == dest,
                 onClick = { onSelect(dest) },
-                icon = { Icon(dest.icon, contentDescription = dest.label) },
-                label = { Text(dest.label) },
+                icon = { Icon(dest.icon, contentDescription = stringResource(dest.labelRes)) },
+                label = { Text(stringResource(dest.labelRes)) },
             )
         }
     }
@@ -229,16 +251,25 @@ private fun ContentArea(
     isCompact: Boolean = false,
     settingsState: DesktopSettingsState,
     themeState: DesktopThemeState,
+    downloadController: DesktopDownloadController,
 ) {
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     when (current) {
-        Destination.Download ->
+        Destination.DownloadQueue ->
             DesktopDownloadScreen(
                 contentModifier,
                 onMenuClick = onMenuClick,
                 isCompact = isCompact,
                 preferences = settingsState.preferences,
                 onPreferencesChange = settingsState::set,
+                controller = downloadController,
+            )
+        Destination.DownloadHistory ->
+            DesktopDownloadHistoryPage(
+                entries = downloadController.historyEntries,
+                onDelete = { downloadController.deleteHistoryEntry(it) },
+                onMenuClick = onMenuClick,
+                isCompact = isCompact,
             )
         Destination.Settings ->
             DesktopSettingsScreen(
@@ -248,14 +279,17 @@ private fun ContentArea(
                 settingsState = settingsState,
                 themeState = themeState,
             )
-        Destination.Templates -> PlaceholderScreen("命令模板（待接入）", contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+        Destination.CustomCommand -> PlaceholderScreen(stringResource(Res.string.custom_command), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+        Destination.Sponsor -> PlaceholderScreen(stringResource(Res.string.sponsor), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
     }
 }
 
-private enum class Destination(val label: String, val icon: ImageVector) {
-    Download("下载", Icons.Outlined.FileDownload),
-    Settings("设置", Icons.Outlined.Settings),
-    Templates("模板", Icons.Outlined.Add),
+private enum class Destination(val labelRes: StringResource, val icon: ImageVector) {
+    DownloadQueue(Res.string.download_queue, Icons.Outlined.FileDownload),
+    DownloadHistory(Res.string.downloads_history, Icons.Outlined.History),
+    CustomCommand(Res.string.custom_command, Icons.Outlined.Add),
+    Settings(Res.string.settings, Icons.Outlined.Settings),
+    Sponsor(Res.string.sponsor, Icons.Outlined.Add),
 }
 
 private enum class NavLayout { ModalDrawer, NavigationRail, PermanentDrawer }
@@ -268,15 +302,21 @@ private fun PlaceholderScreen(text: String, modifier: Modifier = Modifier, onMen
     ) {
         if (isCompact) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onMenuClick) { Text("菜单") }
+                Icon(
+                    imageVector = Icons.Outlined.Menu,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .clickable(onClick = onMenuClick),
+                )
                 Text(text, style = MaterialTheme.typography.titleMedium)
             }
             Spacer(Modifier.height(8.dp))
         } else {
             Text(text, style = MaterialTheme.typography.headlineSmall)
         }
-        Text("与 Android 保持 1:1 的入口占位，后续逐步接入功能。", style = MaterialTheme.typography.bodyMedium)
+        Text("This page is not available on Desktop yet.", style = MaterialTheme.typography.bodyMedium)
         Divider()
-        Text("当前可切换回“下载”页面继续使用下载功能。", style = MaterialTheme.typography.bodySmall)
+        Text("Tip: use the Android app for now.", style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -40,6 +40,15 @@
     <string name="about">About</string>
     <string name="about_page">Version, feedback, auto update</string>
     <string name="back">Back</string>
+    <string name="desktop_menu">Menu</string>
+    <string name="desktop_navigation">Navigation</string>
+    <string name="desktop_open_navigation">Open navigation</string>
+    <string name="desktop_view_grid">Grid</string>
+    <string name="desktop_view_list">List</string>
+    <string name="desktop_placeholder_android_parity">Placeholder entry to match Android 1:1. Features will be added later.</string>
+    <string name="desktop_placeholder_download_tip">You can switch back to the Download page to continue using downloads.</string>
+    <string name="desktop_history_filter_bilibili">Bilibili</string>
+    <string name="desktop_history_filter_youtube">YouTube</string>
     <string name="version">Version</string>
     <string name="release_desc">Look for changelogs and new versions</string>
     <string name="release">Latest release</string>

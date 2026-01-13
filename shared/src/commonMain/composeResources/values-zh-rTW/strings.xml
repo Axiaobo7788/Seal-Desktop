@@ -16,6 +16,15 @@
     <string name="about">關於</string>
     <string name="about_page">版本、意見反應、自動更新</string>
     <string name="back">返回</string>
+    <string name="desktop_menu">選單</string>
+    <string name="desktop_navigation">導覽</string>
+    <string name="desktop_open_navigation">開啟導覽選單</string>
+    <string name="desktop_view_grid">網格</string>
+    <string name="desktop_view_list">清單</string>
+    <string name="desktop_placeholder_android_parity">與 Android 保持 1:1 的入口占位，後續會逐步加入功能。</string>
+    <string name="desktop_placeholder_download_tip">目前可切換回「下載」頁面繼續使用下載功能。</string>
+    <string name="desktop_history_filter_bilibili">嗶哩嗶哩</string>
+    <string name="desktop_history_filter_youtube">YouTube</string>
     <string name="version">版本</string>
     <string name="release_desc">查看更新日誌和最新版本</string>
     <string name="release">最新版本</string>

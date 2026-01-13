@@ -41,14 +41,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.settings.desktopDefaultPreferences
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
-import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
-import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
-import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueFilter
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
@@ -56,13 +54,11 @@ import com.junkfood.seal.ui.download.queue.DownloadQueueScreenShared
 import com.junkfood.seal.ui.download.queue.DownloadQueueState
 import com.junkfood.seal.ui.download.queue.DownloadQueueStrings
 import com.junkfood.seal.ui.download.queue.DownloadQueueViewMode
-import com.junkfood.seal.ui.download.queue.DownloadQueueStatus
-import com.junkfood.seal.ui.download.queue.DownloadQueueMediaType
 import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.VideoInfo
-import kotlinx.coroutines.Dispatchers
+import java.awt.Desktop
+import java.io.File
+import java.net.URI
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.additional_settings
@@ -92,8 +88,8 @@ import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
-
-private enum class DesktopDownloadType { Audio, Video, Playlist }
+import com.junkfood.seal.shared.generated.resources.desktop_view_grid
+import com.junkfood.seal.shared.generated.resources.desktop_view_list
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,14 +99,10 @@ fun DesktopDownloadScreen(
     isCompact: Boolean = true,
     preferences: DownloadPreferences,
     onPreferencesChange: (DownloadPreferences) -> Unit,
+    controller: DesktopDownloadController,
 ) {
     val scope = rememberCoroutineScope()
-    val executor = remember { DownloadPlanExecutor() }
-    val metadataFetcher = remember { YtDlpMetadataFetcher() }
-
-    var filter by remember { mutableStateOf(DownloadQueueFilter.All) }
-    var viewMode by remember { mutableStateOf(DownloadQueueViewMode.Grid) }
-    val queueItems = remember { mutableStateListOf<DownloadQueueItemState>() }
+    val clipboard = LocalClipboardManager.current
 
     var showInputSheet by remember { mutableStateOf(false) }
     var showOptionsSheet by remember { mutableStateOf(false) }
@@ -120,94 +112,7 @@ fun DesktopDownloadScreen(
     var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
     var workingPreferences by remember { mutableStateOf(preferences) }
     LaunchedEffect(preferences) { workingPreferences = preferences }
-    var runningProcess by remember { mutableStateOf<DownloadPlanExecutor.RunningProcess?>(null) }
-    var runningItemId by remember { mutableStateOf<String?>(null) }
-    val logLines = remember { mutableStateListOf<String>() }
-
-    fun appendLog(line: String) {
-        logLines.add(line)
-        if (logLines.size > 200) {
-            logLines.removeFirst()
-        }
-    }
-
-    fun updateItem(itemId: String, transform: (DownloadQueueItemState) -> DownloadQueueItemState) {
-        val index = queueItems.indexOfFirst { it.id == itemId }
-        if (index >= 0) {
-            queueItems[index] = transform(queueItems[index])
-        }
-    }
-
-    fun startDownload(url: String, type: DesktopDownloadType, basePreferences: DownloadPreferences) {
-        val trimmed = url.trim()
-        if (trimmed.isBlank()) return
-        val itemId = System.currentTimeMillis().toString()
-        val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
-        val effectivePreferences = preferencesForType(basePreferences, type)
-
-        queueItems.add(
-            DownloadQueueItemState(
-                id = itemId,
-                title = trimmed,
-                url = trimmed,
-                mediaType = mediaType,
-                status = DownloadQueueStatus.FetchingInfo,
-            ),
-        )
-
-        scope.launch {
-            appendLog("start: $trimmed [${type.name.lowercase()}]")
-
-            val videoInfo =
-                try {
-                    withContext(Dispatchers.IO) { metadataFetcher.fetch(trimmed) }
-                } catch (e: Exception) {
-                    appendLog("metadata failed: ${e.message}")
-                    VideoInfo(originalUrl = trimmed, webpageUrl = trimmed, title = trimmed)
-                }
-
-            updateItem(itemId) {
-                it.copy(
-                    title = videoInfo.title.ifBlank { trimmed },
-                    author = videoInfo.uploader.orEmpty(),
-                    status = DownloadQueueStatus.Ready,
-                )
-            }
-
-            val plan = buildDownloadPlan(videoInfo, effectivePreferences, playlistUrl = trimmed, playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0)
-
-            try {
-                runningItemId = itemId
-                updateItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
-
-                val proc =
-                    withContext(Dispatchers.IO) {
-                        executor.start(
-                            plan,
-                            executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths),
-                            onStdout = { appendLog(it) },
-                            onStderr = { appendLog("[err] $it") },
-                        )
-                    }
-
-                runningProcess = proc
-                val result = withContext(Dispatchers.IO) { proc.waitForResult() }
-
-                updateItem(itemId) {
-                    it.copy(
-                        status = if (result.exitCode == 0) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
-                        progressText = "Exit code ${result.exitCode}",
-                    )
-                }
-            } catch (e: Exception) {
-                appendLog("download failed: ${e.message}")
-                updateItem(itemId) { it.copy(status = DownloadQueueStatus.Error, errorMessage = e.message, progressText = e.message.orEmpty()) }
-            } finally {
-                runningProcess = null
-                runningItemId = null
-            }
-        }
-    }
+    val logLines = controller.logLines
 
     val queueStrings =
         DownloadQueueStrings(
@@ -219,35 +124,44 @@ fun DesktopDownloadScreen(
             filterFinished = stringResource(Res.string.status_completed),
             emptyTitle = stringResource(Res.string.you_ll_find_your_downloads_here),
             emptyBody = stringResource(Res.string.download_hint),
-            gridLabel = "Grid",
-            listLabel = "List",
+            gridLabel = stringResource(Res.string.desktop_view_grid),
+            listLabel = stringResource(Res.string.desktop_view_list),
         )
 
     Column(modifier = modifier.fillMaxHeight()) {
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             DownloadQueueScreenShared(
-                state = DownloadQueueState(items = queueItems, filter = filter, viewMode = viewMode),
+                state = DownloadQueueState(items = controller.queueItems, filter = controller.filter, viewMode = controller.viewMode),
                 strings = queueStrings,
-                onFilterChange = { filter = it },
-                onViewModeChange = { viewMode = it },
+                onFilterChange = { controller.filter = it },
+                onViewModeChange = { controller.viewMode = it },
                 onItemAction = { itemId, action ->
+                    val item = controller.queueItems.firstOrNull { it.id == itemId }
                     when (action) {
-                        DownloadQueueAction.Cancel -> {
-                            if (itemId == runningItemId) {
-                                runningProcess?.cancel()
-                                updateItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled) }
-                            }
-                        }
-                        DownloadQueueAction.Delete -> queueItems.removeAll { it.id == itemId }
+                        DownloadQueueAction.Cancel -> controller.cancelIfRunning(itemId)
+                        DownloadQueueAction.Delete -> controller.deleteQueueItem(itemId)
                         DownloadQueueAction.Resume -> { /* not supported */ }
-                        DownloadQueueAction.OpenFile,
-                        DownloadQueueAction.ShareFile,
-                        DownloadQueueAction.CopyVideoUrl,
-                        DownloadQueueAction.OpenVideoUrl,
-                        DownloadQueueAction.OpenThumbnailUrl,
-                        DownloadQueueAction.CopyError,
+                        DownloadQueueAction.OpenFile -> {
+                            item?.filePath?.let { safeOpenFile(it) }
+                        }
+                        DownloadQueueAction.ShareFile -> {
+                            // Desktop: no share sheet for now; best-effort open folder.
+                            item?.filePath?.let { safeRevealInFolder(it) }
+                        }
+                        DownloadQueueAction.CopyVideoUrl -> {
+                            item?.url?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                        }
+                        DownloadQueueAction.OpenVideoUrl -> {
+                            item?.url?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                        }
+                        DownloadQueueAction.OpenThumbnailUrl -> {
+                            item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                        }
+                        DownloadQueueAction.CopyError -> {
+                            item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                        }
                         DownloadQueueAction.ShowDetails -> {
-                            // Not implemented on desktop for now
+                            // TODO: add a detail dialog; keep no-op for now.
                         }
                     }
                 },
@@ -315,13 +229,37 @@ fun DesktopDownloadScreen(
                     pendingUrl = null
                 },
                 onDownload = {
-                    pendingUrl?.let { url -> startDownload(url, downloadType, workingPreferences) }
+                    pendingUrl?.let { url ->
+                        controller.startDownload(url, downloadType, workingPreferences)
+                    }
                     pendingUrl = null
                     showOptionsSheet = false
                     inputUrl = ""
                 },
             )
         }
+    }
+}
+
+private fun safeBrowse(url: String) {
+    runCatching {
+        if (!Desktop.isDesktopSupported()) return
+        Desktop.getDesktop().browse(URI(url))
+    }
+}
+
+private fun safeOpenFile(path: String) {
+    runCatching {
+        if (!Desktop.isDesktopSupported()) return
+        Desktop.getDesktop().open(File(path))
+    }
+}
+
+private fun safeRevealInFolder(path: String) {
+    runCatching {
+        val file = File(path)
+        val dir = if (file.isDirectory) file else file.parentFile
+        if (dir != null) safeOpenFile(dir.absolutePath)
     }
 }
 
@@ -496,7 +434,8 @@ private fun RunningNowBanner(item: DownloadQueueItemState) {
             Icon(Icons.Outlined.FileDownload, contentDescription = null)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val statusText = item.progressText.ifBlank { stringResource(Res.string.status_downloading) }
+                val fallbackStatusText = stringResource(Res.string.status_downloading)
+                val statusText = if (item.progressText.isBlank()) fallbackStatusText else item.progressText
                 Text(statusText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -516,14 +455,6 @@ private fun LatestLogRow(line: String) {
         )
     }
 }
-
-private fun preferencesForType(base: DownloadPreferences, type: DesktopDownloadType): DownloadPreferences =
-    base.copy(
-        extractAudio = type == DesktopDownloadType.Audio,
-        downloadPlaylist = type == DesktopDownloadType.Playlist,
-        subdirectoryPlaylistTitle = if (type == DesktopDownloadType.Playlist) true else base.subdirectoryPlaylistTitle,
-        embedMetadata = if (type == DesktopDownloadType.Audio) true else base.embedMetadata,
-    )
 
 @Composable
 private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): String {
