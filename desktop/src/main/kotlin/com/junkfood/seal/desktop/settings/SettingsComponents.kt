@@ -3,6 +3,7 @@ package com.junkfood.seal.desktop.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -30,6 +32,7 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -167,6 +170,8 @@ internal fun TextFieldCard(
     value: String,
     enabled: Boolean = true,
     placeholder: String? = null,
+    singleLine: Boolean = true,
+    maxLines: Int = if (singleLine) 1 else 6,
     onValueChange: (String) -> Unit,
 ) {
     Surface(
@@ -193,7 +198,8 @@ internal fun TextFieldCard(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = placeholder?.let { { Text(it) } },
-                singleLine = true,
+                singleLine = singleLine,
+                maxLines = maxLines,
             )
         }
     }
@@ -266,6 +272,43 @@ internal fun <T> ChoiceDialog(
             }
         },
     )
+}
+
+@Composable
+internal fun PreferenceSubtitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(start = 16.dp, top = 20.dp, bottom = 8.dp),
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
+    Text(
+        text = text,
+        modifier = modifier.padding(contentPadding),
+        color = color,
+        style = MaterialTheme.typography.labelLarge,
+    )
+}
+
+@Composable
+internal fun PreferenceInfo(
+    modifier: Modifier = Modifier,
+    text: String,
+    icon: ImageVector = Icons.Outlined.Info,
+    applyPaddings: Boolean = true,
+) {
+    Column(
+        modifier =
+            modifier.fillMaxWidth().run {
+                if (applyPaddings) padding(horizontal = 16.dp, vertical = 16.dp) else this
+            }
+    ) {
+        Icon(modifier = Modifier.padding(), imageVector = icon, contentDescription = null)
+        Text(
+            modifier = Modifier.padding(top = 16.dp),
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
 }
 
 @Composable

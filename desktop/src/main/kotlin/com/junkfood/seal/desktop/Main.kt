@@ -51,6 +51,8 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
 import com.junkfood.seal.desktop.settings.DesktopSettingsState
+import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
+import com.junkfood.seal.desktop.settings.rememberDesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
@@ -89,6 +91,7 @@ fun main() = application {
 private fun DesktopApp(themeState: DesktopThemeState) {
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
+    val appSettingsState = rememberDesktopAppSettingsState()
     val downloadController = remember { DesktopDownloadController() }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -125,6 +128,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                             onMenuClick = { scope.launch { drawerState.open() } },
                             isCompact = true,
                             settingsState = settingsState,
+                            appSettingsState = appSettingsState,
                             themeState = themeState,
                             downloadController = downloadController,
                         )
@@ -160,6 +164,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                             modifier = Modifier.weight(1f),
                             isCompact = false,
                             settingsState = settingsState,
+                            appSettingsState = appSettingsState,
                             themeState = themeState,
                             downloadController = downloadController,
                         )
@@ -175,6 +180,7 @@ private fun DesktopApp(themeState: DesktopThemeState) {
                         modifier = Modifier.weight(1f),
                         isCompact = false,
                         settingsState = settingsState,
+                        appSettingsState = appSettingsState,
                         themeState = themeState,
                         downloadController = downloadController,
                     )
@@ -250,6 +256,7 @@ private fun ContentArea(
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
     settingsState: DesktopSettingsState,
+    appSettingsState: DesktopAppSettingsState,
     themeState: DesktopThemeState,
     downloadController: DesktopDownloadController,
 ) {
@@ -277,6 +284,7 @@ private fun ContentArea(
                 isCompact = isCompact,
                 onMenuClick = onMenuClick,
                 settingsState = settingsState,
+                appSettingsState = appSettingsState,
                 themeState = themeState,
             )
         Destination.CustomCommand -> PlaceholderScreen(stringResource(Res.string.custom_command), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)

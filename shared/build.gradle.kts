@@ -75,7 +75,8 @@ tasks.configureEach {
         name.startsWith("generateResourceAccessorsFor") ||
             name == "generateComposeResClass" ||
             name.startsWith("convertXmlValueResourcesFor") ||
-            name.startsWith("prepareComposeResources")
+            name.startsWith("prepareComposeResources") ||
+            name.startsWith("copyNonXmlValueResourcesFor")
     ) {
         dependsOn(syncAndroidStringsToComposeResources)
     }

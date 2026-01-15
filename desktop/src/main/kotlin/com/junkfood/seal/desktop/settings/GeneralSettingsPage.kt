@@ -15,14 +15,20 @@ import com.junkfood.seal.shared.generated.resources.download_archive_desc
 import com.junkfood.seal.shared.generated.resources.download_playlist
 import com.junkfood.seal.shared.generated.resources.download_playlist_desc
 import com.junkfood.seal.shared.generated.resources.general_settings
+import com.junkfood.seal.shared.generated.resources.advanced_settings
 import com.junkfood.seal.shared.generated.resources.restrict_filenames
 import com.junkfood.seal.shared.generated.resources.restrict_filenames_desc
 import com.junkfood.seal.shared.generated.resources.sponsorblock
 import com.junkfood.seal.shared.generated.resources.sponsorblock_desc
+import com.junkfood.seal.shared.generated.resources.sponsorblock_categories
+import com.junkfood.seal.shared.generated.resources.sponsorblock_categories_desc
 import com.junkfood.seal.shared.generated.resources.create_thumbnail
 import com.junkfood.seal.shared.generated.resources.create_thumbnail_summary
 import com.junkfood.seal.shared.generated.resources.print_details
 import com.junkfood.seal.shared.generated.resources.print_details_desc
+import com.junkfood.seal.shared.generated.resources.privacy
+import com.junkfood.seal.shared.generated.resources.private_mode
+import com.junkfood.seal.shared.generated.resources.private_mode_desc
 import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
 
@@ -33,6 +39,8 @@ internal fun GeneralSettingsPage(
     onBack: () -> Unit,
 ) {
     SettingsPageScaffold(title = stringResource(Res.string.general_settings), onBack = onBack) {
+        PreferenceSubtitle(text = stringResource(Res.string.general_settings))
+
         ToggleCard(
             title = stringResource(Res.string.download_playlist),
             description = stringResource(Res.string.download_playlist_desc),
@@ -67,6 +75,25 @@ internal fun GeneralSettingsPage(
             icon = Icons.Rounded.BugReport,
             checked = preferences.sponsorBlock,
         ) { checked -> onUpdate { it.copy(sponsorBlock = checked) } }
+
+        TextFieldCard(
+            title = stringResource(Res.string.sponsorblock_categories),
+            description = stringResource(Res.string.sponsorblock_categories_desc),
+            icon = Icons.Rounded.BugReport,
+            value = preferences.sponsorBlockCategory,
+            enabled = preferences.sponsorBlock,
+        ) { newValue -> onUpdate { it.copy(sponsorBlockCategory = newValue) } }
+
+        PreferenceSubtitle(text = stringResource(Res.string.privacy))
+
+        ToggleCard(
+            title = stringResource(Res.string.private_mode),
+            description = stringResource(Res.string.private_mode_desc),
+            icon = Icons.Rounded.SettingsApplications,
+            checked = preferences.privateMode,
+        ) { checked -> onUpdate { it.copy(privateMode = checked) } }
+
+        PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
 
         ToggleCard(
             title = stringResource(Res.string.print_details),

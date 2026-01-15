@@ -74,17 +74,17 @@ fun AppearanceSettingsPage(
             shape = RoundedCornerShape(24.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f),
+                                ),
                             ),
-                        ),
-                    )
-                    .padding(16.dp),
+                        )
+                        .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Surface(
@@ -92,8 +92,14 @@ fun AppearanceSettingsPage(
                     tonalElevation = 2.dp,
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(text = stringResource(Res.string.video_title_sample_text), style = MaterialTheme.typography.titleMedium)
+                    Column(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.video_title_sample_text),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                         Text(
                             text = stringResource(Res.string.video_creator_sample_text),
                             style = MaterialTheme.typography.bodySmall,
@@ -102,22 +108,28 @@ fun AppearanceSettingsPage(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     swatches.forEachIndexed { index, color ->
                         val selected = index == prefs.seedColorIndex
                         Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .border(
-                                    width = if (selected) 3.dp else 1.dp,
-                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                    shape = CircleShape,
-                                )
-                                .clickable {
-                                    themeState.update { it.copy(seedColorIndex = index) }
-                                },
+                            modifier =
+                                Modifier.size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (selected) 3.dp else 1.dp,
+                                        color =
+                                            if (selected)
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant,
+                                        shape = CircleShape,
+                                    )
+                                    .clickable {
+                                        themeState.update { it.copy(seedColorIndex = index) }
+                                    },
                         )
                     }
                 }

@@ -18,22 +18,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.junkfood.seal.shared.generated.resources.Res
-import com.junkfood.seal.shared.generated.resources.about
-import com.junkfood.seal.shared.generated.resources.about_page
-import com.junkfood.seal.shared.generated.resources.custom_command
-import com.junkfood.seal.shared.generated.resources.custom_command_desc
-import com.junkfood.seal.shared.generated.resources.interface_and_interaction
-import com.junkfood.seal.shared.generated.resources.settings_before_download
-import com.junkfood.seal.shared.generated.resources.trouble_shooting
-import com.junkfood.seal.shared.generated.resources.trouble_shooting_desc
 import com.junkfood.seal.desktop.theme.DesktopThemeState
-import org.jetbrains.compose.resources.stringResource
 
 internal enum class SettingsPage {
     General,
     Directory,
     Format,
+    Subtitle,
     Network,
     Commands,
     Appearance,
@@ -41,6 +32,7 @@ internal enum class SettingsPage {
     Interaction,
     Troubleshooting,
     About,
+    Credits,
 }
 
 @Composable
@@ -49,6 +41,7 @@ fun DesktopSettingsScreen(
     isCompact: Boolean = false,
     onMenuClick: () -> Unit = {},
     settingsState: DesktopSettingsState,
+    appSettingsState: DesktopAppSettingsState,
     themeState: DesktopThemeState,
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
@@ -96,7 +89,15 @@ fun DesktopSettingsScreen(
                 FormatSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    onOpenSubtitle = { currentPage = SettingsPage.Subtitle },
                     onBack = { currentPage = null },
+                )
+
+            SettingsPage.Subtitle ->
+                SubtitleSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = SettingsPage.Format },
                 )
 
             SettingsPage.Network ->
@@ -107,9 +108,9 @@ fun DesktopSettingsScreen(
                 )
 
             SettingsPage.Commands ->
-                PlaceholderPage(
-                    title = stringResource(Res.string.custom_command),
-                    body = stringResource(Res.string.custom_command_desc),
+                CommandSettingsPage(
+                    settings = appSettingsState.settings,
+                    onUpdate = appSettingsState::update,
                     onBack = { currentPage = null },
                 )
 
@@ -127,24 +128,30 @@ fun DesktopSettingsScreen(
                 )
 
             SettingsPage.Interaction ->
-                PlaceholderPage(
-                    title = stringResource(Res.string.interface_and_interaction),
-                    body = stringResource(Res.string.settings_before_download),
+                InteractionSettingsPage(
+                    settings = appSettingsState.settings,
+                    onUpdate = appSettingsState::update,
                     onBack = { currentPage = null },
                 )
 
             SettingsPage.Troubleshooting ->
-                PlaceholderPage(
-                    title = stringResource(Res.string.trouble_shooting),
-                    body = stringResource(Res.string.trouble_shooting_desc),
+                TroubleshootingSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
                     onBack = { currentPage = null },
                 )
 
             SettingsPage.About ->
-                PlaceholderPage(
-                    title = stringResource(Res.string.about),
-                    body = stringResource(Res.string.about_page),
+                AboutSettingsPage(
+                    settings = appSettingsState.settings,
+                    onUpdate = appSettingsState::update,
+                    onOpenCredits = { currentPage = SettingsPage.Credits },
                     onBack = { currentPage = null },
+                )
+
+            SettingsPage.Credits ->
+                CreditsSettingsPage(
+                    onBack = { currentPage = SettingsPage.About },
                 )
         }
     }

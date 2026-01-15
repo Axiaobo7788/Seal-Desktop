@@ -122,7 +122,10 @@ internal fun SettingsHome(
                 navigationIcon = {
                     if (isCompact) {
                         androidx.compose.material3.IconButton(onClick = onMenuClick) {
-                            androidx.compose.material3.Icon(Icons.Outlined.Menu, contentDescription = stringResource(Res.string.settings))
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Menu,
+                                contentDescription = stringResource(Res.string.settings),
+                            )
                         }
                     }
                 },

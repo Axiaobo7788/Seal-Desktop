@@ -202,18 +202,32 @@
   - 约束：commonMain 禁用 Android API（通知、Intent、UriHandler、Clipboard、FileUtil、LocalView 等）；仅保留纯 UI 与回调意图。
 
   ### 9.1 待办拆解
-  - [ ] 定义跨平台队列模型：`DownloadQueueItemState`（标题/作者/缩略图/时长/大小/进度/状态/错误/文件路径）、`DownloadQueueState`（集合、过滤器、视图模式、选中项），`DownloadQueueAction`（Cancel/Resume/Delete/OpenFile/CopyURL/OpenURL/OpenThumbURL/CopyError/ShareFile/ShowDetails 等）。
-  - [ ] 抽取共享队列 UI：从 DownloadPageV2 拆出过滤条、SubHeader、网格/列表切换、空态、卡片/列表项、动作面板内容，全部改为纯回调，参数化窗口宽度，不依赖 `LocalWindowWidthState`/Android 资源。
-  - [ ] Android 适配：`Task` + `Task.State` → 共享模型，回调转发到 `DownloaderV2`/文件/分享/剪贴板/URL 打开；DownloadDialog 维持原逻辑。
-  - [ ] desktop 适配：基于 `DownloadPlanExecutor` 维护最小队列状态（Idle/Running/Completed/Error），接入共享 UI；取消/删除/打开文件按桌面能力实现或暂留空。
+    - [x] 定义跨平台队列模型：`DownloadQueueItemState`（标题/作者/缩略图/时长/大小/进度/状态/错误/文件路径）、`DownloadQueueState`（集合、过滤器、视图模式、选中项），`DownloadQueueAction`（Cancel/Resume/Delete/OpenFile/CopyURL/OpenURL/OpenThumbURL/CopyError/ShareFile/ShowDetails 等）。
+    - [x] 抽取共享队列 UI：从 DownloadPageV2 拆出过滤条、SubHeader、网格/列表切换、空态、卡片/列表项、动作面板内容，全部改为纯回调，参数化窗口宽度，不依赖 `LocalWindowWidthState`/Android 资源。
+    - [x] Android 适配：`Task` + `Task.State` → 共享模型，回调转发到 `DownloaderV2`/文件/分享/剪贴板/URL 打开；DownloadDialog 维持原逻辑。
+    - [x] desktop 适配：基于 `DownloadPlanExecutor` 维护最小队列状态（Idle/Running/Completed/Error），接入共享 UI；取消/删除/打开文件按桌面能力实现或暂留空。
   - [ ] 验收：Android 队列功能不回归；desktop 可展示/更新任务，空态与切换正常；shared/commonMain 无平台依赖且编译通过。
 
   #### 9.1a Desktop-first 可先做的工作
-  - [ ] 细化 desktop 队列模型到执行器：为 `DownloadPlanExecutor` 暴露任务 ID、状态、进度、可取消句柄，形成 `DesktopQueueItem`（含 stdout/stderr 日志截断、错误码）。
-  - [ ] 桌面 UI MVP：在 `:desktop` 引入轻量队列页（列表视图 + 空态），仅依赖共享模型 + 回调，动作最小化为 Cancel/RevealInFolder/CopyError。
-  - [ ] 路径与日志策略：确认 cookies/archive/temp 路径与日志文件位于 desktop 独立目录，添加文档与配置开关。
-  - [ ] 参数一致性校验：在 desktop 增加 DownloadPlan → yt-dlp CLI 的组装日志（与 Android `buildCommand()` 对比），并可选添加 snapshot 测试。
-  - [ ] 进阶动作占位：为未实现的桌面动作（Resume/Delete/OpenURL/ShareFile）预留回调接口，UI 按钮禁用或隐藏，避免阻塞先行交付。
+    - [x] 细化 desktop 队列模型到执行器：为 `DownloadPlanExecutor` 暴露任务 ID、状态、进度、可取消句柄，形成 `DesktopQueueItem`（含 stdout/stderr 日志截断、错误码）。
+    - [x] 桌面 UI MVP：在 `:desktop` 引入轻量队列页（列表视图 + 空态），仅依赖共享模型 + 回调，动作最小化为 Cancel/RevealInFolder/CopyError。
+    - [x] 路径与日志策略：确认 cookies/archive/temp 路径与日志文件位于 desktop 独立目录，添加文档与配置开关。
+    - [ ] 参数一致性校验：在 desktop 增加 DownloadPlan → yt-dlp CLI 的组装日志（与 Android `buildCommand()` 对比），并可选添加 snapshot 测试。
+    - [x] 进阶动作占位：为未实现的桌面动作（Resume/Delete/OpenURL/ShareFile）预留回调接口，UI 按钮禁用或隐藏，避免阻塞先行交付。
 
   ### 9.2 当前进度
-  - 开始执行 9.1 前两项（模型定义与共享 UI 提炼）。
+    - 9.1 全部完成，Android/desktop 已接入共享队列 UI 与模型。
+    - 9.1a 已完成除“参数一致性校验”外的条目。
+
+  ---
+
+  ## 10. 设置（Settings）迁移（下一阶段）
+
+  目标：把与平台无关的设置模型与页面 UI 下沉到 shared，Android/desktop 通过适配层接入，平台差异通过回调/数据源隔离。
+
+  ### 10.1 待办拆解
+  - [ ] 定义跨平台设置模型：`SettingsSection`、`SettingsItem`（开关/下拉/输入/导航/说明）与 `SettingsState`。
+  - [ ] 抽取共享设置 UI：列表/分组/搜索（若有）、开关/下拉/输入控件封装为纯回调组件。
+  - [ ] Android 适配：从 Preferences/MMKV/Store 读写映射到 shared 模型；与系统权限/Intent/文件选择等平台能力通过回调桥接。
+  - [ ] desktop 适配：从本地配置/文件读写映射到 shared 模型；桌面专用项（路径、执行器、代理等）用平台层注入。
+  - [ ] 验收：Android 设置功能不回归；desktop 可用；shared/commonMain 无平台依赖且编译通过。
