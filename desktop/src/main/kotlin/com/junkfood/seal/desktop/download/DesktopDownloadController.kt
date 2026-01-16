@@ -6,8 +6,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryEntry
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryStorage
+import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
+import com.junkfood.seal.desktop.download.history.DesktopHistoryImportMode
 import com.junkfood.seal.desktop.download.history.DesktopHistoryMediaType
 import com.junkfood.seal.desktop.download.history.DesktopHistoryPlatform
+import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
+import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
+import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
+import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
@@ -80,6 +86,106 @@ class DesktopDownloadController(
     fun deleteHistoryEntry(entryId: String) {
         historyEntries.removeAll { it.id == entryId }
         scope.launch { historyStorage.save(historyEntries.toList()) }
+    }
+
+    fun exportHistoryText(type: DesktopHistoryExportType): String =
+        when (type) {
+            DesktopHistoryExportType.DownloadHistory -> encodeHistoryEntries(historyEntries.toList())
+            DesktopHistoryExportType.UrlList -> encodeHistoryUrls(historyEntries.toList())
+        }
+
+    fun exportHistoryToFile(
+        target: Path,
+        type: DesktopHistoryExportType,
+        onComplete: (Result<Unit>) -> Unit = {},
+    ) {
+        scope.launch {
+            val result: Result<Unit> = runCatching {
+                when (type) {
+                    DesktopHistoryExportType.DownloadHistory -> historyStorage.exportTo(target, historyEntries.toList())
+                    DesktopHistoryExportType.UrlList ->
+                        withContext(Dispatchers.IO) {
+                            target.parent?.let { Files.createDirectories(it) }
+                            Files.writeString(target, encodeHistoryUrls(historyEntries.toList()))
+                        }
+                }
+                Unit
+            }
+            onComplete(result)
+        }
+    }
+
+    fun importHistoryText(
+        text: String,
+        mode: DesktopHistoryImportMode = DesktopHistoryImportMode.Merge,
+    ): Int {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return 0
+
+        val importedEntries =
+            runCatching { decodeHistoryEntries(trimmed) }
+                .recoverCatching {
+                    val urls = decodeHistoryUrls(trimmed)
+                    urls.mapIndexed { index, url ->
+                        DesktopDownloadHistoryEntry(
+                            id = (System.currentTimeMillis() + index).toString(),
+                            title = url,
+                            url = url,
+                            mediaType = DesktopHistoryMediaType.Video,
+                            platform = DesktopHistoryPlatform.Other,
+                        )
+                    }
+                }
+                .getOrDefault(emptyList())
+
+        if (importedEntries.isEmpty()) return 0
+
+        val beforeSize = historyEntries.size
+
+        val merged =
+            when (mode) {
+                DesktopHistoryImportMode.Replace -> importedEntries
+                DesktopHistoryImportMode.Merge -> {
+                    val existingIds = historyEntries.asSequence().map { it.id }.toHashSet()
+                    val existingKeys =
+                        historyEntries
+                            .asSequence()
+                            .map { it.url.takeIf { u -> u.isNotBlank() } ?: it.title }
+                            .toHashSet()
+
+                    val newOnes =
+                        importedEntries.filter { e ->
+                            val idOk = e.id.isNotBlank() && !existingIds.contains(e.id)
+                            val key = e.url.takeIf { it.isNotBlank() } ?: e.title
+                            val keyOk = key.isNotBlank() && !existingKeys.contains(key)
+                            idOk && keyOk
+                        }
+
+                    // Imported entries go to the front, same as download completion behavior.
+                    newOnes + historyEntries.toList()
+                }
+            }
+
+        historyEntries.clear()
+        historyEntries.addAll(merged.take(500))
+        scope.launch { historyStorage.save(historyEntries.toList()) }
+
+        return historyEntries.size - beforeSize
+    }
+
+    fun importHistoryFromFile(
+        source: Path,
+        mode: DesktopHistoryImportMode = DesktopHistoryImportMode.Merge,
+        onComplete: (Result<Int>) -> Unit = {},
+    ) {
+        scope.launch {
+            val result =
+                runCatching {
+                    val text = withContext(Dispatchers.IO) { Files.readString(source) }
+                    importHistoryText(text, mode)
+                }
+            onComplete(result)
+        }
     }
 
     fun startDownload(url: String, type: DesktopDownloadType, basePreferences: DownloadPreferences) {
@@ -228,6 +334,7 @@ private fun VideoInfo.toHistoryEntry(
         url = url,
         mediaType = mediaType,
         platform = platform,
+        extractor = extractorKey,
         thumbnailUrl = thumbnail,
         filePath = filePath,
         fileSizeBytes = fileSizeBytes,

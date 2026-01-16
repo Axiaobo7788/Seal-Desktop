@@ -39,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -57,6 +59,7 @@ import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryPage
+import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
 import com.junkfood.seal.desktop.theme.DesktopSealTheme
 import com.junkfood.seal.desktop.theme.DesktopThemeState
 import com.junkfood.seal.desktop.theme.rememberDesktopThemeState
@@ -261,6 +264,7 @@ private fun ContentArea(
     downloadController: DesktopDownloadController,
 ) {
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
+    val clipboard = LocalClipboardManager.current
     when (current) {
         Destination.DownloadQueue ->
             DesktopDownloadScreen(
@@ -275,6 +279,21 @@ private fun ContentArea(
             DesktopDownloadHistoryPage(
                 entries = downloadController.historyEntries,
                 onDelete = { downloadController.deleteHistoryEntry(it) },
+                onExportToFile = { type: DesktopHistoryExportType, path, onComplete ->
+                    downloadController.exportHistoryToFile(path, type, onComplete)
+                },
+                onExportToClipboard = { type: DesktopHistoryExportType, onComplete ->
+                    runCatching {
+                        val text = downloadController.exportHistoryText(type)
+                        clipboard.setText(AnnotatedString(text))
+                    }.also(onComplete)
+                },
+                onImportFromFile = { path, onComplete ->
+                    downloadController.importHistoryFromFile(path, onComplete = onComplete)
+                },
+                onImportFromClipboard = { text, onComplete ->
+                    runCatching { downloadController.importHistoryText(text) }.also(onComplete)
+                },
                 onMenuClick = onMenuClick,
                 isCompact = isCompact,
             )

@@ -11,12 +11,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,14 +31,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,28 +57,48 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.audio
+import com.junkfood.seal.shared.generated.resources.backup_type
+import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.clipboard
 import com.junkfood.seal.shared.generated.resources.copy_link
 import com.junkfood.seal.shared.generated.resources.delete
+import com.junkfood.seal.shared.generated.resources.download_history_imported
 import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
 import com.junkfood.seal.shared.generated.resources.downloads_history
+import com.junkfood.seal.shared.generated.resources.export_backup
+import com.junkfood.seal.shared.generated.resources.export_download_history
+import com.junkfood.seal.shared.generated.resources.export_download_history_msg
+import com.junkfood.seal.shared.generated.resources.export_to
+import com.junkfood.seal.shared.generated.resources.file
+import com.junkfood.seal.shared.generated.resources.full_backup
+import com.junkfood.seal.shared.generated.resources.import_backup
+import com.junkfood.seal.shared.generated.resources.import_download_history
+import com.junkfood.seal.shared.generated.resources.import_download_history_msg
+import com.junkfood.seal.shared.generated.resources.import_from
+import com.junkfood.seal.shared.generated.resources.item_count
 import com.junkfood.seal.shared.generated.resources.open_file
 import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.search
+import com.junkfood.seal.shared.generated.resources.unknown
 import com.junkfood.seal.shared.generated.resources.unavailable
 import com.junkfood.seal.shared.generated.resources.video
+import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import java.awt.Desktop
+import java.awt.FileDialog
+import java.awt.Frame
 import java.io.File
+import java.nio.file.InvalidPathException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private enum class HistoryFilter {
+    // Kept for binary compatibility with previous states; not used by UI anymore.
+    @Suppress("unused")
     All,
-    Audio,
-    Video,
-    BiliBili,
-    YouTube,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,12 +106,29 @@ private enum class HistoryFilter {
 fun DesktopDownloadHistoryPage(
     entries: List<DesktopDownloadHistoryEntry>,
     onDelete: (String) -> Unit,
+    onExportToFile: (DesktopHistoryExportType, Path, (Result<Unit>) -> Unit) -> Unit,
+    onExportToClipboard: (DesktopHistoryExportType, (Result<Unit>) -> Unit) -> Unit,
+    onImportFromFile: (Path, (Result<Int>) -> Unit) -> Unit,
+    onImportFromClipboard: (String, (Result<Int>) -> Unit) -> Unit,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
 ) {
     var showSearch by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var filter by remember { mutableStateOf(HistoryFilter.All) }
+
+    var audioFilter by remember { mutableStateOf(false) }
+    var videoFilter by remember { mutableStateOf(false) }
+    var activeSourceIndex by remember { mutableStateOf(-1) }
+
+    var actionsOpen by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var errorDialog by remember { mutableStateOf<String?>(null) }
+
+    val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val importedSnackbarTemplate = stringResource(Res.string.download_history_imported)
 
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
@@ -87,18 +136,9 @@ fun DesktopDownloadHistoryPage(
             canScroll = { true },
         )
 
-    val filtered =
+    val searched =
         entries
             .asSequence()
-            .filter {
-                when (filter) {
-                    HistoryFilter.All -> true
-                    HistoryFilter.Audio -> it.mediaType == DesktopHistoryMediaType.Audio
-                    HistoryFilter.Video -> it.mediaType == DesktopHistoryMediaType.Video
-                    HistoryFilter.BiliBili -> it.platform == DesktopHistoryPlatform.BiliBili
-                    HistoryFilter.YouTube -> it.platform == DesktopHistoryPlatform.YouTube
-                }
-            }
             .filter {
                 if (query.isBlank()) true
                 else {
@@ -108,8 +148,37 @@ fun DesktopDownloadHistoryPage(
             }
             .toList()
 
+    val sourceKeys =
+        searched
+            .asSequence()
+            .map { it.extractor.trim().ifBlank { "Unknown" } }
+            .distinct()
+            .toList()
+
+    val activeSourceKey = sourceKeys.getOrNull(activeSourceIndex)
+
+    val filtered =
+        searched
+            .asSequence()
+            .filter {
+                when {
+                    audioFilter && !videoFilter -> it.mediaType == DesktopHistoryMediaType.Audio
+                    videoFilter && !audioFilter -> it.mediaType == DesktopHistoryMediaType.Video
+                    else -> true
+                }
+            }
+            .filter { entry ->
+                if (activeSourceKey == null || activeSourceKey.isBlank()) true
+                else (entry.extractor.trim().ifBlank { "Unknown" } == activeSourceKey)
+            }
+            .toList()
+
+    // "视频来源/平台" 行内展示开关：仅当存在多种平台时显示
+    val showPlatformInRows = filtered.asSequence().map { it.platform }.distinct().count() > 1
+
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             LargeTopAppBar(
                 title = { Text(stringResource(Res.string.downloads_history)) },
@@ -123,6 +192,28 @@ fun DesktopDownloadHistoryPage(
                 actions = {
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(Icons.Outlined.Search, contentDescription = stringResource(Res.string.search))
+                    }
+
+                    Box {
+                        IconButton(onClick = { actionsOpen = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                        }
+                        DropdownMenu(expanded = actionsOpen, onDismissRequest = { actionsOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.export_backup)) },
+                                onClick = {
+                                    actionsOpen = false
+                                    showExportDialog = true
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.import_backup)) },
+                                onClick = {
+                                    actionsOpen = false
+                                    showImportDialog = true
+                                },
+                            )
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -143,11 +234,48 @@ fun DesktopDownloadHistoryPage(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                FilterChip(selected = filter == HistoryFilter.Audio, onClick = { filter = HistoryFilter.Audio }, label = { Text(stringResource(Res.string.audio)) })
-                FilterChip(selected = filter == HistoryFilter.Video, onClick = { filter = HistoryFilter.Video }, label = { Text(stringResource(Res.string.video)) })
-                FilterChip(selected = filter == HistoryFilter.BiliBili, onClick = { filter = HistoryFilter.BiliBili }, label = { Text("BiliBili") })
-                FilterChip(selected = filter == HistoryFilter.YouTube, onClick = { filter = HistoryFilter.YouTube }, label = { Text("YouTube") })
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                FilterChip(
+                    selected = audioFilter,
+                    onClick = {
+                        audioFilter = if (audioFilter) false else true
+                        if (audioFilter) videoFilter = false
+                    },
+                    label = { Text(stringResource(Res.string.audio)) },
+                )
+
+                FilterChip(
+                    selected = videoFilter,
+                    onClick = {
+                        videoFilter = if (videoFilter) false else true
+                        if (videoFilter) audioFilter = false
+                    },
+                    label = { Text(stringResource(Res.string.video)) },
+                )
+
+                if (sourceKeys.size > 1) {
+                    VerticalDivider(
+                        modifier = Modifier.padding(horizontal = 6.dp).height(24.dp).align(Alignment.CenterVertically),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    )
+
+                    sourceKeys.forEachIndexed { index, key ->
+                        val label =
+                            if (key == "Unknown") stringResource(Res.string.unknown)
+                            else key
+                        FilterChip(
+                            selected = activeSourceIndex == index,
+                            onClick = {
+                                activeSourceIndex = if (activeSourceIndex == index) -1 else index
+                            },
+                            label = { Text(label) },
+                        )
+                    }
+                }
             }
             Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -158,12 +286,99 @@ fun DesktopDownloadHistoryPage(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(filtered, key = { it.id }) { entry ->
-                        HistoryRow(entry = entry, onDelete = onDelete)
+                        HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows)
                     }
                     item { Spacer(Modifier.height(12.dp)) }
                 }
             }
         }
+    }
+
+    if (showExportDialog) {
+        DesktopHistoryExportDialog(
+            itemCount = entries.size,
+            onDismissRequest = { showExportDialog = false },
+            onExport = { type, destination ->
+                showExportDialog = false
+                when (destination) {
+                    DesktopHistoryIoDestination.File -> {
+                        val suggested = when (type) {
+                            DesktopHistoryExportType.DownloadHistory -> "seal-history.json"
+                            DesktopHistoryExportType.UrlList -> "seal-urls.txt"
+                        }
+                        val path = pickSavePath(suggested)
+                        if (path != null) {
+                            onExportToFile(type, path) { res ->
+                                res.exceptionOrNull()?.let { errorDialog = it.message ?: it.toString() }
+                            }
+                        }
+                    }
+
+                    DesktopHistoryIoDestination.Clipboard -> {
+                        onExportToClipboard(type) { res ->
+                            res.exceptionOrNull()?.let { errorDialog = it.message ?: it.toString() }
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    if (showImportDialog) {
+        DesktopHistoryImportDialog(
+            onDismissRequest = { showImportDialog = false },
+            onImport = { destination ->
+                showImportDialog = false
+                when (destination) {
+                    DesktopHistoryIoDestination.File -> {
+                        val path = pickOpenPath()
+                        if (path != null) {
+                            onImportFromFile(path) { res ->
+                                res.onSuccess { count ->
+                                    if (count > 0) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                importedSnackbarTemplate.format(count.toString()),
+                                            )
+                                        }
+                                    }
+                                }.onFailure { e ->
+                                    errorDialog = e.message ?: e.toString()
+                                }
+                            }
+                        }
+                    }
+
+                    DesktopHistoryIoDestination.Clipboard -> {
+                        val text = clipboard.getText()?.text.orEmpty()
+                        onImportFromClipboard(text) { res ->
+                            res.onSuccess { count ->
+                                if (count > 0) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            importedSnackbarTemplate.format(count.toString()),
+                                        )
+                                    }
+                                }
+                            }.onFailure { e ->
+                                errorDialog = e.message ?: e.toString()
+                            }
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    if (errorDialog != null) {
+        AlertDialog(
+            onDismissRequest = { errorDialog = null },
+            confirmButton = {
+                Button(onClick = { errorDialog = null }) { Text("OK") }
+            },
+            title = { Text("Error") },
+            text = { Text(errorDialog.orEmpty()) },
+        )
     }
 }
 
@@ -171,6 +386,7 @@ fun DesktopDownloadHistoryPage(
 private fun HistoryRow(
     entry: DesktopDownloadHistoryEntry,
     onDelete: (String) -> Unit,
+    showPlatform: Boolean,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
@@ -217,6 +433,45 @@ private fun HistoryRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+
+                val categoryLabel =
+                    when (entry.mediaType) {
+                        DesktopHistoryMediaType.Audio -> stringResource(Res.string.audio)
+                        DesktopHistoryMediaType.Video -> stringResource(Res.string.video)
+                    }
+
+                if (showPlatform) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = entry.platform.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        VerticalDivider(
+                            modifier = Modifier.padding(horizontal = 8.dp).height(12.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                        )
+                        Text(
+                            text = categoryLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                } else {
+                    Text(
+                        text = categoryLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
                 if (metaLine.isNotBlank()) {
                     Text(
                         text = metaLine,
@@ -266,6 +521,195 @@ private fun HistoryRow(
                 }
             }
         }
+    }
+}
+
+private enum class DesktopHistoryIoDestination { File, Clipboard }
+
+@Composable
+private fun DesktopHistoryExportDialog(
+    itemCount: Int,
+    onDismissRequest: () -> Unit,
+    onExport: (DesktopHistoryExportType, DesktopHistoryIoDestination) -> Unit,
+) {
+    var type by remember { mutableStateOf(DesktopHistoryExportType.DownloadHistory) }
+    var destination by remember { mutableStateOf(DesktopHistoryIoDestination.File) }
+
+    val itemCountLabel = pluralStringResource(Res.plurals.item_count, itemCount, itemCount)
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        icon = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.DriveFileMove,
+                contentDescription = null,
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onExport(type, destination) }) {
+                Text(stringResource(Res.string.export_backup))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        title = { Text(stringResource(Res.string.export_download_history)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text =
+                        stringResource(Res.string.export_download_history_msg)
+                            .format(itemCountLabel),
+                )
+
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = stringResource(Res.string.backup_type),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = type == DesktopHistoryExportType.DownloadHistory,
+                        onClick = { type = DesktopHistoryExportType.DownloadHistory },
+                        label = { Text(stringResource(Res.string.full_backup)) },
+                    )
+                    FilterChip(
+                        selected = type == DesktopHistoryExportType.UrlList,
+                        onClick = { type = DesktopHistoryExportType.UrlList },
+                        label = { Text(stringResource(Res.string.video_url)) },
+                    )
+                }
+
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = stringResource(Res.string.export_to),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = destination == DesktopHistoryIoDestination.File,
+                        onClick = { destination = DesktopHistoryIoDestination.File },
+                        label = { Text(stringResource(Res.string.file)) },
+                    )
+                    FilterChip(
+                        selected = destination == DesktopHistoryIoDestination.Clipboard,
+                        onClick = { destination = DesktopHistoryIoDestination.Clipboard },
+                        label = { Text(stringResource(Res.string.clipboard)) },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun DesktopHistoryImportDialog(
+    onDismissRequest: () -> Unit,
+    onImport: (DesktopHistoryIoDestination) -> Unit,
+) {
+    var destination by remember { mutableStateOf(DesktopHistoryIoDestination.File) }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        icon = {
+            Icon(
+                imageVector = Icons.Outlined.Restore,
+                contentDescription = null,
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onImport(destination) }) {
+                Text(stringResource(Res.string.import_backup))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        title = { Text(stringResource(Res.string.import_download_history)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = stringResource(Res.string.import_download_history_msg),
+                )
+
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = stringResource(Res.string.backup_type),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = true,
+                        onClick = {},
+                        enabled = false,
+                        label = { Text(stringResource(Res.string.full_backup)) },
+                    )
+                }
+
+                Text(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    text = stringResource(Res.string.import_from),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = destination == DesktopHistoryIoDestination.File,
+                        onClick = { destination = DesktopHistoryIoDestination.File },
+                        label = { Text(stringResource(Res.string.file)) },
+                    )
+                    FilterChip(
+                        selected = destination == DesktopHistoryIoDestination.Clipboard,
+                        onClick = { destination = DesktopHistoryIoDestination.Clipboard },
+                        label = { Text(stringResource(Res.string.clipboard)) },
+                    )
+                }
+            }
+        },
+    )
+}
+
+private fun pickOpenPath(): Path? {
+    val dialog = FileDialog(null as Frame?, "Import", FileDialog.LOAD)
+    dialog.isVisible = true
+    val file = dialog.file ?: return null
+    return runCatching { Path.of(dialog.directory, file) }.getOrNull()
+}
+
+private fun pickSavePath(suggestedFileName: String): Path? {
+    val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE)
+    dialog.file = suggestedFileName
+    dialog.isVisible = true
+    val file = dialog.file ?: return null
+    return try {
+        Path.of(dialog.directory, file)
+    } catch (_: InvalidPathException) {
+        null
     }
 }
 
