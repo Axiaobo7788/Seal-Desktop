@@ -2,42 +2,42 @@
 
 <img width="" src="fastlane/metadata/android/en-US/images/icon.png"  width=160 height=160  align="center">
 
-# Seal
+# Seal Desktop
 
-### Video/Audio Downloader for Android
+### Desktop port of Seal, a simple video/audio downloader
 
 
 English
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-zh_Hans.md">简体中文</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-zh_Hans.md">简体中文</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-zh_Hant.md">繁體中文</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-zh_Hant.md">繁體中文</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-ar.md">العربية</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-ar.md">العربية</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-pt.md">Portuguese</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-pt.md">Portuguese</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-ua.md">Українська</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-ua.md">Українська</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-th.md">ภาษาไทย</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-th.md">ภาษาไทย</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-fa.md">فارسی</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-fa.md">فارسی</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-it.md">Italiano</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-it.md">Italiano</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-az.md">Azərbaycanca</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-az.md">Azərbaycanca</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-ru.md">Русский</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-ru.md">Русский</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-sr.md">Српски</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-sr.md">Српски</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-ja.md">日本語</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-ja.md">日本語</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-id.md">Indonesia</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-id.md">Indonesia</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-hi.md">हिंदी</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-hi.md">हिंदी</a>
 &nbsp;&nbsp;| &nbsp;&nbsp;
-<a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-bn.md">বাংলা</a>
+<a href="https://github.com/Axiaobo7788/Seal-Desktop/blob/main/translations/README-bn.md">বাংলা</a>
 
 
 
