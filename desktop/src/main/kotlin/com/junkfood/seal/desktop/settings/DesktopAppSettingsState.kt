@@ -32,8 +32,11 @@ data class DesktopAppSettings(
     val customCommandLabel: String = "",
     val customCommandTemplate: String = "",
     val downloadTypeInitialization: Int = DownloadTypeNone,
+    val downloadNotificationEnabled: Boolean = false,
+    val disablePreview: Boolean = false,
     val autoUpdateEnabled: Boolean = false,
     val updateChannel: Int = UpdateChannelStable,
+    val languageTag: String? = null,
 )
 
 private fun appSettingsPath(): Path {

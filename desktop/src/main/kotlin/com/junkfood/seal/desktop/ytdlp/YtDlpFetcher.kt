@@ -23,9 +23,36 @@ class YtDlpFetcher(
 ) {
     private val platform: Platform = detectPlatform()
 
+    /**
+     * Returns the expected cache location for the configured [version] and detected platform.
+     * This does not check existence.
+     */
+    fun cachedBinaryPath(): Path = cacheRoot.resolve(version).resolve(platform.binaryName)
+
+    /**
+     * Best-effort: returns an existing binary without triggering a download.
+     * Prefers bundled binaries, then cached binaries.
+     */
+    fun findExistingBinary(): Path? {
+        findBundledBinary()?.let { return it }
+        val cached = cachedBinaryPath()
+        return cached.takeIf { it.exists() }
+    }
+
+    /**
+     * Deletes the cached binary (if any). Bundled binaries are never deleted.
+     */
+    fun invalidateCachedBinary(): Boolean {
+        val cached = cachedBinaryPath()
+        return runCatching {
+            if (cached.exists()) Files.delete(cached)
+            true
+        }.getOrDefault(false)
+    }
+
     fun ensureBinary(): Path {
         findBundledBinary()?.let { return it }
-        val target = cacheRoot.resolve(version).resolve(platform.binaryName)
+        val target = cachedBinaryPath()
         if (!target.exists()) {
             target.parent.createDirectories()
             val primaryUrl = platform.primaryDownloadUrl(version)

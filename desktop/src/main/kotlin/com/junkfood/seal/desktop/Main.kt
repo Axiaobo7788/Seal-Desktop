@@ -30,7 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,25 +78,99 @@ import com.junkfood.seal.shared.generated.resources.sponsor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import java.util.Locale
+
+private var languageOverrideTag: String? = null
+
+@Suppress("UNCHECKED_CAST")
+private fun currentResourceEnvironment(): Any {
+    val base = systemResourceEnvironment()
+    val tag = languageOverrideTag?.takeIf { it.isNotBlank() } ?: return base
+    val locale = Locale.forLanguageTag(tag)
+
+    val languageQualifierClass = Class.forName("org.jetbrains.compose.resources.LanguageQualifier")
+    val regionQualifierClass = Class.forName("org.jetbrains.compose.resources.RegionQualifier")
+    val themeQualifierClass = Class.forName("org.jetbrains.compose.resources.ThemeQualifier")
+    val densityQualifierClass = Class.forName("org.jetbrains.compose.resources.DensityQualifier")
+    val resourceEnvironmentClass = Class.forName("org.jetbrains.compose.resources.ResourceEnvironment")
+
+    val baseLanguage = getQualifier(base, "getLanguage\$library")
+    val baseRegion = getQualifier(base, "getRegion\$library")
+    val baseTheme = getQualifier(base, "getTheme\$library")
+    val baseDensity = getQualifier(base, "getDensity\$library")
+
+    val language =
+        locale.language.takeIf { it.isNotBlank() }?.let {
+            languageQualifierClass.getConstructor(String::class.java).newInstance(it)
+        } ?: baseLanguage
+
+    val region =
+        locale.country.takeIf { it.isNotBlank() }?.let {
+            regionQualifierClass.getConstructor(String::class.java).newInstance(it)
+        } ?: baseRegion
+
+    val ctor =
+        resourceEnvironmentClass.getConstructor(
+            languageQualifierClass,
+            regionQualifierClass,
+            themeQualifierClass,
+            densityQualifierClass,
+        )
+
+    return ctor.newInstance(language, region, baseTheme, baseDensity)
+}
+
+private fun getQualifier(target: Any, methodName: String): Any =
+    runCatching { target.javaClass.getMethod(methodName).invoke(target) }.getOrElse { null }
+        ?: error("Missing qualifier: $methodName")
+
+private fun systemResourceEnvironment(): Any {
+    val clazz = Class.forName("org.jetbrains.compose.resources.ResourceEnvironmentKt")
+    val method = clazz.getMethod("getSystemResourceEnvironment")
+    return method.invoke(null)
+}
+
+private fun installResourceEnvironmentProvider() {
+    runCatching {
+        val clazz = Class.forName("org.jetbrains.compose.resources.ResourceEnvironmentKt")
+        val method = clazz.getMethod("setGetResourceEnvironment", kotlin.reflect.KFunction::class.java)
+        method.invoke(null, ::currentResourceEnvironment)
+    }
+}
 
 fun main() = application {
+    installResourceEnvironmentProvider()
+    val appSettingsState = rememberDesktopAppSettingsState()
+    val themeState = rememberDesktopThemeState()
+    val systemLocale = remember { Locale.getDefault() }
+    val languageTag = appSettingsState.settings.languageTag
+
+    LaunchedEffect(languageTag) {
+        val locale = languageTag?.takeIf { it.isNotBlank() }?.let(Locale::forLanguageTag) ?: systemLocale
+        Locale.setDefault(locale)
+        languageOverrideTag = languageTag
+    }
+
     Window(
         onCloseRequest = ::exitApplication,
         title = stringResource(Res.string.app_name),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
-        val themeState = rememberDesktopThemeState()
-        DesktopSealTheme(themeState = themeState) {
-            Surface { DesktopApp(themeState = themeState) }
+        key(languageTag) {
+            DesktopSealTheme(themeState = themeState) {
+                Surface { DesktopApp(themeState = themeState, appSettingsState = appSettingsState) }
+            }
         }
     }
 }
 
 @Composable
-private fun DesktopApp(themeState: DesktopThemeState) {
+private fun DesktopApp(
+    themeState: DesktopThemeState,
+    appSettingsState: DesktopAppSettingsState,
+) {
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
-    val appSettingsState = rememberDesktopAppSettingsState()
     val downloadController = remember { DesktopDownloadController() }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -271,6 +347,7 @@ private fun ContentArea(
                 contentModifier,
                 onMenuClick = onMenuClick,
                 isCompact = isCompact,
+                disablePreview = appSettingsState.settings.disablePreview,
                 preferences = settingsState.preferences,
                 onPreferencesChange = settingsState::set,
                 controller = downloadController,
@@ -294,6 +371,7 @@ private fun ContentArea(
                 onImportFromClipboard = { text, onComplete ->
                     runCatching { downloadController.importHistoryText(text) }.also(onComplete)
                 },
+                disablePreview = appSettingsState.settings.disablePreview,
                 onMenuClick = onMenuClick,
                 isCompact = isCompact,
             )

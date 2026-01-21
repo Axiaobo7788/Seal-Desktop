@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.subtitle
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Language
@@ -11,6 +11,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.junkfood.seal.desktop.settings.ChoiceDialog
+import com.junkfood.seal.desktop.settings.PreferenceInfo
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.auto_subtitle
 import com.junkfood.seal.shared.generated.resources.auto_subtitle_desc
@@ -29,8 +36,8 @@ import com.junkfood.seal.shared.generated.resources.subtitle
 import com.junkfood.seal.shared.generated.resources.subtitle_language
 import com.junkfood.seal.shared.generated.resources.subtitle_language_desc
 import com.junkfood.seal.shared.generated.resources.subtitle_sponsorblock
-import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun SubtitleSettingsPage(
@@ -72,7 +79,14 @@ internal fun SubtitleSettingsPage(
             icon = Icons.Rounded.Subtitles,
             checked = preferences.autoSubtitle,
             enabled = preferences.downloadSubtitle,
-        ) { checked -> onUpdate { it.copy(autoSubtitle = checked, autoTranslatedSubtitles = if (checked) preferences.autoTranslatedSubtitles else false) } }
+        ) { checked ->
+            onUpdate {
+                it.copy(
+                    autoSubtitle = checked,
+                    autoTranslatedSubtitles = if (checked) preferences.autoTranslatedSubtitles else false,
+                )
+            }
+        }
 
         ToggleCard(
             title = stringResource(Res.string.auto_translated_subtitles),
@@ -88,7 +102,14 @@ internal fun SubtitleSettingsPage(
             icon = Icons.Rounded.Subtitles,
             checked = preferences.embedSubtitle,
             enabled = !preferences.extractAudio,
-        ) { checked -> onUpdate { it.copy(embedSubtitle = checked, keepSubtitle = if (checked) preferences.keepSubtitle else false) } }
+        ) { checked ->
+            onUpdate {
+                it.copy(
+                    embedSubtitle = checked,
+                    keepSubtitle = if (checked) preferences.keepSubtitle else false,
+                )
+            }
+        }
 
         ToggleCard(
             title = stringResource(Res.string.keep_subtitle_files),

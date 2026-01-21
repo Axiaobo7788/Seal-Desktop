@@ -1,5 +1,7 @@
 package com.junkfood.seal.desktop.download.history
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -110,6 +113,7 @@ fun DesktopDownloadHistoryPage(
     onExportToClipboard: (DesktopHistoryExportType, (Result<Unit>) -> Unit) -> Unit,
     onImportFromFile: (Path, (Result<Int>) -> Unit) -> Unit,
     onImportFromClipboard: (String, (Result<Int>) -> Unit) -> Unit,
+    disablePreview: Boolean = false,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
 ) {
@@ -286,7 +290,7 @@ fun DesktopDownloadHistoryPage(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(filtered, key = { it.id }) { entry ->
-                        HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows)
+                        HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
                     }
                     item { Spacer(Modifier.height(12.dp)) }
                 }
@@ -387,8 +391,10 @@ private fun HistoryRow(
     entry: DesktopDownloadHistoryEntry,
     onDelete: (String) -> Unit,
     showPlatform: Boolean,
+    disablePreview: Boolean,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
     val clipboard = LocalClipboardManager.current
     val exists = entry.filePath?.let { runCatching { Files.exists(Path.of(it)) }.getOrDefault(false) } ?: false
     val metaLine =
@@ -402,19 +408,27 @@ private fun HistoryRow(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.extraLarge,
-        onClick = {
-            if (exists) {
-                entry.filePath?.let { openFile(it) }
-            }
-        },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        enabled = exists,
+                    ) {
+                        if (exists) {
+                            entry.filePath?.let { openFile(it) }
+                        }
+                    }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(modifier = Modifier.size(156.dp, 88.dp)) {
-                DownloadThumbnail(url = entry.thumbnailUrl, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                DownloadThumbnail(url = if (disablePreview) null else entry.thumbnailUrl, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

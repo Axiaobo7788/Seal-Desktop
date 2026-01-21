@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.interaction
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ViewComfy
@@ -7,6 +7,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.DownloadTypeNone
+import com.junkfood.seal.desktop.settings.DownloadTypePrevious
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.PreferenceInfo
+import com.junkfood.seal.desktop.settings.ChoiceDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.download_type
 import com.junkfood.seal.shared.generated.resources.interface_and_interaction

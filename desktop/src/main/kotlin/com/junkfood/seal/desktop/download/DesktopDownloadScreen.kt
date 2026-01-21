@@ -97,6 +97,7 @@ fun DesktopDownloadScreen(
     modifier: Modifier = Modifier,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = true,
+    disablePreview: Boolean = false,
     preferences: DownloadPreferences,
     onPreferencesChange: (DownloadPreferences) -> Unit,
     controller: DesktopDownloadController,
@@ -130,8 +131,14 @@ fun DesktopDownloadScreen(
 
     Column(modifier = modifier.fillMaxHeight()) {
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            val itemsForUi =
+                remember(controller.queueItems, disablePreview) {
+                    if (!disablePreview) controller.queueItems
+                    else controller.queueItems.map { it.copy(thumbnailUrl = null) }
+                }
+
             DownloadQueueScreenShared(
-                state = DownloadQueueState(items = controller.queueItems, filter = controller.filter, viewMode = controller.viewMode),
+                state = DownloadQueueState(items = itemsForUi, filter = controller.filter, viewMode = controller.viewMode),
                 strings = queueStrings,
                 onFilterChange = { controller.filter = it },
                 onViewModeChange = { controller.viewMode = it },
@@ -155,7 +162,9 @@ fun DesktopDownloadScreen(
                             item?.url?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
                         }
                         DownloadQueueAction.OpenThumbnailUrl -> {
-                            item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                            if (!disablePreview) {
+                                item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                            }
                         }
                         DownloadQueueAction.CopyError -> {
                             item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }

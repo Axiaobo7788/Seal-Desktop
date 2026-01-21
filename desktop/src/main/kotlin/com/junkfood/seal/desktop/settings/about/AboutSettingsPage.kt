@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.about
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -15,6 +15,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
+import com.junkfood.seal.desktop.settings.ChoiceDialog
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.ToggleCard
+import com.junkfood.seal.desktop.settings.UpdateChannelPreview
+import com.junkfood.seal.desktop.settings.UpdateChannelStable
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.about
 import com.junkfood.seal.shared.generated.resources.auto_update

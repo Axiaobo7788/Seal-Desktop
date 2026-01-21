@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.troubleshooting
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
@@ -7,6 +7,11 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalUriHandler
+import com.junkfood.seal.desktop.settings.PreferenceInfo
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cookies
@@ -24,8 +29,8 @@ import com.junkfood.seal.shared.generated.resources.update
 import com.junkfood.seal.shared.generated.resources.ytdlp_update
 import com.junkfood.seal.shared.generated.resources.ytdlp_update_action
 import com.junkfood.seal.shared.generated.resources.yt_dlp_docs
-import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
+import org.jetbrains.compose.resources.stringResource
 
 private const val sealIssueUrl = "https://github.com/JunkFood02/Seal/issues"
 private const val ytdlpIssueUrl = "https://github.com/yt-dlp/yt-dlp/issues"

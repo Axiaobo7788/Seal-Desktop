@@ -15,10 +15,23 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import com.junkfood.seal.desktop.settings.about.AboutSettingsPage
+import com.junkfood.seal.desktop.settings.about.CreditsSettingsPage
+import com.junkfood.seal.desktop.settings.appearance.AppearanceSettingsPage
+import com.junkfood.seal.desktop.settings.appearance.DarkThemeSettingsPage
+import com.junkfood.seal.desktop.settings.appearance.LanguageSettingsPage
+import com.junkfood.seal.desktop.settings.command.CommandSettingsPage
+import com.junkfood.seal.desktop.settings.directory.DirectorySettingsPage
+import com.junkfood.seal.desktop.settings.format.FormatSettingsPage
+import com.junkfood.seal.desktop.settings.general.GeneralSettingsPage
 import androidx.compose.runtime.remember
+import com.junkfood.seal.desktop.settings.network.NetworkSettingsPage
+import com.junkfood.seal.desktop.settings.subtitle.SubtitleSettingsPage
+import com.junkfood.seal.desktop.settings.troubleshooting.TroubleshootingSettingsPage
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.junkfood.seal.desktop.theme.DesktopThemeState
+import com.junkfood.seal.desktop.settings.interaction.InteractionSettingsPage
 
 internal enum class SettingsPage {
     General,
@@ -29,11 +42,22 @@ internal enum class SettingsPage {
     Commands,
     Appearance,
     DarkTheme,
+    Language,
     Interaction,
     Troubleshooting,
     About,
     Credits,
 }
+
+private fun SettingsPage?.depth(): Int =
+    when (this) {
+        null -> 0
+        SettingsPage.DarkTheme,
+        SettingsPage.Language,
+        SettingsPage.Subtitle,
+        SettingsPage.Credits -> 2
+        else -> 1
+    }
 
 @Composable
 fun DesktopSettingsScreen(
@@ -49,7 +73,7 @@ fun DesktopSettingsScreen(
     AnimatedContent(
         targetState = currentPage,
         transitionSpec = {
-            val forward = targetState != null && initialState == null
+            val forward = targetState.depth() > initialState.depth()
             val incomingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) 1 else -1 }
             val outgoingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) -1 else 1 }
 
@@ -75,6 +99,8 @@ fun DesktopSettingsScreen(
                 GeneralSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    appSettings = appSettingsState.settings,
+                    onUpdateAppSettings = appSettingsState::update,
                     onBack = { currentPage = null },
                 )
 
@@ -118,12 +144,20 @@ fun DesktopSettingsScreen(
                 AppearanceSettingsPage(
                     themeState = themeState,
                     onOpenDarkTheme = { currentPage = SettingsPage.DarkTheme },
+                    onOpenLanguage = { currentPage = SettingsPage.Language },
                     onBack = { currentPage = null },
                 )
 
             SettingsPage.DarkTheme ->
                 DarkThemeSettingsPage(
                     themeState = themeState,
+                    onBack = { currentPage = SettingsPage.Appearance },
+                )
+
+            SettingsPage.Language ->
+                LanguageSettingsPage(
+                    selectedLanguageTag = appSettingsState.settings.languageTag,
+                    onLanguageSelected = { tag -> appSettingsState.update { it.copy(languageTag = tag) } },
                     onBack = { currentPage = SettingsPage.Appearance },
                 )
 

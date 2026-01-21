@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.format
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Crop
@@ -14,16 +14,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.junkfood.seal.desktop.settings.ChoiceDialog
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.advanced_settings
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.audio_format_preference
 import com.junkfood.seal.shared.generated.resources.audio_quality
 import com.junkfood.seal.shared.generated.resources.auto
 import com.junkfood.seal.shared.generated.resources.best_quality
-import com.junkfood.seal.shared.generated.resources.advanced_settings
+import com.junkfood.seal.shared.generated.resources.convert_audio
 import com.junkfood.seal.shared.generated.resources.convert_audio_format
 import com.junkfood.seal.shared.generated.resources.convert_audio_format_desc
-import com.junkfood.seal.shared.generated.resources.convert_audio
 import com.junkfood.seal.shared.generated.resources.crop_artwork
 import com.junkfood.seal.shared.generated.resources.crop_artwork_desc
 import com.junkfood.seal.shared.generated.resources.custom
@@ -53,8 +59,8 @@ import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_format_preference
 import com.junkfood.seal.shared.generated.resources.video_quality
 import com.junkfood.seal.shared.generated.resources.video_quality_desc
-import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun FormatSettingsPage(

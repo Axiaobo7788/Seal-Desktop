@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.directory
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FolderSpecial
@@ -6,6 +6,10 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.runtime.Composable
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
@@ -24,8 +28,8 @@ import com.junkfood.seal.shared.generated.resources.private_directory
 import com.junkfood.seal.shared.generated.resources.private_directory_desc
 import com.junkfood.seal.shared.generated.resources.subdirectory
 import com.junkfood.seal.shared.generated.resources.subdirectory_desc
-import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun DirectorySettingsPage(

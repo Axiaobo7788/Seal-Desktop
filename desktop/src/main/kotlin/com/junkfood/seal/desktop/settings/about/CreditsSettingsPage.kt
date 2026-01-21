@@ -1,9 +1,12 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.about
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalUriHandler
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.credits
 import org.jetbrains.compose.resources.stringResource

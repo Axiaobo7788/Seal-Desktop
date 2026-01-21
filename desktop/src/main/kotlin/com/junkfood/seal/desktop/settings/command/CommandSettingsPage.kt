@@ -1,9 +1,14 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.command
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.runtime.Composable
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.PreferenceInfo
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_desc

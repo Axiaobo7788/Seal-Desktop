@@ -1,4 +1,4 @@
-package com.junkfood.seal.desktop.settings
+package com.junkfood.seal.desktop.settings.network
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
@@ -6,12 +6,20 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.SignalWifi4Bar
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.runtime.Composable
+import com.junkfood.seal.desktop.settings.PreferenceInfo
+import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
-import com.junkfood.seal.shared.generated.resources.cookies
+import com.junkfood.seal.shared.generated.resources.advanced_settings
+import com.junkfood.seal.shared.generated.resources.aria2
+import com.junkfood.seal.shared.generated.resources.aria2_desc
 import com.junkfood.seal.shared.generated.resources.concurrent_download
 import com.junkfood.seal.shared.generated.resources.concurrent_download_desc
 import com.junkfood.seal.shared.generated.resources.concurrent_download_num
+import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_desc
 import com.junkfood.seal.shared.generated.resources.force_ipv4
 import com.junkfood.seal.shared.generated.resources.force_ipv4_desc
@@ -21,12 +29,8 @@ import com.junkfood.seal.shared.generated.resources.proxy
 import com.junkfood.seal.shared.generated.resources.proxy_desc
 import com.junkfood.seal.shared.generated.resources.rate_limit
 import com.junkfood.seal.shared.generated.resources.rate_limit_desc
-import com.junkfood.seal.shared.generated.resources.network_settings_desc
-import com.junkfood.seal.shared.generated.resources.aria2_desc
-import com.junkfood.seal.shared.generated.resources.aria2
-import com.junkfood.seal.shared.generated.resources.advanced_settings
-import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.util.DownloadPreferences
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun NetworkSettingsPage(
