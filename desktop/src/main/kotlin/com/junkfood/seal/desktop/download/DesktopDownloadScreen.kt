@@ -2,11 +2,25 @@
 
 package com.junkfood.seal.desktop.download
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
@@ -29,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,11 +55,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.junkfood.seal.desktop.settings.desktopDefaultPreferences
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
@@ -105,8 +122,8 @@ fun DesktopDownloadScreen(
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
 
-    var showInputSheet by remember { mutableStateOf(false) }
-    var showOptionsSheet by remember { mutableStateOf(false) }
+    var showSheet by remember { mutableStateOf(false) }
+    var sheetPage by remember { mutableStateOf(DownloadSheetPage.Input) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var inputUrl by remember { mutableStateOf("") }
     var pendingUrl by remember { mutableStateOf<String?>(null) }
@@ -174,7 +191,10 @@ fun DesktopDownloadScreen(
                         }
                     }
                 },
-                onAddClick = { showInputSheet = true },
+                onAddClick = {
+                    sheetPage = DownloadSheetPage.Input
+                    showSheet = true
+                },
                 onMenuClick = onMenuClick,
                 isCompact = isCompact,
                 showAddButton = false,
@@ -182,7 +202,10 @@ fun DesktopDownloadScreen(
             )
 
             FloatingActionButton(
-                onClick = { showInputSheet = true },
+                onClick = {
+                    sheetPage = DownloadSheetPage.Input
+                    showSheet = true
+                },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
             ) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(Res.string.start_download))
@@ -192,62 +215,89 @@ fun DesktopDownloadScreen(
         logLines.lastOrNull()?.let { LatestLogRow(it) }
     }
 
-    if (showInputSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showInputSheet = false },
-            sheetState = sheetState,
-        ) {
-            DownloadInputSheet(
-                url = inputUrl,
-                onUrlChange = { inputUrl = it },
-                onPasteIntoUrl = { pasted -> inputUrl = pasted },
-                onDismissRequest = { showInputSheet = false },
-                onConfirm = {
-                    pendingUrl = inputUrl
-                    showInputSheet = false
-                    showOptionsSheet = true
-                },
-            )
-        }
-    }
-
-    if (showOptionsSheet && pendingUrl != null) {
+    if (showSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                showOptionsSheet = false
-                pendingUrl = null
+                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    showSheet = false
+                    sheetPage = DownloadSheetPage.Input
+                    pendingUrl = null
+                }
             },
             sheetState = sheetState,
         ) {
-            DownloadOptionsSheet(
-                urlPreview = pendingUrl.orEmpty(),
-                downloadType = downloadType,
-                onTypeChange = { newType ->
-                    downloadType = newType
-                    val updated = preferencesForType(workingPreferences, newType)
-                    workingPreferences = updated
-                    onPreferencesChange(updated)
+            AnimatedContent(
+                targetState = sheetPage,
+                transitionSpec = {
+                    val forward = initialState == DownloadSheetPage.Input && targetState == DownloadSheetPage.Options
+                    val slideIn = slideInHorizontally(animationSpec = tween(220)) { fullWidth -> if (forward) fullWidth / 2 else -fullWidth / 2 }
+                    val slideOut = slideOutHorizontally(animationSpec = tween(220)) { fullWidth -> if (forward) -fullWidth / 2 else fullWidth / 2 }
+                    (slideIn + fadeIn(animationSpec = tween(220))).togetherWith(slideOut + fadeOut(animationSpec = tween(180)))
                 },
-                preferences = workingPreferences,
-                onPreferencesChange = {
-                    workingPreferences = it
-                    onPreferencesChange(it)
-                },
-                onDismissRequest = {
-                    showOptionsSheet = false
-                    pendingUrl = null
-                },
-                onDownload = {
-                    pendingUrl?.let { url ->
-                        controller.startDownload(url, downloadType, workingPreferences)
-                    }
-                    pendingUrl = null
-                    showOptionsSheet = false
-                    inputUrl = ""
-                },
-            )
+                label = "downloadSheet",
+            ) { page ->
+                when (page) {
+                    DownloadSheetPage.Input ->
+                        DownloadInputSheet(
+                            url = inputUrl,
+                            onUrlChange = { inputUrl = it },
+                            onPasteIntoUrl = { pasted -> inputUrl = pasted },
+                            onDismissRequest = {
+                                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                    showSheet = false
+                                    pendingUrl = null
+                                    sheetPage = DownloadSheetPage.Input
+                                }
+                            },
+                            onProceed = {
+                                pendingUrl = inputUrl
+                                sheetPage = DownloadSheetPage.Options
+                            },
+                        )
+
+                    DownloadSheetPage.Options ->
+                        DownloadOptionsSheet(
+                            urlPreview = pendingUrl.orEmpty(),
+                            downloadType = downloadType,
+                            onTypeChange = { newType ->
+                                downloadType = newType
+                                val updated = preferencesForType(workingPreferences, newType)
+                                workingPreferences = updated
+                                onPreferencesChange(updated)
+                            },
+                            preferences = workingPreferences,
+                            onPreferencesChange = {
+                                workingPreferences = it
+                                onPreferencesChange(it)
+                            },
+                            onDismissRequest = {
+                                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                    showSheet = false
+                                    pendingUrl = null
+                                    sheetPage = DownloadSheetPage.Input
+                                }
+                            },
+                            onDownload = {
+                                pendingUrl?.let { url ->
+                                    controller.startDownload(url, downloadType, workingPreferences)
+                                }
+                                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                    pendingUrl = null
+                                    showSheet = false
+                                    sheetPage = DownloadSheetPage.Input
+                                    inputUrl = ""
+                                }
+                            },
+                        )
+                }
+            }
         }
     }
+}
+
+private enum class DownloadSheetPage {
+    Input,
+    Options,
 }
 
 private fun safeBrowse(url: String) {
@@ -278,12 +328,15 @@ private fun DownloadInputSheet(
     onUrlChange: (String) -> Unit,
     onPasteIntoUrl: (String) -> Unit,
     onDismissRequest: () -> Unit,
-    onConfirm: () -> Unit,
+    onProceed: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(Res.string.new_task), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Outlined.FileDownload, contentDescription = null)
+            Text(stringResource(Res.string.new_task), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
         OutlinedTextField(
             value = url,
             onValueChange = onUrlChange,
@@ -292,13 +345,27 @@ private fun DownloadInputSheet(
             modifier = Modifier.fillMaxWidth(),
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = {
-                val clip = clipboard.getText()?.text
-                if (!clip.isNullOrBlank()) onPasteIntoUrl(clip)
-            }) { Text(stringResource(Res.string.paste_msg)) }
+            OutlinedButton(
+                onClick = {
+                    val clip = clipboard.getText()?.text
+                    if (!clip.isNullOrBlank()) onPasteIntoUrl(clip)
+                },
+            ) {
+                Icon(Icons.Outlined.ContentPaste, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.paste_msg))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
-                Button(onClick = onConfirm, enabled = url.isNotBlank()) { Text(stringResource(Res.string.proceed)) }
+                OutlinedButton(onClick = onDismissRequest) {
+                    Icon(Icons.Outlined.Close, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.cancel))
+                }
+                Button(onClick = onProceed, enabled = url.isNotBlank()) {
+                    Text(stringResource(Res.string.proceed))
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
+                }
             }
         }
     }
@@ -326,7 +393,7 @@ private fun DownloadOptionsSheet(
             }
         }
 
-        TypeSelectorRow(selected = downloadType, onSelect = onTypeChange)
+        DownloadTypeSegmentedRow(selected = downloadType, onSelect = onTypeChange)
 
         FormatPresetCard(summary = formatSummary) {
             onPreferencesChange(preferencesForType(desktopDefaultPreferences(), downloadType))
@@ -360,7 +427,11 @@ private fun DownloadOptionsSheet(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
+            OutlinedButton(onClick = onDismissRequest) {
+                Icon(Icons.Outlined.Close, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.cancel))
+            }
             Spacer(Modifier.width(12.dp))
             Button(onClick = onDownload) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = null)
@@ -372,33 +443,64 @@ private fun DownloadOptionsSheet(
 }
 
 @Composable
-private fun TypeSelectorRow(selected: DesktopDownloadType, onSelect: (DesktopDownloadType) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DesktopDownloadType.entries.forEach { type ->
-            val chosen = selected == type
-            val icon = when (type) {
-                DesktopDownloadType.Audio -> Icons.Outlined.LibraryMusic
-                DesktopDownloadType.Video -> Icons.Outlined.VideoFile
-                DesktopDownloadType.Playlist -> Icons.Outlined.PlaylistAdd
-            }
-            val label =
-                when (type) {
-                    DesktopDownloadType.Audio -> stringResource(Res.string.audio)
-                    DesktopDownloadType.Video -> stringResource(Res.string.video)
-                    DesktopDownloadType.Playlist -> stringResource(Res.string.playlist)
+private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (DesktopDownloadType) -> Unit) {
+    val outline = MaterialTheme.colorScheme.outlineVariant
+    val shape = RoundedCornerShape(18.dp)
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, outline),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            DesktopDownloadType.entries.forEachIndexed { index, type ->
+                val isSelected = selected == type
+                val icon = when (type) {
+                    DesktopDownloadType.Audio -> Icons.Outlined.LibraryMusic
+                    DesktopDownloadType.Video -> Icons.Outlined.VideoFile
+                    DesktopDownloadType.Playlist -> Icons.Outlined.PlaylistAdd
+                }
+                val label =
+                    when (type) {
+                        DesktopDownloadType.Audio -> stringResource(Res.string.audio)
+                        DesktopDownloadType.Video -> stringResource(Res.string.video)
+                        DesktopDownloadType.Playlist -> stringResource(Res.string.playlist)
+                    }
+                val segmentShape =
+                    when (index) {
+                        0 -> RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp)
+                        DesktopDownloadType.entries.lastIndex ->
+                            RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp)
+                        else -> RoundedCornerShape(0.dp)
+                    }
+                val background = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                val contentColor =
+                    if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(segmentShape)
+                        .clickable { onSelect(type) }
+                        .background(background)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        if (isSelected) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = contentColor)
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Icon(icon, contentDescription = null, tint = contentColor)
+                        Spacer(Modifier.width(6.dp))
+                        Text(label, color = contentColor)
+                    }
                 }
 
-            if (chosen) {
-                FilledTonalButton(onClick = { onSelect(type) }) {
-                    Icon(icon, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(label)
-                }
-            } else {
-                OutlinedButton(onClick = { onSelect(type) }) {
-                    Icon(icon, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(label)
+                if (index != DesktopDownloadType.entries.lastIndex) {
+                    VerticalDivider(color = outline)
                 }
             }
         }

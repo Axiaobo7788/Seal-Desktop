@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.download.history
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -242,22 +242,22 @@ fun DesktopDownloadHistoryPage(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                FilterChip(
+                HistoryFilterChip(
+                    text = stringResource(Res.string.audio),
                     selected = audioFilter,
                     onClick = {
                         audioFilter = if (audioFilter) false else true
                         if (audioFilter) videoFilter = false
                     },
-                    label = { Text(stringResource(Res.string.audio)) },
                 )
 
-                FilterChip(
+                HistoryFilterChip(
+                    text = stringResource(Res.string.video),
                     selected = videoFilter,
                     onClick = {
                         videoFilter = if (videoFilter) false else true
                         if (videoFilter) audioFilter = false
                     },
-                    label = { Text(stringResource(Res.string.video)) },
                 )
 
                 if (sourceKeys.size > 1) {
@@ -271,12 +271,12 @@ fun DesktopDownloadHistoryPage(
                         val label =
                             if (key == "Unknown") stringResource(Res.string.unknown)
                             else key
-                        FilterChip(
+                        HistoryFilterChip(
+                            text = label,
                             selected = activeSourceIndex == index,
                             onClick = {
                                 activeSourceIndex = if (activeSourceIndex == index) -1 else index
                             },
-                            label = { Text(label) },
                         )
                     }
                 }
@@ -538,6 +538,52 @@ private fun HistoryRow(
     }
 }
 
+@Composable
+private fun HistoryFilterChip(
+    text: String,
+    selected: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val background =
+        when {
+            !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            selected -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        }
+    val content =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            selected -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val borderColor =
+        when {
+            !enabled -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            selected -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.outlineVariant
+        }
+
+    Surface(
+        modifier = Modifier.height(32.dp),
+        shape = MaterialTheme.shapes.large,
+        color = background,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, borderColor),
+        onClick = { if (enabled) onClick() },
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            color = content,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 private enum class DesktopHistoryIoDestination { File, Clipboard }
 
 @Composable
@@ -590,15 +636,15 @@ private fun DesktopHistoryExportDialog(
                     modifier = Modifier.padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.full_backup),
                         selected = type == DesktopHistoryExportType.DownloadHistory,
                         onClick = { type = DesktopHistoryExportType.DownloadHistory },
-                        label = { Text(stringResource(Res.string.full_backup)) },
                     )
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.video_url),
                         selected = type == DesktopHistoryExportType.UrlList,
                         onClick = { type = DesktopHistoryExportType.UrlList },
-                        label = { Text(stringResource(Res.string.video_url)) },
                     )
                 }
 
@@ -613,15 +659,15 @@ private fun DesktopHistoryExportDialog(
                     modifier = Modifier.padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.file),
                         selected = destination == DesktopHistoryIoDestination.File,
                         onClick = { destination = DesktopHistoryIoDestination.File },
-                        label = { Text(stringResource(Res.string.file)) },
                     )
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.clipboard),
                         selected = destination == DesktopHistoryIoDestination.Clipboard,
                         onClick = { destination = DesktopHistoryIoDestination.Clipboard },
-                        label = { Text(stringResource(Res.string.clipboard)) },
                     )
                 }
             }
@@ -673,11 +719,11 @@ private fun DesktopHistoryImportDialog(
                     modifier = Modifier.padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.full_backup),
                         selected = true,
-                        onClick = {},
                         enabled = false,
-                        label = { Text(stringResource(Res.string.full_backup)) },
+                        onClick = {},
                     )
                 }
 
@@ -692,15 +738,15 @@ private fun DesktopHistoryImportDialog(
                     modifier = Modifier.padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.file),
                         selected = destination == DesktopHistoryIoDestination.File,
                         onClick = { destination = DesktopHistoryIoDestination.File },
-                        label = { Text(stringResource(Res.string.file)) },
                     )
-                    FilterChip(
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.clipboard),
                         selected = destination == DesktopHistoryIoDestination.Clipboard,
                         onClick = { destination = DesktopHistoryIoDestination.Clipboard },
-                        label = { Text(stringResource(Res.string.clipboard)) },
                     )
                 }
             }

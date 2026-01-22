@@ -51,6 +51,14 @@ private fun seedColorForIndex(index: Int): Color {
             Color(0xFFE1C2FF),
             Color(0xFFF6D08B),
             Color(0xFF9AE6B4),
+            Color(0xFFFFB4A2),
+            Color(0xFF80D8FF),
+            Color(0xFFFFD166),
+            Color(0xFFA3D8F4),
+            Color(0xFFB3E5FC),
+            Color(0xFFC5CAE9),
+            Color(0xFFFFCCBC),
+            Color(0xFFB2F7EF),
         )
     return swatches.getOrElse(index) { swatches.first() }
 }

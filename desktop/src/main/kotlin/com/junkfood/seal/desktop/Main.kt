@@ -2,6 +2,13 @@
 
 package com.junkfood.seal.desktop
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -341,51 +348,71 @@ private fun ContentArea(
 ) {
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     val clipboard = LocalClipboardManager.current
-    when (current) {
-        Destination.DownloadQueue ->
-            DesktopDownloadScreen(
-                contentModifier,
-                onMenuClick = onMenuClick,
-                isCompact = isCompact,
-                disablePreview = appSettingsState.settings.disablePreview,
-                preferences = settingsState.preferences,
-                onPreferencesChange = settingsState::set,
-                controller = downloadController,
+    val order = remember { Destination.entries.toList() }
+
+    AnimatedContent(
+        targetState = current,
+        transitionSpec = {
+            val forward = order.indexOf(targetState) > order.indexOf(initialState)
+            val inOffset: (Int) -> Int = { full -> (full / 4) * if (forward) 1 else -1 }
+            val outOffset: (Int) -> Int = { full -> (full / 4) * if (forward) -1 else 1 }
+
+            (slideInHorizontally(animationSpec = tween(240), initialOffsetX = inOffset) +
+                fadeIn(animationSpec = tween(180))).togetherWith(
+                slideOutHorizontally(animationSpec = tween(200), targetOffsetX = outOffset) +
+                    fadeOut(animationSpec = tween(140))
             )
-        Destination.DownloadHistory ->
-            DesktopDownloadHistoryPage(
-                entries = downloadController.historyEntries,
-                onDelete = { downloadController.deleteHistoryEntry(it) },
-                onExportToFile = { type: DesktopHistoryExportType, path, onComplete ->
-                    downloadController.exportHistoryToFile(path, type, onComplete)
-                },
-                onExportToClipboard = { type: DesktopHistoryExportType, onComplete ->
-                    runCatching {
-                        val text = downloadController.exportHistoryText(type)
-                        clipboard.setText(AnnotatedString(text))
-                    }.also(onComplete)
-                },
-                onImportFromFile = { path, onComplete ->
-                    downloadController.importHistoryFromFile(path, onComplete = onComplete)
-                },
-                onImportFromClipboard = { text, onComplete ->
-                    runCatching { downloadController.importHistoryText(text) }.also(onComplete)
-                },
-                disablePreview = appSettingsState.settings.disablePreview,
-                onMenuClick = onMenuClick,
-                isCompact = isCompact,
-            )
-        Destination.Settings ->
-            DesktopSettingsScreen(
-                modifier = contentModifier,
-                isCompact = isCompact,
-                onMenuClick = onMenuClick,
-                settingsState = settingsState,
-                appSettingsState = appSettingsState,
-                themeState = themeState,
-            )
-        Destination.CustomCommand -> PlaceholderScreen(stringResource(Res.string.custom_command), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
-        Destination.Sponsor -> PlaceholderScreen(stringResource(Res.string.sponsor), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+        },
+        label = "mainNavigation",
+    ) { destination ->
+        when (destination) {
+            Destination.DownloadQueue ->
+                DesktopDownloadScreen(
+                    contentModifier,
+                    onMenuClick = onMenuClick,
+                    isCompact = isCompact,
+                    disablePreview = appSettingsState.settings.disablePreview,
+                    preferences = settingsState.preferences,
+                    onPreferencesChange = settingsState::set,
+                    controller = downloadController,
+                )
+            Destination.DownloadHistory ->
+                DesktopDownloadHistoryPage(
+                    entries = downloadController.historyEntries,
+                    onDelete = { downloadController.deleteHistoryEntry(it) },
+                    onExportToFile = { type: DesktopHistoryExportType, path, onComplete ->
+                        downloadController.exportHistoryToFile(path, type, onComplete)
+                    },
+                    onExportToClipboard = { type: DesktopHistoryExportType, onComplete ->
+                        runCatching {
+                            val text = downloadController.exportHistoryText(type)
+                            clipboard.setText(AnnotatedString(text))
+                        }.also(onComplete)
+                    },
+                    onImportFromFile = { path, onComplete ->
+                        downloadController.importHistoryFromFile(path, onComplete = onComplete)
+                    },
+                    onImportFromClipboard = { text, onComplete ->
+                        runCatching { downloadController.importHistoryText(text) }.also(onComplete)
+                    },
+                    disablePreview = appSettingsState.settings.disablePreview,
+                    onMenuClick = onMenuClick,
+                    isCompact = isCompact,
+                )
+            Destination.Settings ->
+                DesktopSettingsScreen(
+                    modifier = contentModifier,
+                    isCompact = isCompact,
+                    onMenuClick = onMenuClick,
+                    settingsState = settingsState,
+                    appSettingsState = appSettingsState,
+                    themeState = themeState,
+                )
+            Destination.CustomCommand ->
+                PlaceholderScreen(stringResource(Res.string.custom_command), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+            Destination.Sponsor ->
+                PlaceholderScreen(stringResource(Res.string.sponsor), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+        }
     }
 }
 

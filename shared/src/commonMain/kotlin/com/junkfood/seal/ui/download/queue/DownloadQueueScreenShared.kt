@@ -158,6 +158,7 @@ fun DownloadQueueScreenShared(
                             strings = strings,
                             onMoreClick = { sheetItemId = item.id },
                             onClick = { sheetItemId = item.id },
+                            modifier = Modifier,
                         )
                     }
                 }
