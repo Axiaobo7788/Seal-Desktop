@@ -65,6 +65,7 @@ import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.rememberDesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
+import com.junkfood.seal.desktop.customcommand.DesktopCustomCommandScreen
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryPage
@@ -81,7 +82,6 @@ import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
 import com.junkfood.seal.shared.generated.resources.download_queue
 import com.junkfood.seal.shared.generated.resources.downloads_history
 import com.junkfood.seal.shared.generated.resources.settings
-import com.junkfood.seal.shared.generated.resources.sponsor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -409,9 +409,12 @@ private fun ContentArea(
                     themeState = themeState,
                 )
             Destination.CustomCommand ->
-                PlaceholderScreen(stringResource(Res.string.custom_command), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
-            Destination.Sponsor ->
-                PlaceholderScreen(stringResource(Res.string.sponsor), contentModifier, onMenuClick = onMenuClick, isCompact = isCompact)
+                DesktopCustomCommandScreen(
+                    modifier = contentModifier,
+                    isCompact = isCompact,
+                    onMenuClick = onMenuClick,
+                    appSettingsState = appSettingsState,
+                )
         }
     }
 }
@@ -421,7 +424,6 @@ private enum class Destination(val labelRes: StringResource, val icon: ImageVect
     DownloadHistory(Res.string.downloads_history, Icons.Outlined.History),
     CustomCommand(Res.string.custom_command, Icons.Outlined.Add),
     Settings(Res.string.settings, Icons.Outlined.Settings),
-    Sponsor(Res.string.sponsor, Icons.Outlined.Add),
 }
 
 private enum class NavLayout { ModalDrawer, NavigationRail, PermanentDrawer }

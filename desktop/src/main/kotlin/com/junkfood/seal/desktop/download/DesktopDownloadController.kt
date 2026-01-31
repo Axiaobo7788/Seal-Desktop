@@ -27,6 +27,7 @@ import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,7 @@ class DesktopDownloadController(
         private set
 
     private val canceledItemIds = ConcurrentHashMap.newKeySet<String>()
+    private val requestByItemId = ConcurrentHashMap<String, DesktopDownloadRequest>()
 
     val historyEntries = mutableStateListOf<DesktopDownloadHistoryEntry>()
 
@@ -81,6 +83,7 @@ class DesktopDownloadController(
     fun deleteQueueItem(itemId: String) {
         cancelIfRunning(itemId)
         queueItems.removeAll { it.id == itemId }
+        requestByItemId.remove(itemId)
     }
 
     fun deleteHistoryEntry(entryId: String) {
@@ -192,6 +195,8 @@ class DesktopDownloadController(
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
 
+        if (runningItemId != null) return
+
         val itemId = System.currentTimeMillis().toString()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
         val effectivePreferences = preferencesForType(basePreferences, type)
@@ -206,8 +211,44 @@ class DesktopDownloadController(
             ),
         )
 
+        val request = DesktopDownloadRequest(trimmed, type, effectivePreferences)
+        requestByItemId[itemId] = request
+        startDownloadInternal(itemId, request, reuseExisting = true)
+    }
+
+    fun resumeIfPossible(itemId: String) {
+        if (runningItemId != null) return
+        val request = requestByItemId[itemId] ?: return
+        startDownloadInternal(itemId, request, reuseExisting = true)
+    }
+
+    private fun startDownloadInternal(
+        itemId: String,
+        request: DesktopDownloadRequest,
+        reuseExisting: Boolean,
+    ) {
+        val trimmed = request.url
+        val type = request.type
+        val effectivePreferences = request.preferences
+        val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
+
+        if (reuseExisting) {
+            updateQueueItem(itemId) {
+                it.copy(
+                    title = it.title.ifBlank { trimmed },
+                    url = trimmed,
+                    mediaType = mediaType,
+                    status = DownloadQueueStatus.FetchingInfo,
+                    progress = null,
+                    progressText = "",
+                    errorMessage = null,
+                    filePath = null,
+                )
+            }
+        }
+
         scope.launch {
-            appendLog("start: $trimmed [${type.name.lowercase()}]")
+            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}]")
 
             val videoInfo =
                 try {
@@ -245,8 +286,14 @@ class DesktopDownloadController(
                         executor.start(
                             plan,
                             config,
-                            onStdout = { appendLog(it) },
-                            onStderr = { appendLog("[err] $it") },
+                            onStdout = { line ->
+                                appendLog(line)
+                                updateProgressFromLine(itemId, line)
+                            },
+                            onStderr = { line ->
+                                appendLog("[err] $line")
+                                updateProgressFromLine(itemId, line)
+                            },
                         )
                     }
 
@@ -266,8 +313,10 @@ class DesktopDownloadController(
                 updateQueueItem(itemId) {
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
+                        progress = if (success) 1f else it.progress,
                         progressText = if (success) "" else "Exit code ${result.exitCode}",
                         filePath = filePath,
+                        fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                     )
                 }
 
@@ -312,6 +361,67 @@ class DesktopDownloadController(
             queueItems[index] = transform(queueItems[index])
         }
     }
+
+    private fun updateProgressFromLine(itemId: String, line: String) {
+        val parsed = parseProgressLine(line) ?: return
+        updateQueueItem(itemId) {
+            it.copy(
+                progress = parsed.percent?.let { p -> (p / 100f).coerceIn(0f, 1f) } ?: it.progress,
+                progressText = parsed.progressText ?: it.progressText,
+                fileSizeApproxBytes = parsed.totalBytes ?: it.fileSizeApproxBytes,
+            )
+        }
+    }
+}
+
+private data class DesktopDownloadRequest(
+    val url: String,
+    val type: DesktopDownloadType,
+    val preferences: DownloadPreferences,
+)
+
+private data class ProgressSnapshot(
+    val percent: Float?,
+    val totalBytes: Double?,
+    val progressText: String?,
+)
+
+private fun parseProgressLine(line: String): ProgressSnapshot? {
+    val trimmed = line.trim()
+    if (!trimmed.contains("%") && !trimmed.contains("ETA")) return null
+
+    val progressRegex = Regex("""(\d{1,3}(?:\.\d+)?)%\s+of\s+~?([\d.]+)([KMG]i?B)\s+at\s+([\d.]+)([KMG]i?B/s)\s+ETA\s+([0-9:]+)""")
+    val match = progressRegex.find(trimmed)
+    if (match != null) {
+        val percent = match.groupValues[1].toFloatOrNull()
+        val total = parseSize(match.groupValues[2], match.groupValues[3])
+        val speed = "${match.groupValues[4]}${match.groupValues[5]}"
+        val eta = match.groupValues[6]
+        return ProgressSnapshot(percent, total, "$speed • ETA $eta")
+    }
+
+    val etaRegex = Regex("""ETA\s+([0-9:]+)""")
+    val eta = etaRegex.find(trimmed)?.groupValues?.getOrNull(1)
+    if (eta != null) {
+        return ProgressSnapshot(null, null, "ETA $eta")
+    }
+
+    return null
+}
+
+private fun parseSize(value: String, unit: String): Double? {
+    val number = value.toDoubleOrNull() ?: return null
+    val multiplier =
+        when (unit) {
+            "KiB" -> 1024.0
+            "MiB" -> 1024.0 * 1024.0
+            "GiB" -> 1024.0 * 1024.0 * 1024.0
+            "KB" -> 1000.0
+            "MB" -> 1000.0 * 1000.0
+            "GB" -> 1000.0 * 1000.0 * 1000.0
+            else -> 1.0
+        }
+    return number * multiplier
 }
 
 private fun VideoInfo.toHistoryEntry(

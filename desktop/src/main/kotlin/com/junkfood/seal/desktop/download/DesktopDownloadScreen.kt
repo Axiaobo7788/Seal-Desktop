@@ -21,15 +21,16 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
@@ -37,8 +38,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,6 +51,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,17 +88,22 @@ import com.junkfood.seal.shared.generated.resources.auto
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.best_quality
 import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.custom
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_hint
 import com.junkfood.seal.shared.generated.resources.download_queue
 import com.junkfood.seal.shared.generated.resources.download_subtitles
 import com.junkfood.seal.shared.generated.resources.embed_metadata
+import com.junkfood.seal.shared.generated.resources.format_selection
+import com.junkfood.seal.shared.generated.resources.format_selection_desc
 import com.junkfood.seal.shared.generated.resources.lowest_quality
 import com.junkfood.seal.shared.generated.resources.new_task
 import com.junkfood.seal.shared.generated.resources.paste_msg
 import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.proceed
 import com.junkfood.seal.shared.generated.resources.preset
+import com.junkfood.seal.shared.generated.resources.quality
+import com.junkfood.seal.shared.generated.resources.legacy
 import com.junkfood.seal.shared.generated.resources.reset
 import com.junkfood.seal.shared.generated.resources.settings_before_download
 import com.junkfood.seal.shared.generated.resources.sponsorblock
@@ -102,7 +111,12 @@ import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.status_canceled
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
+import com.junkfood.seal.shared.generated.resources.status_error
 import com.junkfood.seal.shared.generated.resources.video
+import com.junkfood.seal.shared.generated.resources.video_format_preference
+import com.junkfood.seal.shared.generated.resources.video_quality
+import com.junkfood.seal.shared.generated.resources.edit_preset
+import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
 import com.junkfood.seal.shared.generated.resources.desktop_view_grid
@@ -129,6 +143,7 @@ fun DesktopDownloadScreen(
     var pendingUrl by remember { mutableStateOf<String?>(null) }
     var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
     var workingPreferences by remember { mutableStateOf(preferences) }
+    var detailsItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
     LaunchedEffect(preferences) { workingPreferences = preferences }
     val logLines = controller.logLines
 
@@ -164,7 +179,7 @@ fun DesktopDownloadScreen(
                     when (action) {
                         DownloadQueueAction.Cancel -> controller.cancelIfRunning(itemId)
                         DownloadQueueAction.Delete -> controller.deleteQueueItem(itemId)
-                        DownloadQueueAction.Resume -> { /* not supported */ }
+                        DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId)
                         DownloadQueueAction.OpenFile -> {
                             item?.filePath?.let { safeOpenFile(it) }
                         }
@@ -187,7 +202,7 @@ fun DesktopDownloadScreen(
                             item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
                         }
                         DownloadQueueAction.ShowDetails -> {
-                            // TODO: add a detail dialog; keep no-op for now.
+                            detailsItem = item
                         }
                     }
                 },
@@ -293,6 +308,38 @@ fun DesktopDownloadScreen(
             }
         }
     }
+
+    detailsItem?.let { item ->
+        val statusText =
+            when (item.status) {
+                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Running -> stringResource(Res.string.status_downloading)
+                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Completed -> stringResource(Res.string.status_completed)
+                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Canceled -> stringResource(Res.string.status_canceled)
+                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Error -> stringResource(Res.string.status_error)
+                else -> item.status.name
+            }
+        val logPreview = logLines.takeLast(6).joinToString("\n")
+
+        AlertDialog(
+            onDismissRequest = { detailsItem = null },
+            title = { Text(text = item.title.ifBlank { item.url }) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("URL: ${item.url}")
+                    Text("Status: $statusText")
+                    item.filePath?.takeIf { it.isNotBlank() }?.let { Text("File: $it") }
+                    item.errorMessage?.takeIf { it.isNotBlank() }?.let { Text("Error: $it") }
+                    if (logPreview.isNotBlank()) {
+                        Text("Logs:")
+                        Text(logPreview, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { detailsItem = null }) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
+    }
 }
 
 private enum class DownloadSheetPage {
@@ -382,6 +429,7 @@ private fun DownloadOptionsSheet(
     onDownload: () -> Unit,
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
+    var showPresetDialog by remember { mutableStateOf(false) }
     val formatSummary = formatSummary(preferences, downloadType)
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -395,9 +443,11 @@ private fun DownloadOptionsSheet(
 
         DownloadTypeSegmentedRow(selected = downloadType, onSelect = onTypeChange)
 
-        FormatPresetCard(summary = formatSummary) {
-            onPreferencesChange(preferencesForType(desktopDefaultPreferences(), downloadType))
-        }
+        FormatSelectionSection(
+            summary = formatSummary,
+            onPresetClick = { showPresetDialog = true },
+            onCustomClick = { showPresetDialog = true },
+        )
 
         HorizontalDivider()
 
@@ -439,6 +489,27 @@ private fun DownloadOptionsSheet(
                 Text(stringResource(Res.string.start_download))
             }
         }
+    }
+
+    if (showPresetDialog && downloadType != DesktopDownloadType.Audio) {
+        var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
+        var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
+
+        VideoPresetDialog(
+            videoResolution = resolution,
+            videoFormatPreference = format,
+            onResolutionSelect = { resolution = it },
+            onFormatSelect = { format = it },
+            onDismissRequest = { showPresetDialog = false },
+            onSave = {
+                onPreferencesChange(
+                    preferences.copy(
+                        videoResolution = resolution,
+                        videoFormat = format,
+                    ),
+                )
+            },
+        )
     }
 }
 
@@ -508,21 +579,134 @@ private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (D
 }
 
 @Composable
-private fun FormatPresetCard(summary: String, onReset: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.medium,
-        onClick = onReset,
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Outlined.SettingsSuggest, contentDescription = null)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(Res.string.preset), style = MaterialTheme.typography.titleSmall)
-                Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+private fun FormatSelectionSection(
+    summary: String,
+    onPresetClick: () -> Unit,
+    onCustomClick: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(stringResource(Res.string.format_selection), style = MaterialTheme.typography.titleSmall)
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 2.dp,
+            shape = MaterialTheme.shapes.medium,
+            onClick = onPresetClick,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(Icons.Outlined.SettingsSuggest, contentDescription = null)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(Res.string.preset), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Icon(Icons.Outlined.MoreVert, contentDescription = null)
             }
-            TextButton(onClick = onReset, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)) { Text(stringResource(Res.string.reset)) }
         }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 0.dp,
+            shape = MaterialTheme.shapes.medium,
+            onClick = onCustomClick,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(Icons.Outlined.Description, contentDescription = null)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(Res.string.custom), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        stringResource(Res.string.format_selection_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoPresetDialog(
+    videoResolution: Int,
+    videoFormatPreference: Int,
+    onResolutionSelect: (Int) -> Unit,
+    onFormatSelect: (Int) -> Unit,
+    onSave: () -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    val formatOptions =
+        listOf(
+            stringResource(Res.string.quality) to 2,
+            stringResource(Res.string.legacy) to 1,
+        )
+    val resolutionOptions = listOf(0, 1, 2, 3, 4, 5, 6, 7)
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(stringResource(Res.string.edit_preset)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(Res.string.video_format_preference), style = MaterialTheme.typography.titleSmall)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    formatOptions.forEach { (label, value) ->
+                        ChoiceRow(
+                            title = label,
+                            selected = videoFormatPreference == value,
+                            onClick = { onFormatSelect(value) },
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text(stringResource(Res.string.video_quality), style = MaterialTheme.typography.titleSmall)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    resolutionOptions.forEach { value ->
+                        ChoiceRow(
+                            title = videoResolutionLabel(value),
+                            selected = videoResolution == value,
+                            onClick = { onResolutionSelect(value) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave()
+                onDismissRequest()
+            }) { Text(stringResource(Res.string.save)) }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun ChoiceRow(title: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(title, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

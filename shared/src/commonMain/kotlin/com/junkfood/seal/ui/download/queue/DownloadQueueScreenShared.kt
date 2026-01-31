@@ -28,14 +28,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -47,7 +52,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -72,6 +77,9 @@ import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.download
+import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.media_info
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -481,13 +489,51 @@ private fun ActionSheetShared(
     onAction: (DownloadQueueAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = item.title.ifBlank { item.url },
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         if (item.author.isNotBlank()) {
-            Text(text = item.author, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = item.author,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Divider()
+        if (item.progressText.isNotBlank()) {
+            Text(
+                text = item.progressText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         ActionButtonsForStatus(item = item, strings = strings, onAction = onAction, onDismiss = onDismiss)
+
+        Divider()
+
+        Text(stringResource(Res.string.media_info), style = MaterialTheme.typography.titleSmall)
+
+        val sizeText = item.fileSizeApproxBytes?.let { formatSize(it) }
+        val durationText = item.durationSeconds?.let { formatDuration(it) }
+        val summary = listOfNotNull(sizeText, durationText).joinToString(separator = " · ")
+        if (summary.isNotBlank()) {
+            InfoRow(icon = Icons.Outlined.Download, text = summary)
+        }
+
+        if (item.url.isNotBlank()) {
+            InfoRow(icon = Icons.Outlined.Link, text = item.url)
+        }
+
+        if (item.errorMessage?.isNotBlank() == true) {
+            InfoRow(icon = Icons.Outlined.WarningAmber, text = item.errorMessage)
+        }
     }
 }
 
@@ -498,33 +544,94 @@ private fun ActionButtonsForStatus(
     onAction: (DownloadQueueAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    @Composable
-    fun button(label: String, action: DownloadQueueAction, prominent: Boolean = false) {
-        val content: @Composable () -> Unit = { Text(label) }
-        if (prominent) {
-            Button(onClick = { onAction(action); onDismiss() }, modifier = Modifier.fillMaxWidth()) { content() }
-        } else {
-            OutlinedButton(onClick = { onAction(action) }, modifier = Modifier.fillMaxWidth()) { content() }
+    val actions =
+        when (item.status) {
+            DownloadQueueStatus.Completed ->
+                listOf(
+                    ActionSpec(strings.openFileLabel, Icons.Outlined.PlayArrow, DownloadQueueAction.OpenFile),
+                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
+                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
+                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
+                )
+            DownloadQueueStatus.Error, DownloadQueueStatus.Canceled ->
+                listOf(
+                    ActionSpec(strings.resumeLabel, Icons.Outlined.RestartAlt, DownloadQueueAction.Resume),
+                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
+                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
+                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
+                )
+            else ->
+                listOf(
+                    ActionSpec(strings.cancelLabel, Icons.Outlined.Cancel, DownloadQueueAction.Cancel),
+                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
+                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
+                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
+                )
+        }
+
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        actions.forEach { action ->
+            ActionCircleButton(
+                label = action.label,
+                icon = action.icon,
+            ) {
+                onAction(action.action)
+                onDismiss()
+            }
         }
     }
+}
 
-    when (item.status) {
-        DownloadQueueStatus.Error, DownloadQueueStatus.Canceled -> button(strings.resumeLabel, DownloadQueueAction.Resume, prominent = true)
-        DownloadQueueStatus.Running, DownloadQueueStatus.FetchingInfo, DownloadQueueStatus.Ready, DownloadQueueStatus.Idle -> button(strings.cancelLabel, DownloadQueueAction.Cancel, prominent = true)
-        DownloadQueueStatus.Completed -> button(strings.openFileLabel, DownloadQueueAction.OpenFile, prominent = true)
-    }
+private data class ActionSpec(
+    val label: String,
+    val icon: ImageVector,
+    val action: DownloadQueueAction,
+)
 
-    if (item.status == DownloadQueueStatus.Completed) {
-        button(strings.shareFileLabel, DownloadQueueAction.ShareFile)
+@Composable
+private fun ActionCircleButton(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Surface(
+            shape = CircleShape,
+            tonalElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            modifier = Modifier.size(56.dp).clickable { onClick() },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null)
+            }
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium)
     }
-    button(strings.deleteLabel, DownloadQueueAction.Delete)
-    button(strings.copyUrlLabel, DownloadQueueAction.CopyVideoUrl)
-    button(strings.openUrlLabel, DownloadQueueAction.OpenVideoUrl)
-    if (item.thumbnailUrl != null) {
-        button(strings.openThumbLabel, DownloadQueueAction.OpenThumbnailUrl)
+}
+
+@Composable
+private fun InfoRow(icon: ImageVector, text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
-    if (item.errorMessage?.isNotBlank() == true) {
-        button(strings.copyErrorLabel, DownloadQueueAction.CopyError)
+}
+
+private fun formatDuration(seconds: Int): String {
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return if (h > 0) String.format("%d:%02d:%02d", h, m, s) else String.format("%02d:%02d", m, s)
+}
+
+private fun formatSize(bytes: Double): String {
+    val kb = 1024.0
+    val mb = kb * 1024
+    val gb = mb * 1024
+    return when {
+        bytes >= gb -> String.format("%.2f GB", bytes / gb)
+        bytes >= mb -> String.format("%.2f MB", bytes / mb)
+        bytes >= kb -> String.format("%.0f KB", bytes / kb)
+        else -> String.format("%.0f B", bytes)
     }
-    button(strings.showDetailsLabel, DownloadQueueAction.ShowDetails)
 }
