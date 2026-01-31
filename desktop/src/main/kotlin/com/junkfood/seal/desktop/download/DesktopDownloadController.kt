@@ -76,7 +76,7 @@ class DesktopDownloadController(
         if (itemId == runningItemId) {
             canceledItemIds.add(itemId)
             runningProcess?.cancel()
-            updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
+            updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
         }
     }
 

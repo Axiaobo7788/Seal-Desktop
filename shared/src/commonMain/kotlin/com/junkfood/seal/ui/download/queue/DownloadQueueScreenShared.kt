@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -151,6 +152,7 @@ fun DownloadQueueScreenShared(
                             strings = strings,
                             onMoreClick = { sheetItemId = item.id },
                             onClick = { sheetItemId = item.id },
+                            onPauseClick = { onItemAction(item.id, DownloadQueueAction.Cancel) },
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }
@@ -166,6 +168,7 @@ fun DownloadQueueScreenShared(
                             strings = strings,
                             onMoreClick = { sheetItemId = item.id },
                             onClick = { sheetItemId = item.id },
+                            onPauseClick = { onItemAction(item.id, DownloadQueueAction.Cancel) },
                             modifier = Modifier,
                         )
                     }
@@ -313,6 +316,7 @@ private fun QueueCardShared(
     strings: DownloadQueueStrings,
     onMoreClick: () -> Unit,
     onClick: () -> Unit,
+    onPauseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val container = MaterialTheme.colorScheme.surfaceContainerLow
@@ -330,7 +334,7 @@ private fun QueueCardShared(
             ) {
                 DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
                 StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
-                DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
+                DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onPauseClick = onPauseClick)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -354,6 +358,7 @@ private fun QueueListItemShared(
     strings: DownloadQueueStrings,
     onMoreClick: () -> Unit,
     onClick: () -> Unit,
+    onPauseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -369,7 +374,7 @@ private fun QueueListItemShared(
         ) {
             DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
             StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
-            DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center))
+            DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onPauseClick = onPauseClick)
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -425,7 +430,7 @@ private fun StatusPill(item: DownloadQueueItemState, strings: DownloadQueueStrin
 }
 
 @Composable
-private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = Modifier) {
+private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = Modifier, onPauseClick: () -> Unit) {
     val showProgress = item.status == DownloadQueueStatus.Running || item.status == DownloadQueueStatus.FetchingInfo || item.status == DownloadQueueStatus.Ready
     if (!showProgress) return
     Box(modifier = modifier.size(88.dp), contentAlignment = Alignment.Center) {
@@ -438,8 +443,20 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
         } else {
             CircularProgressIndicator(strokeWidth = 6.dp, modifier = Modifier.fillMaxSize())
         }
-        Surface(shape = CircleShape, tonalElevation = 3.dp, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) {
-            Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+        val interaction = remember { MutableInteractionSource() }
+        Surface(
+            shape = CircleShape,
+            tonalElevation = 3.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+            modifier = Modifier
+                .size(72.dp)
+                .clickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    onClick = onPauseClick,
+                ),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
             }
         }
