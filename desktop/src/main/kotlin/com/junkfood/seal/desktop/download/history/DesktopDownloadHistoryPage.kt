@@ -1,11 +1,11 @@
 package com.junkfood.seal.desktop.download.history
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -25,10 +26,13 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.foundation.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -58,6 +62,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.backup_type
@@ -79,14 +84,18 @@ import com.junkfood.seal.shared.generated.resources.import_download_history
 import com.junkfood.seal.shared.generated.resources.import_download_history_msg
 import com.junkfood.seal.shared.generated.resources.import_from
 import com.junkfood.seal.shared.generated.resources.item_count
+import com.junkfood.seal.shared.generated.resources.no_downloaded_media
 import com.junkfood.seal.shared.generated.resources.open_file
 import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.search
+import com.junkfood.seal.shared.generated.resources.search_in_downloads
 import com.junkfood.seal.shared.generated.resources.unknown
 import com.junkfood.seal.shared.generated.resources.unavailable
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
+import com.junkfood.seal.ui.svg.DynamicColorImageVectors
+import com.junkfood.seal.ui.svg.drawablevectors.download
 import java.awt.Desktop
 import java.awt.FileDialog
 import java.awt.Frame
@@ -234,13 +243,14 @@ fun DesktopDownloadHistoryPage(
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text(stringResource(Res.string.search)) },
+                    label = { Text(stringResource(Res.string.search_in_downloads)) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 HistoryFilterChip(
                     text = stringResource(Res.string.audio),
@@ -281,18 +291,43 @@ fun DesktopDownloadHistoryPage(
                     }
                 }
             }
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.surface,
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(filtered, key = { it.id }) { entry ->
-                        HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
+            if (filtered.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val painter =
+                        rememberVectorPainter(image = DynamicColorImageVectors.download())
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).widthIn(max = 360.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Image(
+                            painter = painter,
+                            contentDescription = null,
+                            modifier =
+                                Modifier.padding(vertical = 20.dp)
+                                    .fillMaxWidth(0.5f)
+                                    .widthIn(max = 240.dp),
+                        )
+                        Text(
+                            text = stringResource(Res.string.no_downloaded_media),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    item { Spacer(Modifier.height(12.dp)) }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(filtered, key = { it.id }) { entry ->
+                            HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
+                        }
+                        item { Spacer(Modifier.height(12.dp)) }
+                    }
                 }
             }
         }
@@ -406,14 +441,13 @@ private fun HistoryRow(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.extraLarge,
+        tonalElevation = 0.dp,
     ) {
-        Row(
+        Box(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.extraLarge)
+                    .clip(MaterialTheme.shapes.extraSmall)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -422,52 +456,73 @@ private fun HistoryRow(
                         if (exists) {
                             entry.filePath?.let { openFile(it) }
                         }
-                    }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    },
         ) {
-            Box(modifier = Modifier.size(156.dp, 88.dp)) {
-                DownloadThumbnail(url = if (disablePreview) null else entry.thumbnailUrl, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
-            }
-
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (entry.author.isNotBlank()) {
-                    Text(
-                        text = entry.author,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .height(90.dp)
+                            .aspectRatio(16f / 9f)
+                            .clip(MaterialTheme.shapes.extraSmall),
+                ) {
+                    DownloadThumbnail(
+                        url = if (disablePreview) null else entry.thumbnailUrl,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                     )
                 }
 
-                val categoryLabel =
-                    when (entry.mediaType) {
-                        DesktopHistoryMediaType.Audio -> stringResource(Res.string.audio)
-                        DesktopHistoryMediaType.Video -> stringResource(Res.string.video)
-                    }
-
-                if (showPlatform) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = entry.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (entry.author.isNotBlank()) {
                         Text(
-                            text = entry.platform.name,
+                            text = entry.author,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        VerticalDivider(
-                            modifier = Modifier.padding(horizontal = 8.dp).height(12.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                        )
+                    }
+
+                    val categoryLabel =
+                        when (entry.mediaType) {
+                            DesktopHistoryMediaType.Audio -> stringResource(Res.string.audio)
+                            DesktopHistoryMediaType.Video -> stringResource(Res.string.video)
+                        }
+
+                    if (showPlatform) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = entry.platform.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            VerticalDivider(
+                                modifier = Modifier.padding(horizontal = 8.dp).height(12.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                            )
+                            Text(
+                                text = categoryLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else {
                         Text(
                             text = categoryLabel,
                             style = MaterialTheme.typography.bodySmall,
@@ -476,30 +531,22 @@ private fun HistoryRow(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                } else {
-                    Text(
-                        text = categoryLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
 
-                if (metaLine.isNotBlank()) {
-                    Text(
-                        text = metaLine,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (exists) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (metaLine.isNotBlank()) {
+                        Text(
+                            text = metaLine,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (exists) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
-            Box {
+            Box(modifier = Modifier.align(Alignment.BottomEnd)) {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                    Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
@@ -545,43 +592,20 @@ private fun HistoryFilterChip(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val background =
-        when {
-            !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-            selected -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.surfaceVariant
-        }
-    val content =
-        when {
-            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            selected -> MaterialTheme.colorScheme.onSecondaryContainer
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    val borderColor =
-        when {
-            !enabled -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            selected -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.outlineVariant
-        }
-
-    Surface(
-        modifier = Modifier.height(32.dp),
-        shape = MaterialTheme.shapes.large,
-        color = background,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, borderColor),
+    FilterChip(
+        selected = selected,
         onClick = { if (enabled) onClick() },
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            color = content,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+        enabled = enabled,
+        shape = MaterialTheme.shapes.large,
+        label = {
+            Text(
+                text = text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(),
+    )
 }
 
 private enum class DesktopHistoryIoDestination { File, Clipboard }
@@ -605,6 +629,7 @@ private fun DesktopHistoryExportDialog(
                 contentDescription = null,
             )
         },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         confirmButton = {
             Button(onClick = { onExport(type, destination) }) {
                 Text(stringResource(Res.string.export_backup))
@@ -632,20 +657,24 @@ private fun DesktopHistoryExportDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.full_backup),
-                        selected = type == DesktopHistoryExportType.DownloadHistory,
-                        onClick = { type = DesktopHistoryExportType.DownloadHistory },
-                    )
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.video_url),
-                        selected = type == DesktopHistoryExportType.UrlList,
-                        onClick = { type = DesktopHistoryExportType.UrlList },
-                    )
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.full_backup),
+                            selected = type == DesktopHistoryExportType.DownloadHistory,
+                            onClick = { type = DesktopHistoryExportType.DownloadHistory },
+                        )
+                    }
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.video_url),
+                            selected = type == DesktopHistoryExportType.UrlList,
+                            onClick = { type = DesktopHistoryExportType.UrlList },
+                        )
+                    }
                 }
 
                 Text(
@@ -655,20 +684,24 @@ private fun DesktopHistoryExportDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.file),
-                        selected = destination == DesktopHistoryIoDestination.File,
-                        onClick = { destination = DesktopHistoryIoDestination.File },
-                    )
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.clipboard),
-                        selected = destination == DesktopHistoryIoDestination.Clipboard,
-                        onClick = { destination = DesktopHistoryIoDestination.Clipboard },
-                    )
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.file),
+                            selected = destination == DesktopHistoryIoDestination.File,
+                            onClick = { destination = DesktopHistoryIoDestination.File },
+                        )
+                    }
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.clipboard),
+                            selected = destination == DesktopHistoryIoDestination.Clipboard,
+                            onClick = { destination = DesktopHistoryIoDestination.Clipboard },
+                        )
+                    }
                 }
             }
         },
@@ -690,6 +723,7 @@ private fun DesktopHistoryImportDialog(
                 contentDescription = null,
             )
         },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         confirmButton = {
             Button(onClick = { onImport(destination) }) {
                 Text(stringResource(Res.string.import_backup))
@@ -715,16 +749,18 @@ private fun DesktopHistoryImportDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.full_backup),
-                        selected = true,
-                        enabled = false,
-                        onClick = {},
-                    )
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.full_backup),
+                            selected = true,
+                            enabled = false,
+                            onClick = {},
+                        )
+                    }
                 }
 
                 Text(
@@ -734,20 +770,24 @@ private fun DesktopHistoryImportDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.file),
-                        selected = destination == DesktopHistoryIoDestination.File,
-                        onClick = { destination = DesktopHistoryIoDestination.File },
-                    )
-                    HistoryFilterChip(
-                        text = stringResource(Res.string.clipboard),
-                        selected = destination == DesktopHistoryIoDestination.Clipboard,
-                        onClick = { destination = DesktopHistoryIoDestination.Clipboard },
-                    )
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.file),
+                            selected = destination == DesktopHistoryIoDestination.File,
+                            onClick = { destination = DesktopHistoryIoDestination.File },
+                        )
+                    }
+                    item {
+                        HistoryFilterChip(
+                            text = stringResource(Res.string.clipboard),
+                            selected = destination == DesktopHistoryIoDestination.Clipboard,
+                            onClick = { destination = DesktopHistoryIoDestination.Clipboard },
+                        )
+                    }
                 }
             }
         },

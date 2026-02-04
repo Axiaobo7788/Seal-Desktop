@@ -1,9 +1,5 @@
 package com.junkfood.seal.ui.download.queue
 
-/**
- * 平台无关的下载队列模型，供 Android/desktop 通过适配层输入。
- */
-
 enum class DownloadQueueFilter { All, Downloading, Canceled, Finished }
 
 enum class DownloadQueueViewMode { Grid, List }
@@ -20,9 +16,6 @@ enum class DownloadQueueStatus {
 
 enum class DownloadQueueMediaType { Video, Audio, Unknown }
 
-/**
- * 单条任务的展示状态。
- */
 data class DownloadQueueItemState(
     val id: String,
     val title: String,
@@ -31,6 +24,9 @@ data class DownloadQueueItemState(
     val mediaType: DownloadQueueMediaType = DownloadQueueMediaType.Unknown,
     val durationSeconds: Int? = null,
     val fileSizeApproxBytes: Double? = null,
+    val extractorKey: String = "",
+    val videoFormats: List<com.junkfood.seal.util.Format>? = null,
+    val audioOnlyFormats: List<com.junkfood.seal.util.Format>? = null,
     val progress: Float? = null, // 0f..1f，null 表示未知
     val progressText: String = "",
     val status: DownloadQueueStatus = DownloadQueueStatus.Idle,
@@ -50,9 +46,6 @@ data class DownloadQueueState(
     val selectedItemId: String? = null,
 )
 
-/**
- * 用户触发的队列动作意图，平台层自行实现。
- */
 sealed interface DownloadQueueAction {
     data object Cancel : DownloadQueueAction
     data object Resume : DownloadQueueAction
@@ -66,9 +59,6 @@ sealed interface DownloadQueueAction {
     data object ShowDetails : DownloadQueueAction
 }
 
-/**
- * UI 文案，平台负责提供本地化字符串。
- */
 data class DownloadQueueStrings(
     val queueTitle: String,
     val addLabel: String,

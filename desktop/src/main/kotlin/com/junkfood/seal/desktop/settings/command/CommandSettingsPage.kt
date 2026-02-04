@@ -4,7 +4,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.TextFieldCard
@@ -25,6 +27,66 @@ internal fun CommandSettingsPage(
     onUpdate: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     onBack: () -> Unit,
 ) {
+    LaunchedEffect(
+        settings.customCommandTemplates,
+        settings.customCommandLabel,
+        settings.customCommandTemplate,
+    ) {
+        if (
+            settings.customCommandTemplates.isEmpty() &&
+                (settings.customCommandLabel.isNotBlank() || settings.customCommandTemplate.isNotBlank())
+        ) {
+            onUpdate {
+                it.copy(
+                    customCommandTemplates =
+                        listOf(
+                            DesktopCommandTemplate(
+                                id = 1,
+                                label = settings.customCommandLabel,
+                                template = settings.customCommandTemplate,
+                            )
+                        ),
+                    customCommandTemplateId = 1,
+                )
+            }
+        }
+    }
+
+    fun updateTemplateFields(label: String? = null, template: String? = null) {
+        onUpdate { current ->
+            val nextLabel = label ?: current.customCommandLabel
+            val nextTemplate = template ?: current.customCommandTemplate
+            val templates = current.customCommandTemplates
+            val selectedId = current.customCommandTemplateId
+            val selectedTemplate = templates.firstOrNull { it.id == selectedId }
+            val updatedTemplates =
+                when {
+                    selectedTemplate != null ->
+                        templates.map {
+                            if (it.id == selectedId) it.copy(label = nextLabel, template = nextTemplate) else it
+                        }
+                    nextLabel.isNotBlank() || nextTemplate.isNotBlank() -> {
+                        val newId = (templates.maxOfOrNull { it.id } ?: 0) + 1
+                        templates + DesktopCommandTemplate(newId, nextLabel, nextTemplate)
+                    }
+                    else -> templates
+                }
+            val resolvedSelectedId =
+                when {
+                    selectedTemplate != null -> selectedId
+                    updatedTemplates.isNotEmpty() -> updatedTemplates.last().id
+                    else -> 0
+                }
+            val resolvedTemplate = updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
+            current.copy(
+                customCommandLabel = resolvedTemplate?.label ?: nextLabel,
+                customCommandTemplate = resolvedTemplate?.template ?: nextTemplate,
+                customCommandTemplates = updatedTemplates,
+                customCommandTemplateId = resolvedSelectedId,
+            )
+        }
+    }
+
     SettingsPageScaffold(title = stringResource(Res.string.custom_command), onBack = onBack) {
         PreferenceInfo(text = stringResource(Res.string.custom_command_desc))
 
@@ -41,7 +103,7 @@ internal fun CommandSettingsPage(
             icon = Icons.Rounded.Code,
             value = settings.customCommandLabel,
             enabled = settings.customCommandEnabled,
-        ) { newValue -> onUpdate { it.copy(customCommandLabel = newValue) } }
+        ) { newValue -> updateTemplateFields(label = newValue) }
 
         TextFieldCard(
             title = stringResource(Res.string.custom_command_template),
@@ -51,6 +113,6 @@ internal fun CommandSettingsPage(
             enabled = settings.customCommandEnabled,
             singleLine = false,
             maxLines = 8,
-        ) { newValue -> onUpdate { it.copy(customCommandTemplate = newValue) } }
+        ) { newValue -> updateTemplateFields(template = newValue) }
     }
 }

@@ -27,10 +27,19 @@ private val appSettingsJson =
     }
 
 @Serializable
+data class DesktopCommandTemplate(
+    val id: Int,
+    val label: String,
+    val template: String,
+)
+
+@Serializable
 data class DesktopAppSettings(
     val customCommandEnabled: Boolean = false,
     val customCommandLabel: String = "",
     val customCommandTemplate: String = "",
+    val customCommandTemplateId: Int = 0,
+    val customCommandTemplates: List<DesktopCommandTemplate> = emptyList(),
     val downloadTypeInitialization: Int = DownloadTypeNone,
     val downloadNotificationEnabled: Boolean = false,
     val disablePreview: Boolean = false,

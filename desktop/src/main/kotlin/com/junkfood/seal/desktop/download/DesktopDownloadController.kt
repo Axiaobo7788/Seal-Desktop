@@ -259,10 +259,18 @@ class DesktopDownloadController(
                 }
 
             updateQueueItem(itemId) {
+                val formats = videoInfo.requestedFormats ?: videoInfo.formats ?: emptyList()
+                val videoFormats = formats.filter { it.containsVideo() }
+                val audioOnlyFormats = formats.filter { it.isAudioOnly() }
                 it.copy(
                     title = videoInfo.title.ifBlank { trimmed },
                     author = videoInfo.uploader.orEmpty(),
                     thumbnailUrl = videoInfo.thumbnail,
+                    durationSeconds = videoInfo.duration?.toInt(),
+                    fileSizeApproxBytes = videoInfo.fileSize ?: videoInfo.fileSizeApprox,
+                    extractorKey = videoInfo.extractorKey,
+                    videoFormats = if (videoFormats.isEmpty()) null else videoFormats,
+                    audioOnlyFormats = if (audioOnlyFormats.isEmpty()) null else audioOnlyFormats,
                     status = DownloadQueueStatus.Ready,
                 )
             }

@@ -4,11 +4,15 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,10 +25,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,12 +45,21 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.Card
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -56,6 +71,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +84,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -80,7 +99,11 @@ import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.download
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.media_info
+import com.junkfood.seal.shared.generated.resources.audio
+import com.junkfood.seal.shared.generated.resources.video
 import org.jetbrains.compose.resources.stringResource
+
+private val StatusLabelContainerColor = Color.Black.copy(alpha = 0.68f)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -152,7 +175,7 @@ fun DownloadQueueScreenShared(
                             strings = strings,
                             onMoreClick = { sheetItemId = item.id },
                             onClick = { sheetItemId = item.id },
-                            onPauseClick = { onItemAction(item.id, DownloadQueueAction.Cancel) },
+                            onOverlayAction = { action -> onItemAction(item.id, action) },
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }
@@ -168,7 +191,7 @@ fun DownloadQueueScreenShared(
                             strings = strings,
                             onMoreClick = { sheetItemId = item.id },
                             onClick = { sheetItemId = item.id },
-                            onPauseClick = { onItemAction(item.id, DownloadQueueAction.Cancel) },
+                            onOverlayAction = { action -> onItemAction(item.id, action) },
                             modifier = Modifier,
                         )
                     }
@@ -292,18 +315,20 @@ private fun SubHeaderShared(
         Text(text = parts.joinToString(separator = "  "), style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.weight(1f))
 
-        val targetMode =
-            if (viewMode == DownloadQueueViewMode.Grid) DownloadQueueViewMode.List
-            else DownloadQueueViewMode.Grid
+        val isGrid = viewMode == DownloadQueueViewMode.Grid
 
         FilledIconButton(
             onClick = onToggleView,
             modifier = Modifier.size(36.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            colors =
+                IconButtonDefaults.filledIconButtonColors(
+                    containerColor = if (isGrid) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = if (isGrid) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
         ) {
             Icon(
-                imageVector = if (targetMode == DownloadQueueViewMode.Grid) Icons.Outlined.GridView else Icons.AutoMirrored.Outlined.List,
-                contentDescription = if (targetMode == DownloadQueueViewMode.Grid) strings.gridLabel else strings.listLabel,
+                imageVector = if (isGrid) Icons.Outlined.GridView else Icons.AutoMirrored.Outlined.List,
+                contentDescription = if (isGrid) strings.gridLabel else strings.listLabel,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -316,7 +341,7 @@ private fun QueueCardShared(
     strings: DownloadQueueStrings,
     onMoreClick: () -> Unit,
     onClick: () -> Unit,
-    onPauseClick: () -> Unit,
+    onOverlayAction: (DownloadQueueAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val container = MaterialTheme.colorScheme.surfaceContainerLow
@@ -334,15 +359,26 @@ private fun QueueCardShared(
             ) {
                 DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
                 StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
-                DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onPauseClick = onPauseClick)
+                DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onOverlayAction = onOverlayAction)
             }
             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = item.title.ifBlank { item.url },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     if (item.author.isNotBlank()) {
-                        Text(text = item.author, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            text = item.author,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    ProgressText(item = item, strings = strings)
+                    StatusRowShared(item = item, strings = strings)
                 }
                 IconButton(onClick = onMoreClick) {
                     Icon(Icons.Outlined.MoreVert, contentDescription = null)
@@ -358,7 +394,7 @@ private fun QueueListItemShared(
     strings: DownloadQueueStrings,
     onMoreClick: () -> Unit,
     onClick: () -> Unit,
-    onPauseClick: () -> Unit,
+    onOverlayAction: (DownloadQueueAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -374,14 +410,25 @@ private fun QueueListItemShared(
         ) {
             DownloadThumbnail(url = item.thumbnailUrl, modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
             StatusPill(item = item, strings = strings, modifier = Modifier.align(Alignment.TopStart).padding(6.dp))
-            DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onPauseClick = onPauseClick)
+            DownloadOverlay(item = item, modifier = Modifier.align(Alignment.Center), onOverlayAction = onOverlayAction)
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(text = item.title.ifBlank { item.url }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = item.title.ifBlank { item.url },
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (item.author.isNotBlank()) {
-                Text(text = item.author, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = item.author,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            ProgressText(item = item, strings = strings)
+            StatusRowShared(item = item, strings = strings)
         }
         IconButton(onClick = onMoreClick) {
             Icon(Icons.Outlined.MoreVert, contentDescription = null)
@@ -401,7 +448,7 @@ private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStr
             DownloadQueueStatus.Canceled -> strings.statusCanceled
             DownloadQueueStatus.Error -> strings.statusError
         }
-    val progressPercent = item.progress?.let { " ${(it * 100f).toInt()}%" } ?: ""
+    val progressPercent = item.progress?.let { " ${String.format("%.1f %%", it * 100f)}" } ?: ""
     val extra = if (item.progressText.isNotBlank()) " • ${item.progressText}" else ""
     Text(
         text = statusLabel + progressPercent + extra,
@@ -413,51 +460,129 @@ private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStr
 }
 
 @Composable
-private fun StatusPill(item: DownloadQueueItemState, strings: DownloadQueueStrings, modifier: Modifier = Modifier) {
-    val (bg, text) =
+private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueueStrings) {
+    val sizeModifier = Modifier.size(14.dp)
+    val statusColor =
         when (item.status) {
-            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.secondaryContainer to strings.statusCompleted
-            DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer to strings.statusError
-            DownloadQueueStatus.Canceled -> MaterialTheme.colorScheme.surfaceVariant to strings.statusCanceled
-            DownloadQueueStatus.Running -> MaterialTheme.colorScheme.primaryContainer to strings.statusRunning
-            DownloadQueueStatus.FetchingInfo -> MaterialTheme.colorScheme.primaryContainer to strings.statusFetchingInfo
-            DownloadQueueStatus.Ready -> MaterialTheme.colorScheme.primaryContainer to strings.statusReady
-            DownloadQueueStatus.Idle -> MaterialTheme.colorScheme.surfaceContainerHigh to strings.statusIdle
+            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.tertiary
+            DownloadQueueStatus.Error -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
-    Surface(color = bg, shape = MaterialTheme.shapes.extraSmall, modifier = modifier) {
-        Text(text = text, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        when (item.status) {
+            DownloadQueueStatus.Canceled -> {
+                Icon(Icons.Outlined.Cancel, contentDescription = null, tint = statusColor, modifier = sizeModifier)
+            }
+            DownloadQueueStatus.Completed -> {
+                Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = statusColor, modifier = sizeModifier)
+            }
+            DownloadQueueStatus.Error -> {
+                Icon(Icons.Outlined.Error, contentDescription = null, tint = statusColor, modifier = sizeModifier)
+            }
+            DownloadQueueStatus.FetchingInfo,
+            DownloadQueueStatus.Ready,
+            DownloadQueueStatus.Idle -> {
+                CircularProgressIndicator(modifier = sizeModifier, strokeWidth = 2.5.dp)
+            }
+            DownloadQueueStatus.Running -> {
+                val progress = item.progress ?: 0f
+                CircularProgressIndicator(progress = { progress }, modifier = sizeModifier, strokeWidth = 2.5.dp)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        val statusLabel =
+            when (item.status) {
+                DownloadQueueStatus.Idle -> strings.statusIdle
+                DownloadQueueStatus.FetchingInfo -> strings.statusFetchingInfo
+                DownloadQueueStatus.Ready -> strings.statusReady
+                DownloadQueueStatus.Running -> strings.statusRunning
+                DownloadQueueStatus.Completed -> strings.statusCompleted
+                DownloadQueueStatus.Canceled -> strings.statusCanceled
+                DownloadQueueStatus.Error -> strings.statusError
+            }
+        val progressPercent = item.progress?.let { " ${String.format("%.1f %%", it * 100f)}" } ?: ""
+        val extra = if (item.progressText.isNotBlank()) " • ${item.progressText}" else ""
+        Text(
+            text = statusLabel + progressPercent + extra,
+            style = MaterialTheme.typography.labelMedium,
+            color = statusColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
-private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = Modifier, onPauseClick: () -> Unit) {
-    val showProgress = item.status == DownloadQueueStatus.Running || item.status == DownloadQueueStatus.FetchingInfo || item.status == DownloadQueueStatus.Ready
+private fun StatusPill(item: DownloadQueueItemState, strings: DownloadQueueStrings, modifier: Modifier = Modifier) {
+    val text =
+        when (item.status) {
+            DownloadQueueStatus.Completed -> strings.statusCompleted
+            DownloadQueueStatus.Error -> strings.statusError
+            DownloadQueueStatus.Canceled -> strings.statusCanceled
+            DownloadQueueStatus.Running -> strings.statusRunning
+            DownloadQueueStatus.FetchingInfo -> strings.statusFetchingInfo
+            DownloadQueueStatus.Ready -> strings.statusReady
+            DownloadQueueStatus.Idle -> strings.statusIdle
+        }
+    Surface(color = StatusLabelContainerColor, shape = MaterialTheme.shapes.extraSmall, modifier = modifier) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = Modifier, onOverlayAction: (DownloadQueueAction) -> Unit) {
+    val showProgress =
+        item.status == DownloadQueueStatus.Running ||
+            item.status == DownloadQueueStatus.FetchingInfo ||
+            item.status == DownloadQueueStatus.Ready ||
+            item.status == DownloadQueueStatus.Canceled
     if (!showProgress) return
-    Box(modifier = modifier.size(88.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.size(64.dp), contentAlignment = Alignment.Center) {
         if (item.progress != null) {
             CircularProgressIndicator(
                 progress = { item.progress!! },
-                strokeWidth = 6.dp,
+                strokeWidth = 4.dp,
                 modifier = Modifier.fillMaxSize(),
+                trackColor = Color.Transparent,
             )
         } else {
-            CircularProgressIndicator(strokeWidth = 6.dp, modifier = Modifier.fillMaxSize())
+            CircularProgressIndicator(
+                strokeWidth = 4.dp,
+                modifier = Modifier.fillMaxSize(),
+                trackColor = Color.Transparent,
+            )
         }
         val interaction = remember { MutableInteractionSource() }
+        val action =
+            when (item.status) {
+                DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> DownloadQueueAction.Resume
+                else -> DownloadQueueAction.Cancel
+            }
+        val icon =
+            when (action) {
+                DownloadQueueAction.Resume -> Icons.Rounded.RestartAlt
+                else -> Icons.Rounded.Pause
+            }
+
         Surface(
             shape = CircleShape,
             tonalElevation = 3.dp,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+            color = StatusLabelContainerColor,
             modifier = Modifier
-                .size(72.dp)
+                .size(64.dp)
                 .clickable(
                     interactionSource = interaction,
                     indication = null,
-                    onClick = onPauseClick,
+                    onClick = { onOverlayAction(action) },
                 ),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
             }
         }
     }
@@ -477,10 +602,14 @@ private fun EmptyPlaceholderShared(strings: DownloadQueueStrings, modifier: Modi
         Image(
             painter = painter,
             contentDescription = null,
-            modifier = Modifier.fillMaxWidth(0.5f).widthIn(max = 240.dp),
+            modifier = Modifier.padding(vertical = 20.dp).fillMaxWidth(0.5f).widthIn(max = 240.dp),
         )
-        Spacer(Modifier.height(24.dp))
-        Text(strings.emptyTitle, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(
+            strings.emptyTitle,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(6.dp))
         Text(
             strings.emptyBody,
@@ -506,91 +635,164 @@ private fun ActionSheetShared(
     onAction: (DownloadQueueAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 20.dp),
     ) {
-        Text(
-            text = item.title.ifBlank { item.url },
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (item.author.isNotBlank()) {
-            Text(
-                text = item.author,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (item.progressText.isNotBlank()) {
-            Text(
-                text = item.progressText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        item {
+            ActionSheetTitle(item = item, strings = strings)
         }
 
-        ActionButtonsForStatus(item = item, strings = strings, onAction = onAction, onDismiss = onDismiss)
+        item {
+            LazyRow(
+                modifier = Modifier.padding(top = 12.dp, bottom = 20.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ActionButtonsForStatus(item = item, strings = strings, onAction = onAction, onDismiss = onDismiss)
+            }
+        }
 
-        Divider()
-
-        Text(stringResource(Res.string.media_info), style = MaterialTheme.typography.titleSmall)
+        item {
+            HorizontalDivider()
+            Text(
+                stringResource(Res.string.media_info),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp),
+            )
+        }
 
         val sizeText = item.fileSizeApproxBytes?.let { formatSize(it) }
         val durationText = item.durationSeconds?.let { formatDuration(it) }
         val summary = listOfNotNull(sizeText, durationText).joinToString(separator = " · ")
         if (summary.isNotBlank()) {
-            InfoRow(icon = Icons.Outlined.Download, text = summary)
+            item {
+                ActionSheetItemShared(
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.Download, contentDescription = null) },
+                    text = {
+                        Text(summary, style = MaterialTheme.typography.titleSmall)
+                    },
+                )
+            }
         }
 
-        if (item.url.isNotBlank()) {
-            InfoRow(icon = Icons.Outlined.Link, text = item.url)
+        item.videoFormats?.forEachIndexed { index, fmt ->
+            item {
+                val fileSizeText = (fmt.fileSize ?: fmt.fileSizeApprox)?.let { formatSize(it) }
+                val bitRateText = fmt.vbr?.let { formatBitrate(it) }
+                val codecText = fmt.vcodec?.substringBefore(".")
+                val title = "${stringResource(Res.string.video)} #${index + 1}: ${fmt.formatNote.orEmpty()}"
+                val details =
+                    listOf(codecText, fmt.resolution, bitRateText, fileSizeText)
+                        .filterNot { it.isNullOrBlank() }
+                        .joinToString(separator = " · ")
+
+                ActionSheetItemShared(
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.VideoFile, contentDescription = null) },
+                    text = {
+                        Text(title, style = MaterialTheme.typography.titleSmall)
+                        if (details.isNotBlank()) {
+                            Text(details, style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                )
+            }
+        }
+
+        val audioFormats: List<com.junkfood.seal.util.Format> = buildList {
+            item.videoFormats?.filter { it.containsAudio() }?.let { addAll(it) }
+            item.audioOnlyFormats?.let { addAll(it) }
+        }
+        audioFormats.forEachIndexed { index, fmt ->
+            item {
+                val fileSizeText = (fmt.fileSize ?: fmt.fileSizeApprox)?.let { formatSize(it) }
+                val bitRateText = fmt.abr?.let { formatBitrate(it) }
+                val codecText = fmt.acodec?.substringBefore(".")
+                val title = "${stringResource(Res.string.audio)} #${index + 1}: ${fmt.formatNote.orEmpty()}"
+                val details =
+                    listOf(codecText, bitRateText, fileSizeText)
+                        .filterNot { it.isNullOrBlank() }
+                        .joinToString(separator = " · ")
+
+                ActionSheetItemShared(
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.AudioFile, contentDescription = null) },
+                    text = {
+                        Text(title, style = MaterialTheme.typography.titleSmall)
+                        if (details.isNotBlank()) {
+                            Text(details, style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                )
+            }
+        }
+
+        if (item.extractorKey.isNotBlank() || item.url.isNotBlank()) {
+            item {
+                ActionSheetItemShared(
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.Link, contentDescription = null) },
+                    text = {
+                        if (item.extractorKey.isNotBlank()) {
+                            Text(item.extractorKey, style = MaterialTheme.typography.titleSmall)
+                        }
+                        if (item.url.isNotBlank()) {
+                            Text(item.url, style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                )
+            }
         }
 
         if (item.errorMessage?.isNotBlank() == true) {
-            InfoRow(icon = Icons.Outlined.WarningAmber, text = item.errorMessage)
+            item {
+                ErrorInfoBlock(
+                    message = item.errorMessage,
+                    onCopy = { onAction(DownloadQueueAction.CopyError) },
+                    copyLabel = strings.copyErrorLabel,
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun ActionButtonsForStatus(
+private fun LazyListScope.ActionButtonsForStatus(
     item: DownloadQueueItemState,
     strings: DownloadQueueStrings,
     onAction: (DownloadQueueAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val actions =
+    val primaryActions = buildList {
         when (item.status) {
-            DownloadQueueStatus.Completed ->
-                listOf(
-                    ActionSpec(strings.openFileLabel, Icons.Outlined.PlayArrow, DownloadQueueAction.OpenFile),
-                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
-                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
-                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
-                )
-            DownloadQueueStatus.Error, DownloadQueueStatus.Canceled ->
-                listOf(
-                    ActionSpec(strings.resumeLabel, Icons.Outlined.RestartAlt, DownloadQueueAction.Resume),
-                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
-                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
-                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
-                )
-            else ->
-                listOf(
-                    ActionSpec(strings.cancelLabel, Icons.Outlined.Cancel, DownloadQueueAction.Cancel),
-                    ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete),
-                    ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl),
-                    ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl),
-                )
+            DownloadQueueStatus.Completed -> {
+                add(ActionSpec(strings.openFileLabel, Icons.Outlined.PlayArrow, DownloadQueueAction.OpenFile, ActionTone.Primary))
+                add(ActionSpec(strings.shareFileLabel, Icons.Outlined.Share, DownloadQueueAction.ShareFile, ActionTone.Secondary))
+            }
+            DownloadQueueStatus.Error -> {
+                add(ActionSpec(strings.resumeLabel, Icons.Outlined.RestartAlt, DownloadQueueAction.Resume, ActionTone.Tertiary))
+                add(ActionSpec(strings.copyErrorLabel, Icons.Outlined.ErrorOutline, DownloadQueueAction.CopyError, ActionTone.Error))
+            }
+            DownloadQueueStatus.Canceled -> {
+                add(ActionSpec(strings.resumeLabel, Icons.Outlined.RestartAlt, DownloadQueueAction.Resume, ActionTone.Tertiary))
+            }
+            else -> {
+                add(ActionSpec(strings.cancelLabel, Icons.Outlined.Cancel, DownloadQueueAction.Cancel, ActionTone.Neutral))
+            }
         }
+        if (item.status == DownloadQueueStatus.Completed || item.status == DownloadQueueStatus.Canceled || item.status == DownloadQueueStatus.Error) {
+            add(ActionSpec(strings.deleteLabel, Icons.Outlined.Delete, DownloadQueueAction.Delete, ActionTone.Outline))
+        }
+        add(ActionSpec(strings.copyUrlLabel, Icons.Outlined.ContentCopy, DownloadQueueAction.CopyVideoUrl, ActionTone.Outline))
+        add(ActionSpec(strings.openUrlLabel, Icons.AutoMirrored.Outlined.OpenInNew, DownloadQueueAction.OpenVideoUrl, ActionTone.Outline))
+        if (!item.thumbnailUrl.isNullOrBlank()) {
+            add(ActionSpec(strings.openThumbLabel, Icons.Outlined.Image, DownloadQueueAction.OpenThumbnailUrl, ActionTone.Outline))
+        }
+    }
 
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        actions.forEach { action ->
-            ActionCircleButton(
+    primaryActions.forEach { action ->
+        item {
+            ActionPrimaryButtonShared(
                 label = action.label,
                 icon = action.icon,
+                tone = action.tone,
             ) {
                 onAction(action.action)
                 onDismiss()
@@ -603,34 +805,186 @@ private data class ActionSpec(
     val label: String,
     val icon: ImageVector,
     val action: DownloadQueueAction,
+    val tone: ActionTone,
 )
 
+private enum class ActionTone {
+    Primary,
+    Secondary,
+    Tertiary,
+    Neutral,
+    Error,
+    Outline,
+}
+
 @Composable
-private fun ActionCircleButton(
+private fun ActionPrimaryButtonShared(
     label: String,
     icon: ImageVector,
+    tone: ActionTone,
     onClick: () -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Surface(
-            shape = CircleShape,
-            tonalElevation = 2.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            modifier = Modifier.size(56.dp).clickable { onClick() },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null)
-            }
+    val interactionSource = remember { MutableInteractionSource() }
+    val (containerColor, contentColor, outlineColor) =
+        when (tone) {
+            ActionTone.Primary ->
+                Triple(
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                    Color.Unspecified,
+                )
+            ActionTone.Secondary ->
+                Triple(
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
+                    Color.Unspecified,
+                )
+            ActionTone.Tertiary ->
+                Triple(
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    Color.Unspecified,
+                )
+            ActionTone.Error ->
+                Triple(
+                    MaterialTheme.colorScheme.errorContainer,
+                    MaterialTheme.colorScheme.onErrorContainer,
+                    Color.Unspecified,
+                )
+            ActionTone.Outline ->
+                Triple(
+                    Color.Transparent,
+                    MaterialTheme.colorScheme.onSurface,
+                    MaterialTheme.colorScheme.outlineVariant,
+                )
+            ActionTone.Neutral ->
+                Triple(
+                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                    MaterialTheme.colorScheme.onSurface,
+                    Color.Unspecified,
+                )
         }
-        Text(label, style = MaterialTheme.typography.labelMedium)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier =
+            Modifier
+                .widthIn(min = 88.dp)
+                .clip(MaterialTheme.shapes.large)
+                .clickable(onClick = onClick, indication = null, interactionSource = interactionSource)
+                .padding(8.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .width(80.dp)
+                    .height(64.dp)
+                    .clip(CircleShape)
+                    .then(
+                        if (outlineColor != Color.Unspecified) {
+                            Modifier.border(width = 1.dp, color = outlineColor, shape = CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .background(containerColor)
+                    .indication(interactionSource, indication = LocalIndication.current),
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp).align(Alignment.Center),
+                tint = contentColor,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        ProvideTextStyle(LocalTextStyle.current.merge(MaterialTheme.typography.labelMedium)) {
+            Text(label)
+        }
     }
 }
 
 @Composable
-private fun InfoRow(icon: ImageVector, text: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+private fun ActionSheetItemShared(
+    modifier: Modifier = Modifier,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    text: @Composable (ColumnScope.() -> Unit),
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+                .padding(vertical = 16.dp, horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leadingIcon?.invoke()
+        if (leadingIcon != null) Spacer(Modifier.width(20.dp))
+        ProvideTextStyle(LocalTextStyle.current.merge(MaterialTheme.typography.titleSmall)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                text.invoke(this)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorInfoBlock(
+    message: String,
+    copyLabel: String,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Outlined.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onCopy) {
+                    Text(copyLabel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionSheetTitle(item: DownloadQueueItemState, strings: DownloadQueueStrings) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Text(
+            text = item.title.ifBlank { item.url },
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (item.author.isNotBlank()) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = item.author,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        ProgressText(item = item, strings = strings)
     }
 }
 
@@ -651,4 +1005,8 @@ private fun formatSize(bytes: Double): String {
         bytes >= kb -> String.format("%.0f KB", bytes / kb)
         else -> String.format("%.0f B", bytes)
     }
+}
+
+private fun formatBitrate(kbps: Double): String {
+    return if (kbps >= 1000) String.format("%.2f Mbps", kbps / 1000.0) else String.format("%.0f Kbps", kbps)
 }
