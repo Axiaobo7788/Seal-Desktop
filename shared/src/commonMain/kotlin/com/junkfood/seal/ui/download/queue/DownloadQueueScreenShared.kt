@@ -785,6 +785,9 @@ private fun LazyListScope.ActionButtonsForStatus(
         if (!item.thumbnailUrl.isNullOrBlank()) {
             add(ActionSpec(strings.openThumbLabel, Icons.Outlined.Image, DownloadQueueAction.OpenThumbnailUrl, ActionTone.Outline))
         }
+        if (strings.showDetailsLabel.isNotBlank()) {
+            add(ActionSpec(strings.showDetailsLabel, Icons.Outlined.MoreVert, DownloadQueueAction.ShowDetails, ActionTone.Outline))
+        }
     }
 
     primaryActions.forEach { action ->

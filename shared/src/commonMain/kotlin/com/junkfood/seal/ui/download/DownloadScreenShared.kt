@@ -25,10 +25,6 @@ import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.video_url
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Platform-neutral download screen UI. State and events are pure; platform hooks stay outside.
- */
-
 @Composable
 fun DownloadScreenShared(
     state: DownloadUiState,
@@ -67,12 +63,10 @@ fun DownloadScreenShared(
             }
         }
 
-        // Spacer for edge-to-edge safety on some platforms
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(4.dp))
     }
 }
 
-/** UI state holder for the shared download screen. */
 data class DownloadUiState(
     val url: String = "",
     val status: String = "",
@@ -80,7 +74,6 @@ data class DownloadUiState(
     val logLines: List<String> = emptyList(),
 )
 
-/** UI events the host platform must handle. */
 sealed interface DownloadEvent {
     data class UrlChanged(val url: String) : DownloadEvent
     object FetchInfo : DownloadEvent

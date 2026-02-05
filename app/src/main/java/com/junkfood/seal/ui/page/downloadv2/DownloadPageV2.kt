@@ -80,6 +80,7 @@ fun DownloadPageV2(
             emptyBody = stringResource(R.string.download_hint),
             gridLabel = "Grid",
             listLabel = "List",
+            showDetailsLabel = "",
         )
 
     DownloadQueueScreenShared(

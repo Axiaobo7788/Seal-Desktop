@@ -46,11 +46,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -186,8 +181,7 @@ internal fun DownloadOptionsSheet(
         SectionTitle(text = stringResource(Res.string.format_selection))
         FormatSelectionSection(
             summary = formatSummary,
-            onPresetClick = { /* select preset */ },
-            onPresetEdit = { showPresetDialog = true },
+            onPresetClick = { showPresetDialog = true },
             onCustomClick = { showPresetDialog = true },
             showEdit = downloadType != DesktopDownloadType.Playlist,
         )
@@ -201,11 +195,7 @@ internal fun DownloadOptionsSheet(
             Icon(if (showAdvanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
         }
 
-        AnimatedVisibility(
-            visible = showAdvanced,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
+        if (showAdvanced) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OptionChipRow(
                     title = stringResource(Res.string.download_subtitles),
@@ -339,18 +329,16 @@ private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (D
 
 @Composable
 private fun FormatSelectionSection(
-    summary: PresetSummary,
+    summary: String,
     onPresetClick: () -> Unit,
-    onPresetEdit: () -> Unit,
     onCustomClick: () -> Unit,
     showEdit: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            tonalElevation = 0.dp,
+            tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
             onClick = onPresetClick,
         ) {
             Row(
@@ -362,14 +350,7 @@ private fun FormatSelectionSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(Res.string.preset), style = MaterialTheme.typography.titleSmall)
                     Text(
-                        summary.title,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        summary.detail,
+                        summary,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
@@ -377,9 +358,7 @@ private fun FormatSelectionSection(
                     )
                 }
                 if (showEdit) {
-                    TextButton(onClick = onPresetEdit) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = null)
-                    }
+                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
                 }
             }
         }
@@ -388,7 +367,6 @@ private fun FormatSelectionSection(
             modifier = Modifier.fillMaxWidth(),
             tonalElevation = 0.dp,
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
             onClick = onCustomClick,
         ) {
             Row(
@@ -423,7 +401,7 @@ private fun OptionChipRow(title: String, checked: Boolean, onCheckedChange: (Boo
     val content = if (checked) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     val border = if (checked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.outlineVariant
     Surface(
-        modifier = Modifier.height(32.dp),
+        modifier = Modifier.height(36.dp),
         shape = MaterialTheme.shapes.large,
         color = background,
         tonalElevation = 0.dp,
@@ -432,11 +410,11 @@ private fun OptionChipRow(title: String, checked: Boolean, onCheckedChange: (Boo
         onClick = { onCheckedChange(!checked) },
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(title, color = content, style = MaterialTheme.typography.labelMedium)
+            Text(title, color = content, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -463,11 +441,6 @@ private fun VideoPresetDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(Res.string.video_format_preference), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "${stringResource(Res.string.quality)} / ${stringResource(Res.string.legacy)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     formatOptions.forEach { (label, value) ->
                         ChoiceRow(
@@ -481,11 +454,6 @@ private fun VideoPresetDialog(
                 HorizontalDivider()
 
                 Text(stringResource(Res.string.video_quality), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "${stringResource(Res.string.best_quality)} → ${stringResource(Res.string.lowest_quality)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     resolutionOptions.forEach { value ->
                         ChoiceRow(
@@ -521,28 +489,16 @@ private fun ChoiceRow(title: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-private data class PresetSummary(
-    val title: String,
-    val detail: String,
-)
-
 @Composable
-private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): PresetSummary {
+private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): String {
     val resLabel = videoResolutionLabel(preferences.videoResolution)
     val audioLabel = audioQualityLabel(preferences.audioQuality)
     return when (type) {
-        DesktopDownloadType.Audio -> PresetSummary(stringResource(Res.string.audio), audioLabel)
-        DesktopDownloadType.Video -> PresetSummary(videoFormatPreferenceLabel(preferences.videoFormat), resLabel)
-        DesktopDownloadType.Playlist -> PresetSummary(videoFormatPreferenceLabel(preferences.videoFormat), resLabel)
+        DesktopDownloadType.Audio -> "${stringResource(Res.string.audio)} · $audioLabel"
+        DesktopDownloadType.Video -> "${stringResource(Res.string.video)} · $resLabel"
+        DesktopDownloadType.Playlist -> "${stringResource(Res.string.playlist)} · $resLabel"
     }
 }
-
-@Composable
-private fun videoFormatPreferenceLabel(code: Int): String =
-    when (code) {
-        1 -> stringResource(Res.string.legacy)
-        else -> stringResource(Res.string.quality)
-    }
 
 @Composable
 private fun videoResolutionLabel(code: Int): String =

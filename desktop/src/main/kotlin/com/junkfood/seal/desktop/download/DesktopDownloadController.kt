@@ -29,6 +29,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +55,7 @@ class DesktopDownloadController(
 
     private val canceledItemIds = ConcurrentHashMap.newKeySet<String>()
     private val requestByItemId = ConcurrentHashMap<String, DesktopDownloadRequest>()
+    private val logLinesByItemId = ConcurrentHashMap<String, MutableList<String>>()
 
     val historyEntries = mutableStateListOf<DesktopDownloadHistoryEntry>()
 
@@ -72,6 +74,29 @@ class DesktopDownloadController(
         }
     }
 
+    private fun appendItemLog(itemId: String, line: String) {
+        val logs = logLinesByItemId.computeIfAbsent(itemId) { mutableListOf() }
+        synchronized(logs) {
+            logs.add(line)
+            val overflow = max(0, logs.size - 240)
+            repeat(overflow) { logs.removeAt(0) }
+            updateQueueItem(itemId) { it.copy(logLines = logs.takeLast(80)) }
+        }
+    }
+
+    private fun buildCliArgs(plan: com.junkfood.seal.download.DownloadPlan, config: DownloadPlanExecutor.ExecutionConfig): List<String> {
+        val args = mutableListOf<String>()
+        args += plan.asCliArgs()
+        if (plan.needsCookiesFile && config.cookiesFile != null) {
+            args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
+        }
+        if (plan.needsArchiveFile && config.archiveFile != null) {
+            args += listOf("--download-archive", config.archiveFile.toAbsolutePath().toString())
+        }
+        args += config.url
+        return args
+    }
+
     fun cancelIfRunning(itemId: String) {
         if (itemId == runningItemId) {
             canceledItemIds.add(itemId)
@@ -84,6 +109,7 @@ class DesktopDownloadController(
         cancelIfRunning(itemId)
         queueItems.removeAll { it.id == itemId }
         requestByItemId.remove(itemId)
+        logLinesByItemId.remove(itemId)
     }
 
     fun deleteHistoryEntry(entryId: String) {
@@ -284,6 +310,8 @@ class DesktopDownloadController(
                 )
 
             val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val cliArgs = buildCliArgs(plan, config)
+            updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
             try {
                 runningItemId = itemId
@@ -296,10 +324,12 @@ class DesktopDownloadController(
                             config,
                             onStdout = { line ->
                                 appendLog(line)
+                                appendItemLog(itemId, line)
                                 updateProgressFromLine(itemId, line)
                             },
                             onStderr = { line ->
                                 appendLog("[err] $line")
+                                appendItemLog(itemId, "[err] $line")
                                 updateProgressFromLine(itemId, line)
                             },
                         )
@@ -317,14 +347,18 @@ class DesktopDownloadController(
                 val success = result.exitCode == 0
                 val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
                 val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
+                val exitCode = result.exitCode
+                val lastError = result.stderr.lastOrNull()
 
                 updateQueueItem(itemId) {
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        progressText = if (success) "" else "Exit code ${result.exitCode}",
+                        progressText = if (success) "" else "Exit code $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
+                        exitCode = exitCode,
+                        errorMessage = if (success) it.errorMessage else (it.errorMessage ?: lastError),
                     )
                 }
 
@@ -344,6 +378,7 @@ class DesktopDownloadController(
                 }
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
+                appendItemLog(itemId, "[err] ${e.message}")
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
@@ -353,6 +388,7 @@ class DesktopDownloadController(
                             status = DownloadQueueStatus.Error,
                             errorMessage = e.message,
                             progressText = e.message.orEmpty(),
+                            exitCode = it.exitCode,
                         )
                     }
                 }

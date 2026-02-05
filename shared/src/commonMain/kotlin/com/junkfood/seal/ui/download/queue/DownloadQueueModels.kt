@@ -27,17 +27,17 @@ data class DownloadQueueItemState(
     val extractorKey: String = "",
     val videoFormats: List<com.junkfood.seal.util.Format>? = null,
     val audioOnlyFormats: List<com.junkfood.seal.util.Format>? = null,
-    val progress: Float? = null, // 0f..1f，null 表示未知
+    val progress: Float? = null, 
     val progressText: String = "",
     val status: DownloadQueueStatus = DownloadQueueStatus.Idle,
     val thumbnailUrl: String? = null,
     val filePath: String? = null,
     val errorMessage: String? = null,
+    val exitCode: Int? = null,
+    val cliArgs: List<String>? = null,
+    val logLines: List<String>? = null,
 )
 
-/**
- * 队列整体状态。
- */
 data class DownloadQueueState(
     val items: List<DownloadQueueItemState> = emptyList(),
     val filter: DownloadQueueFilter = DownloadQueueFilter.All,

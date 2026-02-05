@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.AlertDialog
@@ -111,6 +113,8 @@ fun DesktopDownloadScreen(
             statusCanceled = "已暂停",
             resumeLabel = "继续",
             cancelLabel = "暂停",
+            shareFileLabel = "打开所在文件夹",
+            showDetailsLabel = "详情",
         )
 
     Column(modifier = modifier.fillMaxHeight()) {
@@ -270,16 +274,27 @@ fun DesktopDownloadScreen(
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Error -> stringResource(Res.string.status_error)
                 else -> item.status.name
             }
-        val logPreview = logLines.takeLast(6).joinToString("\n")
+        val logPreview = item.logLines?.takeLast(12)?.joinToString("\n").orEmpty()
+        val cliArgs = item.cliArgs?.joinToString(separator = " ").orEmpty()
+        val fileSizeText = item.fileSizeApproxBytes?.let { formatSizeApprox(it) }
 
         AlertDialog(
             onDismissRequest = { detailsItem = null },
             title = { Text(text = item.title.ifBlank { item.url }) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     Text("URL: ${item.url}")
                     Text("Status: $statusText")
                     item.filePath?.takeIf { it.isNotBlank() }?.let { Text("File: $it") }
+                    fileSizeText?.let { Text("Size: $it") }
+                    item.exitCode?.let { Text("Exit code: $it") }
+                    if (cliArgs.isNotBlank()) {
+                        Text("Args:")
+                        Text(cliArgs, style = MaterialTheme.typography.bodySmall)
+                    }
                     item.errorMessage?.takeIf { it.isNotBlank() }?.let { Text("Error: $it") }
                     if (logPreview.isNotBlank()) {
                         Text("Logs:")
@@ -319,6 +334,18 @@ private fun safeRevealInFolder(path: String) {
         val dir = if (file.isDirectory) file else file.parentFile
         if (dir != null) safeOpenFile(dir.absolutePath)
     }
+}
+
+private fun formatSizeApprox(bytes: Double): String {
+    if (bytes <= 0.0) return "0 B"
+    val units = listOf("B", "KB", "MB", "GB", "TB")
+    var value = bytes
+    var index = 0
+    while (value >= 1024 && index < units.lastIndex) {
+        value /= 1024
+        index++
+    }
+    return "%.1f %s".format(value, units[index])
 }
 
 @Composable
