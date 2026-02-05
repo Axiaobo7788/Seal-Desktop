@@ -36,6 +36,9 @@ import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,12 +78,15 @@ import com.junkfood.seal.shared.generated.resources.edit_preset
 import com.junkfood.seal.shared.generated.resources.embed_metadata
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
+import com.junkfood.seal.shared.generated.resources.format_preference
 import com.junkfood.seal.shared.generated.resources.legacy
 import com.junkfood.seal.shared.generated.resources.lowest_quality
 import com.junkfood.seal.shared.generated.resources.new_task
 import com.junkfood.seal.shared.generated.resources.paste_msg
 import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.preset
+import com.junkfood.seal.shared.generated.resources.prefer_compatibility_desc
+import com.junkfood.seal.shared.generated.resources.prefer_quality_desc
 import com.junkfood.seal.shared.generated.resources.proceed
 import com.junkfood.seal.shared.generated.resources.quality
 import com.junkfood.seal.shared.generated.resources.save
@@ -181,7 +187,7 @@ internal fun DownloadOptionsSheet(
         SectionTitle(text = stringResource(Res.string.format_selection))
         FormatSelectionSection(
             summary = formatSummary,
-            onPresetClick = { showPresetDialog = true },
+            onPresetClick = { },
             onCustomClick = { showPresetDialog = true },
             showEdit = downloadType != DesktopDownloadType.Playlist,
         )
@@ -358,7 +364,11 @@ private fun FormatSelectionSection(
                     )
                 }
                 if (showEdit) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                    Icon(
+                        Icons.Outlined.MoreVert,
+                        contentDescription = null,
+                        modifier = Modifier.clickable { onPresetClick() },
+                    )
                 }
             }
         }
@@ -434,33 +444,68 @@ private fun VideoPresetDialog(
             stringResource(Res.string.legacy) to 1,
         )
     val resolutionOptions = listOf(0, 1, 2, 3, 4, 5, 6, 7)
+    var resolutionExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(Res.string.edit_preset)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(Res.string.video_format_preference), style = MaterialTheme.typography.titleSmall)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.format_preference), style = MaterialTheme.typography.titleSmall)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     formatOptions.forEach { (label, value) ->
-                        ChoiceRow(
-                            title = label,
-                            selected = videoFormatPreference == value,
-                            onClick = { onFormatSelect(value) },
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth().clickable { onFormatSelect(value) },
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                RadioButton(selected = videoFormatPreference == value, onClick = { onFormatSelect(value) })
+                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            val desc =
+                                if (value == 1) stringResource(Res.string.prefer_compatibility_desc)
+                                else stringResource(Res.string.prefer_quality_desc)
+                            Text(
+                                text = desc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 40.dp),
+                            )
+                        }
                     }
                 }
 
                 HorizontalDivider()
 
                 Text(stringResource(Res.string.video_quality), style = MaterialTheme.typography.titleSmall)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    resolutionOptions.forEach { value ->
-                        ChoiceRow(
-                            title = videoResolutionLabel(value),
-                            selected = videoResolution == value,
-                            onClick = { onResolutionSelect(value) },
-                        )
+                ExposedDropdownMenuBox(
+                    expanded = resolutionExpanded,
+                    onExpandedChange = { resolutionExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = videoResolutionLabel(videoResolution),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(Res.string.video_quality)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = resolutionExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    )
+                    androidx.compose.material3.ExposedDropdownMenu(
+                        expanded = resolutionExpanded,
+                        onDismissRequest = { resolutionExpanded = false },
+                    ) {
+                        resolutionOptions.forEach { value ->
+                            DropdownMenuItem(
+                                text = { Text(videoResolutionLabel(value)) },
+                                onClick = {
+                                    onResolutionSelect(value)
+                                    resolutionExpanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
