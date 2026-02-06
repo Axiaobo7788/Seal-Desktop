@@ -186,7 +186,6 @@ fun DesktopDownloadHistoryPage(
             }
             .toList()
 
-    // "视频来源/平台" 行内展示开关：仅当存在多种平台时显示
     val showPlatformInRows = filtered.asSequence().map { it.platform }.distinct().count() > 1
 
     val isEmptyAll = entries.isEmpty()
