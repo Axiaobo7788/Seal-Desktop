@@ -540,39 +540,45 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
         item.status == DownloadQueueStatus.Running ||
             item.status == DownloadQueueStatus.FetchingInfo ||
             item.status == DownloadQueueStatus.Ready ||
-            item.status == DownloadQueueStatus.Canceled
+            item.status == DownloadQueueStatus.Canceled ||
+            item.status == DownloadQueueStatus.Completed
     if (!showProgress) return
     Box(modifier = modifier.size(64.dp), contentAlignment = Alignment.Center) {
+        val ringColor = MaterialTheme.colorScheme.primary
         if (item.progress != null) {
             CircularProgressIndicator(
-                progress = { item.progress!! },
+                progress = { if (item.status == DownloadQueueStatus.Completed) 1f else item.progress!! },
                 strokeWidth = 4.dp,
                 modifier = Modifier.fillMaxSize(),
+                color = ringColor,
                 trackColor = Color.Transparent,
             )
         } else {
             CircularProgressIndicator(
                 strokeWidth = 4.dp,
                 modifier = Modifier.fillMaxSize(),
+                color = ringColor,
                 trackColor = Color.Transparent,
             )
         }
         val interaction = remember { MutableInteractionSource() }
         val action =
             when (item.status) {
+                DownloadQueueStatus.Completed -> DownloadQueueAction.OpenFile
                 DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> DownloadQueueAction.Resume
                 else -> DownloadQueueAction.Cancel
             }
         val icon =
             when (action) {
                 DownloadQueueAction.Resume -> Icons.Rounded.RestartAlt
+                DownloadQueueAction.OpenFile -> Icons.Outlined.PlayArrow
                 else -> Icons.Rounded.Pause
             }
 
         Surface(
             shape = CircleShape,
             tonalElevation = 3.dp,
-            color = StatusLabelContainerColor,
+            color = if (item.status == DownloadQueueStatus.Completed) MaterialTheme.colorScheme.tertiary else StatusLabelContainerColor,
             modifier = Modifier
                 .size(64.dp)
                 .clickable(

@@ -1,0 +1,131 @@
+name: desktop-linux-portable
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  TOOLS_CACHE_VERSION: v1
+  YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+  FFMPEG_LINUX_URL: https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz
+
+jobs:
+  build-linux-portable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Cache tools (yt-dlp/ffmpeg)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist-bin
+            ffmpeg-unpacked
+          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
+
+      - name: Download yt-dlp (linux x64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "dist-bin/yt-dlp" ]; then
+            echo "yt-dlp cache hit: dist-bin/yt-dlp"
+            exit 0
+          fi
+          mkdir -p dist-bin
+          curl -L "$YT_DLP_LINUX_URL" -o dist-bin/yt-dlp
+          chmod +x dist-bin/yt-dlp
+
+      - name: Download FFmpeg (linux x64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "dist-bin/ffmpeg" ]; then
+            echo "ffmpeg cache hit: dist-bin/ffmpeg"
+            exit 0
+          fi
+          mkdir -p ffmpeg-unpacked dist-bin
+          curl -L "$FFMPEG_LINUX_URL" -o ffmpeg.tar.xz
+          tar -xf ffmpeg.tar.xz -C ffmpeg-unpacked
+          ffmpeg_path=$(find ffmpeg-unpacked -type f -name ffmpeg | head -n 1)
+          ffprobe_path=$(find ffmpeg-unpacked -type f -name ffprobe | head -n 1)
+          if [ -z "$ffmpeg_path" ]; then
+            echo "ffmpeg not found in extracted archive"
+            exit 1
+          fi
+          cp "$ffmpeg_path" dist-bin/ffmpeg
+          chmod +x dist-bin/ffmpeg
+          if [ -n "$ffprobe_path" ]; then
+            cp "$ffprobe_path" dist-bin/ffprobe
+            chmod +x dist-bin/ffprobe
+          fi
+
+      - name: Build portable (Linux)
+        shell: bash
+        run: |
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+
+      - name: Inject yt-dlp into distribution (Linux)
+        shell: bash
+        run: |
+          set -euo pipefail
+          workspace="$GITHUB_WORKSPACE"
+          desktop_build="$workspace/desktop/build"
+          if [ ! -d "$desktop_build" ]; then
+            echo "Build directory not found: $desktop_build"
+            exit 1
+          fi
+
+          binaries_root="$desktop_build/compose/binaries"
+          if [ ! -d "$binaries_root" ]; then
+            binaries_root=$(find "$desktop_build" -type d -name binaries | grep -m1 "compose/binaries" || true)
+          fi
+          if [ -z "$binaries_root" ] || [ ! -d "$binaries_root" ]; then
+            echo "Compose binaries path not found under: $desktop_build"
+            exit 1
+          fi
+
+          app_root=$(find "$binaries_root" -type d -maxdepth 10 | while read -r d; do
+            if [ -d "$d/app" ] && [ -d "$d/runtime" ]; then
+              echo "$d"
+              break
+            fi
+          done)
+
+          if [ -z "$app_root" ]; then
+            echo "Cannot locate Linux app root (expected a directory containing both app/ and runtime/)"
+            exit 1
+          fi
+
+          echo "Resolved app root: $app_root"
+          bin_dir="$app_root/bin"
+          mkdir -p "$bin_dir"
+          cp "$workspace/dist-bin/yt-dlp" "$bin_dir/yt-dlp"
+          if [ -f "$workspace/dist-bin/ffmpeg" ]; then
+            cp "$workspace/dist-bin/ffmpeg" "$bin_dir/ffmpeg"
+          fi
+          if [ -f "$workspace/dist-bin/ffprobe" ]; then
+            cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
+          fi
+
+          launcher=$(find "$app_root" -maxdepth 2 -type f -executable ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)
+          if [ -z "$launcher" ]; then
+            echo "No launcher found under app root: $app_root"
+            exit 1
+          fi
+
+          echo "PORTABLE_DIR=$app_root" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-linux-x64
+          path: ${{ env.PORTABLE_DIR }}

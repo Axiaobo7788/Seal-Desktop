@@ -5,9 +5,15 @@ on:
   push:
     branches: [ main ]
 
+env:
+  TOOLS_CACHE_VERSION: v1
+  YT_DLP_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+  FFMPEG_URL: https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
+
 jobs:
   build-windows-portable:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -18,10 +24,22 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Cache tools (yt-dlp/ffmpeg)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist-bin
+            ffmpeg-unpacked
+          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
+
       - name: Download yt-dlp (x64)
         run: |
           $ErrorActionPreference = "Stop"
-          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -o yt-dlp.exe
+          if (Test-Path "dist-bin/yt-dlp.exe") {
+            Write-Host "yt-dlp cache hit: dist-bin/yt-dlp.exe"
+            exit 0
+          }
+          curl -L "$env:YT_DLP_URL" -o yt-dlp.exe
           mkdir -Force dist-bin
           mv yt-dlp.exe dist-bin/
 
@@ -29,7 +47,11 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $url = "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip"
+          if (Test-Path "dist-bin/ffmpeg.exe") {
+            Write-Host "ffmpeg cache hit: dist-bin/ffmpeg.exe"
+            exit 0
+          }
+          $url = "$env:FFMPEG_URL"
           Write-Host "Downloading FFmpeg from: $url"
           curl -L $url -o ffmpeg.zip
 
@@ -53,36 +75,18 @@ jobs:
 
       - name: Build portable zip (Windows)
         run: |
-          # 生成“可分发目录”（portable 的基础），比依赖 installer/zip 更稳定
           ./gradlew :desktop:createReleaseDistributable --stacktrace
         shell: bash
-
-      - name: Debug build outputs (Windows)
-        shell: pwsh
-        run: |
-          $workspace = "$env:GITHUB_WORKSPACE"
-          $buildDir = Join-Path $workspace "desktop/build"
-          Write-Host "Listing: $buildDir"
-          if (Test-Path $buildDir) {
-            Get-ChildItem $buildDir -Directory | ForEach-Object { Write-Host "- $($_.FullName)" }
-          }
-          $composeDir = Join-Path $buildDir "compose"
-          Write-Host "Listing: $composeDir"
-          if (Test-Path $composeDir) {
-            Get-ChildItem $composeDir -Directory -Recurse -Depth 3 | ForEach-Object { Write-Host "- $($_.FullName)" }
-          }
 
       - name: Inject yt-dlp into distribution (and locate app root)
         shell: pwsh
         run: |
-          # 使用工作区绝对路径，避免嵌套 checkout 造成相对路径偏移
           $workspace = "$env:GITHUB_WORKSPACE"
           $desktopBuild = Join-Path $workspace "desktop/build"
           if (-not (Test-Path $desktopBuild)) {
             throw "Build directory not found: $desktopBuild"
           }
 
-          # 尝试定位 compose/binaries 根目录（不同 Compose/Gradle 版本目录结构可能不同）
           $binariesRoot = Join-Path $workspace "desktop/build/compose/binaries"
           if (-not (Test-Path $binariesRoot)) {
             $binariesRoot = (Get-ChildItem $desktopBuild -Recurse -Directory -Filter binaries |
@@ -94,14 +98,12 @@ jobs:
           }
 
           function Find-AppRoot([string]$root) {
-            # 首选：jpackage app-image 根目录（同时包含 app/ 与 runtime/）
             $candidates = Get-ChildItem $root -Recurse -Directory -Depth 10 |
               Where-Object { (Test-Path (Join-Path $_.FullName 'app')) -and (Test-Path (Join-Path $_.FullName 'runtime')) }
             if ($candidates) {
               return ($candidates | Sort-Object { $_.FullName.Length } | Select-Object -First 1)
             }
 
-            # 兜底：找“看起来像 launcher 根”的目录，避免误选到 runtime/bin
             $binDirs = Get-ChildItem $root -Recurse -Directory -Filter bin -Depth 12
             foreach ($bin in $binDirs) {
               $parent = Split-Path -Parent $bin.FullName
@@ -128,12 +130,10 @@ jobs:
           $appRoot = $appRootDir.FullName
           Write-Host "Resolved app root: $appRoot"
 
-          # 注入到 <appRoot>/bin/yt-dlp.exe（与运行时查找逻辑对齐）
           $binDir = Join-Path $appRoot "bin"
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir "yt-dlp.exe") -Force
 
-          # 同目录注入 ffmpeg/ffprobe（yt-dlp postprocessing 需要）
           $ffmpegSrc = Join-Path $workspace "dist-bin/ffmpeg.exe"
           if (Test-Path $ffmpegSrc) {
             Copy-Item $ffmpegSrc -Destination (Join-Path $binDir "ffmpeg.exe") -Force
@@ -143,7 +143,6 @@ jobs:
             Copy-Item $ffprobeSrc -Destination (Join-Path $binDir "ffprobe.exe") -Force
           }
 
-          # 强校验：必须存在 launcher（优先 .exe，若没有则至少有 .bat）
           $launcherExe = Get-ChildItem $appRoot -File -Filter *.exe -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -ne 'yt-dlp.exe' } |
             Select-Object -First 1
@@ -167,7 +166,6 @@ jobs:
             }
           }
 
-          # 将 appRoot 作为 artifact 上传路径（避免我们自己再套一层 zip）
           "PORTABLE_DIR=$appRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Upload artifact

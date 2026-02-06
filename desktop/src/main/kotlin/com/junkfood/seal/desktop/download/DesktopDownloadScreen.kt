@@ -45,8 +45,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.junkfood.seal.desktop.download.configure.DownloadInputSheet
-import com.junkfood.seal.desktop.download.configure.DownloadOptionsSheet
+import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelectionSheet
+import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadInputSheet
+import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadOptionsSheet
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
 import com.junkfood.seal.ui.download.queue.DownloadQueueScreenShared
@@ -92,11 +93,16 @@ fun DesktopDownloadScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var inputUrl by remember { mutableStateOf("") }
     var pendingUrl by remember { mutableStateOf<String?>(null) }
+    var mainPage by remember { mutableStateOf(DownloadMainPage.Queue) }
+    var formatUrl by remember { mutableStateOf("") }
+    var formatType by remember { mutableStateOf(DesktopDownloadType.Video) }
+    var formatPreferences by remember { mutableStateOf(preferences) }
     var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
     var workingPreferences by remember { mutableStateOf(preferences) }
     var detailsItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
     LaunchedEffect(preferences) { workingPreferences = preferences }
     val logLines = controller.logLines
+
 
     val queueStrings =
         DownloadQueueStrings(
@@ -118,75 +124,114 @@ fun DesktopDownloadScreen(
         )
 
     Column(modifier = modifier.fillMaxHeight()) {
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            val itemsForUi =
-                remember(controller.queueItems, disablePreview) {
-                    if (!disablePreview) controller.queueItems
-                    else controller.queueItems.map { it.copy(thumbnailUrl = null) }
-                }
-
-            DownloadQueueScreenShared(
-                state = DownloadQueueState(items = itemsForUi, filter = controller.filter, viewMode = controller.viewMode),
-                strings = queueStrings,
-                onFilterChange = { controller.filter = it },
-                onViewModeChange = { controller.viewMode = it },
-                onItemAction = { itemId, action ->
-                    val item = controller.queueItems.firstOrNull { it.id == itemId }
-                    when (action) {
-                        DownloadQueueAction.Cancel -> controller.cancelIfRunning(itemId)
-                        DownloadQueueAction.Delete -> controller.deleteQueueItem(itemId)
-                        DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId)
-                        DownloadQueueAction.OpenFile -> {
-                            item?.filePath?.let { safeOpenFile(it) }
-                        }
-                        DownloadQueueAction.ShareFile -> {
-                            // Desktop: no share sheet for now; best-effort open folder.
-                            item?.filePath?.let { safeRevealInFolder(it) }
-                        }
-                        DownloadQueueAction.CopyVideoUrl -> {
-                            item?.url?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
-                        }
-                        DownloadQueueAction.OpenVideoUrl -> {
-                            item?.url?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
-                        }
-                        DownloadQueueAction.OpenThumbnailUrl -> {
-                            if (!disablePreview) {
-                                item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+        AnimatedContent(
+            targetState = mainPage,
+            transitionSpec = {
+                val forward = initialState == DownloadMainPage.Queue && targetState == DownloadMainPage.Format
+                val slideIn = slideInHorizontally(animationSpec = tween(240)) { fullWidth -> if (forward) fullWidth else -fullWidth }
+                val slideOut = slideOutHorizontally(animationSpec = tween(240)) { fullWidth -> if (forward) -fullWidth else fullWidth }
+                (slideIn + fadeIn(animationSpec = tween(240))).togetherWith(slideOut + fadeOut(animationSpec = tween(200)))
+            },
+            label = "downloadMainPage",
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { page ->
+            when (page) {
+                DownloadMainPage.Queue -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        val itemsForUi =
+                            remember(controller.queueItems, disablePreview) {
+                                if (!disablePreview) controller.queueItems
+                                else controller.queueItems.map { it.copy(thumbnailUrl = null) }
                             }
-                        }
-                        DownloadQueueAction.CopyError -> {
-                            item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
-                        }
-                        DownloadQueueAction.ShowDetails -> {
-                            detailsItem = item
+
+                        DownloadQueueScreenShared(
+                            state = DownloadQueueState(items = itemsForUi, filter = controller.filter, viewMode = controller.viewMode),
+                            strings = queueStrings,
+                            onFilterChange = { controller.filter = it },
+                            onViewModeChange = { controller.viewMode = it },
+                            onItemAction = { itemId, action ->
+                                val item = controller.queueItems.firstOrNull { it.id == itemId }
+                                when (action) {
+                                    DownloadQueueAction.Cancel -> controller.cancelIfRunning(itemId)
+                                    DownloadQueueAction.Delete -> controller.deleteQueueItem(itemId)
+                                    DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId)
+                                    DownloadQueueAction.OpenFile -> {
+                                        item?.filePath?.let { safeOpenFile(it) }
+                                    }
+                                    DownloadQueueAction.ShareFile -> {
+                                        // Desktop: no share sheet for now; best-effort open folder.
+                                        item?.filePath?.let { safeRevealInFolder(it) }
+                                    }
+                                    DownloadQueueAction.CopyVideoUrl -> {
+                                        item?.url?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                                    }
+                                    DownloadQueueAction.OpenVideoUrl -> {
+                                        item?.url?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                                    }
+                                    DownloadQueueAction.OpenThumbnailUrl -> {
+                                        if (!disablePreview) {
+                                            item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                                        }
+                                    }
+                                    DownloadQueueAction.CopyError -> {
+                                        item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                                    }
+                                    DownloadQueueAction.ShowDetails -> {
+                                        detailsItem = item
+                                    }
+                                }
+                            },
+                            onAddClick = {
+                                sheetPage = DownloadSheetPage.Input
+                                showSheet = true
+                            },
+                            onMenuClick = onMenuClick,
+                            isCompact = isCompact,
+                            showAddButton = false,
+                            showMenuButton = isCompact,
+                        )
+
+                        FloatingActionButton(
+                            onClick = {
+                                sheetPage = DownloadSheetPage.Input
+                                showSheet = true
+                            },
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
+                        ) {
+                            Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(Res.string.start_download))
                         }
                     }
-                },
-                onAddClick = {
-                    sheetPage = DownloadSheetPage.Input
-                    showSheet = true
-                },
-                onMenuClick = onMenuClick,
-                isCompact = isCompact,
-                showAddButton = false,
-                showMenuButton = isCompact,
-            )
+                }
 
-            FloatingActionButton(
-                onClick = {
-                    sheetPage = DownloadSheetPage.Input
-                    showSheet = true
-                },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
-            ) {
-                Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(Res.string.start_download))
+                DownloadMainPage.Format -> {
+                    CustomFormatSelectionSheet(
+                        url = formatUrl,
+                        controller = controller,
+                        downloadType = formatType,
+                        basePreferences = formatPreferences,
+                        onBack = {
+                            mainPage = DownloadMainPage.Queue
+                            sheetPage = DownloadSheetPage.Options
+                            showSheet = true
+                        },
+                        onDownloadComplete = {
+                            mainPage = DownloadMainPage.Queue
+                            showSheet = false
+                            pendingUrl = null
+                            inputUrl = ""
+                            sheetPage = DownloadSheetPage.Input
+                        },
+                    )
+                }
             }
         }
 
-        logLines.lastOrNull()?.let { LatestLogRow(it) }
+        if (mainPage == DownloadMainPage.Queue) {
+            logLines.lastOrNull()?.let { LatestLogRow(it) }
+        }
     }
 
-    if (showSheet) {
+    if (showSheet && mainPage == DownloadMainPage.Queue) {
         ModalBottomSheet(
             onDismissRequest = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
@@ -259,6 +304,13 @@ fun DesktopDownloadScreen(
                                     inputUrl = ""
                                 }
                             },
+                            onCustomFormatClick = {
+                                formatUrl = pendingUrl.orEmpty()
+                                formatType = downloadType
+                                formatPreferences = workingPreferences
+                                mainPage = DownloadMainPage.Format
+                                scope.launch { sheetState.hide() }.invokeOnCompletion { showSheet = false }
+                            },
                         )
                 }
             }
@@ -312,6 +364,11 @@ fun DesktopDownloadScreen(
 private enum class DownloadSheetPage {
     Input,
     Options,
+}
+
+private enum class DownloadMainPage {
+    Queue,
+    Format,
 }
 
 private fun safeBrowse(url: String) {
@@ -380,3 +437,4 @@ private fun LatestLogRow(line: String) {
         )
     }
 }
+

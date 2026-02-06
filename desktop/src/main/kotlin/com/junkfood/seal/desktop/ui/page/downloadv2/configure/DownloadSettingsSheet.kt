@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
-package com.junkfood.seal.desktop.download.configure
+package com.junkfood.seal.desktop.ui.page.downloadv2.configure
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -35,27 +35,25 @@ import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import com.junkfood.seal.shared.generated.resources.format_selection
-import com.junkfood.seal.shared.generated.resources.format_selection_desc
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +62,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadType
 import com.junkfood.seal.shared.generated.resources.Res
@@ -78,9 +77,9 @@ import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_subtitles
 import com.junkfood.seal.shared.generated.resources.edit_preset
 import com.junkfood.seal.shared.generated.resources.embed_metadata
+import com.junkfood.seal.shared.generated.resources.format_preference
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
-import com.junkfood.seal.shared.generated.resources.format_preference
 import com.junkfood.seal.shared.generated.resources.legacy
 import com.junkfood.seal.shared.generated.resources.lowest_quality
 import com.junkfood.seal.shared.generated.resources.new_task
@@ -96,10 +95,8 @@ import com.junkfood.seal.shared.generated.resources.settings_before_download
 import com.junkfood.seal.shared.generated.resources.sponsorblock
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.video
-import com.junkfood.seal.shared.generated.resources.video_format_preference
 import com.junkfood.seal.shared.generated.resources.video_quality
 import com.junkfood.seal.shared.generated.resources.video_url
-import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.util.DownloadPreferences
 import org.jetbrains.compose.resources.stringResource
 
@@ -113,7 +110,10 @@ internal fun DownloadInputSheet(
 ) {
     val clipboard = LocalClipboardManager.current
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Outlined.FileDownload, contentDescription = null)
             Text(stringResource(Res.string.new_task), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -167,7 +167,10 @@ internal fun DownloadOptionsSheet(
     var showPresetDialog by remember { mutableStateOf(false) }
     val formatSummary = formatSummary(preferences, downloadType)
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.DoneAll, contentDescription = null)
             Text(
@@ -270,31 +273,6 @@ internal fun DownloadOptionsSheet(
                 )
             },
         )
-    }
-}
-
-@Composable
-internal fun CustomFormatSelectionSheet(
-    onBack: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.SettingsSuggest, contentDescription = null)
-            Text(stringResource(Res.string.format_selection), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        }
-        Text(
-            text = stringResource(Res.string.format_selection_desc),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            OutlinedButton(onClick = onBack) {
-                Text(stringResource(Res.string.back))
-            }
-        }
     }
 }
 
@@ -512,19 +490,23 @@ private fun VideoPresetDialog(
                 HorizontalDivider()
 
                 Text(stringResource(Res.string.video_quality), style = MaterialTheme.typography.titleSmall)
-                Box(modifier = Modifier.fillMaxWidth()) {
+                ExposedDropdownMenuBox(
+                    expanded = resolutionExpanded,
+                    onExpandedChange = { resolutionExpanded = it },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     OutlinedTextField(
                         value = videoResolutionLabel(videoResolution),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(Res.string.video_quality)) },
-                        trailingIcon = { Icon(Icons.Outlined.ExpandMore, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth().clickable { resolutionExpanded = true },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = resolutionExpanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
                     )
-                    DropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = resolutionExpanded,
                         onDismissRequest = { resolutionExpanded = false },
-                        offset = DpOffset(0.dp, 56.dp),
                     ) {
                         resolutionOptions.forEach { value ->
                             DropdownMenuItem(
@@ -549,18 +531,6 @@ private fun VideoPresetDialog(
             OutlinedButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
         },
     )
-}
-
-@Composable
-private fun ChoiceRow(title: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Text(title, style = MaterialTheme.typography.bodyMedium)
-    }
 }
 
 @Composable

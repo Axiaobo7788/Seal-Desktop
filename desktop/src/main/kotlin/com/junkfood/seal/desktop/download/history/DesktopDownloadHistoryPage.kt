@@ -22,8 +22,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
-import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.foundation.Image
@@ -95,7 +95,7 @@ import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
-import com.junkfood.seal.ui.svg.drawablevectors.download
+import com.junkfood.seal.ui.svg.drawablevectors.videoSteaming
 import java.awt.Desktop
 import java.awt.FileDialog
 import java.awt.Frame
@@ -189,6 +189,8 @@ fun DesktopDownloadHistoryPage(
     // "视频来源/平台" 行内展示开关：仅当存在多种平台时显示
     val showPlatformInRows = filtered.asSequence().map { it.platform }.distinct().count() > 1
 
+    val isEmptyAll = entries.isEmpty()
+
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -203,8 +205,10 @@ fun DesktopDownloadHistoryPage(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showSearch = !showSearch }) {
-                        Icon(Icons.Outlined.Search, contentDescription = stringResource(Res.string.search))
+                    if (!isEmptyAll) {
+                        IconButton(onClick = { showSearch = !showSearch }) {
+                            Icon(Icons.Outlined.Search, contentDescription = stringResource(Res.string.search))
+                        }
                     }
 
                     Box {
@@ -213,19 +217,21 @@ fun DesktopDownloadHistoryPage(
                         }
                         DropdownMenu(expanded = actionsOpen, onDismissRequest = { actionsOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.export_backup)) },
-                                onClick = {
-                                    actionsOpen = false
-                                    showExportDialog = true
-                                },
-                            )
-                            DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.import_backup)) },
                                 onClick = {
                                     actionsOpen = false
                                     showImportDialog = true
                                 },
                             )
+                            if (!isEmptyAll) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.export_backup)) },
+                                    onClick = {
+                                        actionsOpen = false
+                                        showExportDialog = true
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -237,64 +243,9 @@ fun DesktopDownloadHistoryPage(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (showSearch) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text(stringResource(Res.string.search_in_downloads)) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                HistoryFilterChip(
-                    text = stringResource(Res.string.audio),
-                    selected = audioFilter,
-                    onClick = {
-                        audioFilter = if (audioFilter) false else true
-                        if (audioFilter) videoFilter = false
-                    },
-                )
-
-                HistoryFilterChip(
-                    text = stringResource(Res.string.video),
-                    selected = videoFilter,
-                    onClick = {
-                        videoFilter = if (videoFilter) false else true
-                        if (videoFilter) audioFilter = false
-                    },
-                )
-
-                if (sourceKeys.size > 1) {
-                    VerticalDivider(
-                        modifier = Modifier.padding(horizontal = 6.dp).height(24.dp).align(Alignment.CenterVertically),
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                    )
-
-                    sourceKeys.forEachIndexed { index, key ->
-                        val label =
-                            if (key == "Unknown") stringResource(Res.string.unknown)
-                            else key
-                        HistoryFilterChip(
-                            text = label,
-                            selected = activeSourceIndex == index,
-                            onClick = {
-                                activeSourceIndex = if (activeSourceIndex == index) -1 else index
-                            },
-                        )
-                    }
-                }
-            }
-            if (filtered.isEmpty()) {
+            if (isEmptyAll) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    val painter =
-                        rememberVectorPainter(image = DynamicColorImageVectors.download())
+                    val painter = rememberVectorPainter(image = DynamicColorImageVectors.videoSteaming())
                     Column(
                         modifier = Modifier.align(Alignment.Center).widthIn(max = 360.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -315,6 +266,61 @@ fun DesktopDownloadHistoryPage(
                     }
                 }
             } else {
+                if (showSearch) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(Res.string.search_in_downloads)) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.audio),
+                        selected = audioFilter,
+                        onClick = {
+                            audioFilter = if (audioFilter) false else true
+                            if (audioFilter) videoFilter = false
+                        },
+                    )
+
+                    HistoryFilterChip(
+                        text = stringResource(Res.string.video),
+                        selected = videoFilter,
+                        onClick = {
+                            videoFilter = if (videoFilter) false else true
+                            if (videoFilter) audioFilter = false
+                        },
+                    )
+
+                    if (sourceKeys.size > 1) {
+                        VerticalDivider(
+                            modifier = Modifier.padding(horizontal = 6.dp).height(24.dp).align(Alignment.CenterVertically),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        )
+
+                        sourceKeys.forEachIndexed { index, key ->
+                            val label =
+                                if (key == "Unknown") stringResource(Res.string.unknown)
+                                else key
+                            HistoryFilterChip(
+                                text = label,
+                                selected = activeSourceIndex == index,
+                                onClick = {
+                                    activeSourceIndex = if (activeSourceIndex == index) -1 else index
+                                },
+                            )
+                        }
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surface,

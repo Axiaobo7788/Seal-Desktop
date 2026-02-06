@@ -17,6 +17,7 @@ import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
+import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
 import com.junkfood.seal.ui.download.queue.DownloadQueueFilter
@@ -24,6 +25,7 @@ import com.junkfood.seal.ui.download.queue.DownloadQueueMediaType
 import com.junkfood.seal.ui.download.queue.DownloadQueueStatus
 import com.junkfood.seal.ui.download.queue.DownloadQueueViewMode
 import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Files
 import java.nio.file.Path
@@ -71,6 +73,12 @@ class DesktopDownloadController(
         logLines.add(line)
         if (logLines.size > 300) {
             repeat(logLines.size - 300) { logLines.removeFirst() }
+        }
+    }
+
+    suspend fun fetchVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
+        runCatching {
+            metadataFetcher.fetch(url)
         }
     }
 
@@ -240,6 +248,163 @@ class DesktopDownloadController(
         val request = DesktopDownloadRequest(trimmed, type, effectivePreferences)
         requestByItemId[itemId] = request
         startDownloadInternal(itemId, request, reuseExisting = true)
+    }
+
+    fun startDownloadWithSelection(
+        url: String,
+        type: DesktopDownloadType,
+        basePreferences: DownloadPreferences,
+        videoInfo: VideoInfo,
+        formatList: List<Format>,
+    ) {
+        val trimmed = url.trim()
+        if (trimmed.isBlank()) return
+        if (formatList.isEmpty()) return
+        if (runningItemId != null) return
+
+        val itemId = System.currentTimeMillis().toString()
+        val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
+
+        val selection =
+            SelectionMerge.merge(
+                basePreferences = basePreferences,
+                videoInfo = videoInfo,
+                formatList = formatList,
+                videoClips = emptyList(),
+                splitByChapter = false,
+                newTitle = "",
+                selectedSubtitles = emptyList(),
+                selectedAutoCaptions = emptyList(),
+            )
+
+        val effectivePreferences = preferencesForType(selection.preferences, type)
+
+        queueItems.add(
+            DownloadQueueItemState(
+                id = itemId,
+                title = trimmed,
+                url = trimmed,
+                mediaType = mediaType,
+                status = DownloadQueueStatus.FetchingInfo,
+            ),
+        )
+
+        val request = DesktopDownloadRequest(trimmed, type, effectivePreferences)
+        requestByItemId[itemId] = request
+
+        scope.launch {
+            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}] (custom)")
+
+            updateQueueItem(itemId) {
+                it.copy(
+                    title = selection.videoInfo.title.ifBlank { trimmed },
+                    author = selection.videoInfo.uploader.orEmpty(),
+                    thumbnailUrl = selection.videoInfo.thumbnail,
+                    durationSeconds = selection.videoInfo.duration?.toInt(),
+                    fileSizeApproxBytes = selection.videoInfo.fileSize ?: selection.videoInfo.fileSizeApprox,
+                    extractorKey = selection.videoInfo.extractorKey,
+                    videoFormats = if (selection.videoFormats.isEmpty()) null else selection.videoFormats,
+                    audioOnlyFormats = if (selection.audioFormats.isEmpty()) null else selection.audioFormats,
+                    status = DownloadQueueStatus.Ready,
+                )
+            }
+
+            val plan =
+                buildDownloadPlan(
+                    selection.videoInfo,
+                    effectivePreferences,
+                    playlistUrl = trimmed,
+                    playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                )
+
+            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val cliArgs = buildCliArgs(plan, config)
+            updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
+
+            try {
+                runningItemId = itemId
+                updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
+
+                val proc =
+                    withContext(Dispatchers.IO) {
+                        executor.start(
+                            plan,
+                            config,
+                            onStdout = { line ->
+                                appendLog(line)
+                                appendItemLog(itemId, line)
+                                updateProgressFromLine(itemId, line)
+                            },
+                            onStderr = { line ->
+                                appendLog("[err] $line")
+                                appendItemLog(itemId, "[err] $line")
+                                updateProgressFromLine(itemId, line)
+                            },
+                        )
+                    }
+
+                runningProcess = proc
+                val result = withContext(Dispatchers.IO) { proc.waitForResult() }
+
+                val canceled = canceledItemIds.remove(itemId)
+                if (canceled) {
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
+                    return@launch
+                }
+
+                val success = result.exitCode == 0
+                val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
+                val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
+                val exitCode = result.exitCode
+                val lastError = result.stderr.lastOrNull()
+
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
+                        progress = if (success) 1f else it.progress,
+                        progressText = if (success) "" else "Exit code $exitCode",
+                        filePath = filePath,
+                        fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
+                        exitCode = exitCode,
+                        errorMessage = if (success) it.errorMessage else (it.errorMessage ?: lastError),
+                    )
+                }
+
+                if (success) {
+                    val entry = selection.videoInfo.toHistoryEntry(
+                        id = itemId,
+                        url = trimmed,
+                        mediaType = if (type == DesktopDownloadType.Audio) DesktopHistoryMediaType.Audio else DesktopHistoryMediaType.Video,
+                        filePath = filePath,
+                        fileSizeBytes = fileSize,
+                    )
+                    historyEntries.add(0, entry)
+                    if (historyEntries.size > 500) {
+                        repeat(historyEntries.size - 500) { historyEntries.removeLast() }
+                    }
+                    historyStorage.save(historyEntries.toList())
+                }
+            } catch (e: Exception) {
+                appendLog("download failed: ${e.message}")
+                appendItemLog(itemId, "[err] ${e.message}")
+                val canceled = canceledItemIds.remove(itemId)
+                if (canceled) {
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
+                } else {
+                    updateQueueItem(itemId) {
+                        it.copy(
+                            status = DownloadQueueStatus.Error,
+                            errorMessage = e.message,
+                            progressText = e.message.orEmpty(),
+                            exitCode = it.exitCode,
+                        )
+                    }
+                }
+            } finally {
+                runningProcess = null
+                runningItemId = null
+            }
+        }
     }
 
     fun resumeIfPossible(itemId: String) {
