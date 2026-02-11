@@ -93,15 +93,24 @@ jobs:
             exit 1
           fi
 
-          app_root=$(find "$binaries_root" -type d -maxdepth 10 | while read -r d; do
-            if [ -d "$d/app" ] && [ -d "$d/runtime" ]; then
-              echo "$d"
-              break
+          dist_root=$(find "$binaries_root" -type d -name app -path "*/compose/binaries/*" | head -n 1 || true)
+          if [ -z "$dist_root" ] || [ ! -d "$dist_root" ]; then
+            echo "Cannot locate Linux distribution root (expected */compose/binaries/*/app)"
+            exit 1
+          fi
+
+          app_root=$(find "$dist_root" -mindepth 1 -maxdepth 2 -type d | while read -r d; do
+            if [ -d "$d/bin" ] && [ -d "$d/lib" ]; then
+              launcher_candidate=$(find "$d/bin" -maxdepth 1 -type f -executable ! -name '*.so' ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)
+              if [ -n "$launcher_candidate" ]; then
+                echo "$d"
+                break
+              fi
             fi
           done)
 
           if [ -z "$app_root" ]; then
-            echo "Cannot locate Linux app root (expected a directory containing both app/ and runtime/)"
+            echo "Cannot locate Linux app root (expected a directory containing bin/ and lib/ with an executable launcher in bin/)"
             exit 1
           fi
 
@@ -116,7 +125,7 @@ jobs:
             cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
           fi
 
-          launcher=$(find "$app_root" -maxdepth 2 -type f -executable ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)
+          launcher=$(find "$app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)
           if [ -z "$launcher" ]; then
             echo "No launcher found under app root: $app_root"
             exit 1
