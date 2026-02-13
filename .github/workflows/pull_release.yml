@@ -51,61 +51,52 @@ jobs:
               return String(run.id);
             }
 
+            async function findArtifactId(runId, artifactName) {
+              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner,
+                repo,
+                run_id: Number(runId),
+                per_page: 100,
+              });
+
+              const artifact = artifacts.data.artifacts.find((a) => a.name === artifactName && !a.expired);
+              if (!artifact) {
+                throw new Error(`Artifact '${artifactName}' not found (or expired) in run ${runId}`);
+              }
+
+              core.info(`Selected artifact ${artifactName}: ${artifact.id}`);
+              return String(artifact.id);
+            }
+
             const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
             const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
+            const linuxArtifactId = await findArtifactId(linuxRunId, "desktop-portable-linux-x64");
+            const windowsArtifactId = await findArtifactId(windowsRunId, "desktop-portable-win-x64");
 
             core.setOutput("linux_run_id", linuxRunId);
             core.setOutput("windows_run_id", windowsRunId);
+            core.setOutput("linux_artifact_id", linuxArtifactId);
+            core.setOutput("windows_artifact_id", windowsArtifactId);
 
-      - name: Download Linux artifact from run
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-portable-linux-x64
-          run-id: ${{ steps.resolve_runs.outputs.linux_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: assets/linux
-
-      - name: Download Windows artifact from run
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-portable-win-x64
-          run-id: ${{ steps.resolve_runs.outputs.windows_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: assets/windows
-
-      - name: Prepare renamed release assets (no repack)
+      - name: Download raw artifact zips (no repack)
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p release-assets
 
-          find_archive() {
-            local root="$1"
-            find "$root" -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.tgz' -o -name '*.tar.xz' \) | head -n 1
-          }
+          curl -L \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.linux_artifact_id }}/zip" \
+            -o "release-assets/seal-desktop-linux-x64-portable-v${{ inputs.version }}.zip"
 
-          linux_archive="$(find_archive assets/linux || true)"
-          windows_archive="$(find_archive assets/windows || true)"
-
-          if [ -z "$linux_archive" ]; then
-            echo "No archive file found in Linux artifact (expected .zip/.tar.gz/.tgz/.tar.xz)"
-            exit 1
-          fi
-          if [ -z "$windows_archive" ]; then
-            echo "No archive file found in Windows artifact (expected .zip/.tar.gz/.tgz/.tar.xz)"
-            exit 1
-          fi
-
-          linux_ext="${linux_archive##*.}"
-          if [[ "$linux_archive" == *.tar.gz ]]; then linux_ext="tar.gz"; fi
-          if [[ "$linux_archive" == *.tar.xz ]]; then linux_ext="tar.xz"; fi
-
-          windows_ext="${windows_archive##*.}"
-          if [[ "$windows_archive" == *.tar.gz ]]; then windows_ext="tar.gz"; fi
-          if [[ "$windows_archive" == *.tar.xz ]]; then windows_ext="tar.xz"; fi
-
-          cp "$linux_archive" "release-assets/seal-desktop-linux-x64-portable-v${{ inputs.version }}.${linux_ext}"
-          cp "$windows_archive" "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.${windows_ext}"
+          curl -L \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
+            -o "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.zip"
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -115,8 +106,5 @@ jobs:
           prerelease: ${{ inputs.release_type == 'prerelease' }}
           make_latest: ${{ inputs.release_type == 'stable' }}
           files: |
-            release-assets/*.tar.gz
-            release-assets/*.tar.xz
-            release-assets/*.tgz
             release-assets/*.zip
           generate_release_notes: true
