@@ -1,0 +1,122 @@
+name: desktop-portable-publish-only
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version number, e.g. 1.2.3
+        required: true
+        type: string
+      release_type:
+        description: Release type
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - prerelease
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve latest successful workflow runs
+        id: resolve_runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            async function findLatestSuccessfulRun(workflowFile) {
+              const res = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowFile,
+                branch: "main",
+                status: "completed",
+                per_page: 50,
+              });
+
+              const run = res.data.workflow_runs.find((workflowRun) => workflowRun.conclusion === "success");
+              if (!run) {
+                throw new Error(`No successful run found for ${workflowFile} on branch main`);
+              }
+
+              core.info(`Selected ${workflowFile} run: ${run.id} (${run.html_url})`);
+              return String(run.id);
+            }
+
+            const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
+            const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
+
+            core.setOutput("linux_run_id", linuxRunId);
+            core.setOutput("windows_run_id", windowsRunId);
+
+      - name: Download Linux artifact from run
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-portable-linux-x64
+          run-id: ${{ steps.resolve_runs.outputs.linux_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: assets/linux
+
+      - name: Download Windows artifact from run
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-portable-win-x64
+          run-id: ${{ steps.resolve_runs.outputs.windows_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: assets/windows
+
+      - name: Prepare renamed release assets (no repack)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+
+          find_archive() {
+            local root="$1"
+            find "$root" -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.tgz' -o -name '*.tar.xz' \) | head -n 1
+          }
+
+          linux_archive="$(find_archive assets/linux || true)"
+          windows_archive="$(find_archive assets/windows || true)"
+
+          if [ -z "$linux_archive" ]; then
+            echo "No archive file found in Linux artifact (expected .zip/.tar.gz/.tgz/.tar.xz)"
+            exit 1
+          fi
+          if [ -z "$windows_archive" ]; then
+            echo "No archive file found in Windows artifact (expected .zip/.tar.gz/.tgz/.tar.xz)"
+            exit 1
+          fi
+
+          linux_ext="${linux_archive##*.}"
+          if [[ "$linux_archive" == *.tar.gz ]]; then linux_ext="tar.gz"; fi
+          if [[ "$linux_archive" == *.tar.xz ]]; then linux_ext="tar.xz"; fi
+
+          windows_ext="${windows_archive##*.}"
+          if [[ "$windows_archive" == *.tar.gz ]]; then windows_ext="tar.gz"; fi
+          if [[ "$windows_archive" == *.tar.xz ]]; then windows_ext="tar.xz"; fi
+
+          cp "$linux_archive" "release-assets/seal-desktop-linux-x64-portable-v${{ inputs.version }}.${linux_ext}"
+          cp "$windows_archive" "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.${windows_ext}"
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          prerelease: ${{ inputs.release_type == 'prerelease' }}
+          make_latest: ${{ inputs.release_type == 'stable' }}
+          files: |
+            release-assets/*.tar.gz
+            release-assets/*.tar.xz
+            release-assets/*.tgz
+            release-assets/*.zip
+          generate_release_notes: true
