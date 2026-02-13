@@ -1,4 +1,4 @@
-name: desktop-portable-publish-only
+name: pull release
 
 on:
   workflow_dispatch:
