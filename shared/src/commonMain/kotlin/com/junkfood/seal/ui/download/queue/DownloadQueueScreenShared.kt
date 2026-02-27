@@ -1,5 +1,10 @@
 package com.junkfood.seal.ui.download.queue
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -462,6 +467,8 @@ private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStr
 @Composable
 private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueueStrings) {
     val sizeModifier = Modifier.size(14.dp)
+    val runningProgressColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.76f)
+    val runningTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
     val statusColor =
         when (item.status) {
             DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.tertiary
@@ -482,11 +489,22 @@ private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueue
             DownloadQueueStatus.FetchingInfo,
             DownloadQueueStatus.Ready,
             DownloadQueueStatus.Idle -> {
-                CircularProgressIndicator(modifier = sizeModifier, strokeWidth = 2.5.dp)
+                CircularProgressIndicator(
+                    modifier = sizeModifier,
+                    strokeWidth = 2.5.dp,
+                    color = runningProgressColor,
+                    trackColor = runningTrackColor,
+                )
             }
             DownloadQueueStatus.Running -> {
                 val progress = item.progress ?: 0f
-                CircularProgressIndicator(progress = { progress }, modifier = sizeModifier, strokeWidth = 2.5.dp)
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = sizeModifier,
+                    strokeWidth = 2.5.dp,
+                    color = runningProgressColor,
+                    trackColor = runningTrackColor,
+                )
             }
         }
         Spacer(Modifier.width(8.dp))
@@ -543,11 +561,22 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
             item.status == DownloadQueueStatus.Canceled ||
             item.status == DownloadQueueStatus.Completed
     if (!showProgress) return
+    val targetProgress = when {
+        item.status == DownloadQueueStatus.Completed -> 1f
+        item.progress != null -> item.progress!!.coerceIn(0f, 1f)
+        else -> 0f
+    }
+    val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(320), label = "downloadOverlayProgress")
+    val ringColor =
+        when (item.status) {
+            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
+            DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> MaterialTheme.colorScheme.error.copy(alpha = 0.74f)
+            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+        }
     Box(modifier = modifier.size(64.dp), contentAlignment = Alignment.Center) {
-        val ringColor = MaterialTheme.colorScheme.primary
         if (item.progress != null) {
             CircularProgressIndicator(
-                progress = { if (item.status == DownloadQueueStatus.Completed) 1f else item.progress!! },
+                progress = { animatedProgress },
                 strokeWidth = 4.dp,
                 modifier = Modifier.fillMaxSize(),
                 color = ringColor,
@@ -578,7 +607,7 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
         Surface(
             shape = CircleShape,
             tonalElevation = 3.dp,
-            color = if (item.status == DownloadQueueStatus.Completed) MaterialTheme.colorScheme.tertiary else StatusLabelContainerColor,
+            color = StatusLabelContainerColor,
             modifier = Modifier
                 .size(64.dp)
                 .clickable(
@@ -588,7 +617,12 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
                 ),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                Crossfade(
+                    targetState = icon,
+                    animationSpec = tween(180),
+                ) { currentIcon ->
+                    Icon(currentIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                }
             }
         }
     }

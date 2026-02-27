@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -305,9 +306,16 @@ private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit)
 @Composable
 private fun PermanentNav(current: Destination, onSelect: (Destination) -> Unit) {
     Surface(
-        modifier = Modifier.width(240.dp).fillMaxHeight(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 2.dp,
+        modifier =
+            Modifier
+                .width(240.dp)
+                .fillMaxHeight()
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                ),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 0.dp,
     ) {
         DrawerContent(current = current, onSelect = onSelect)
     }
