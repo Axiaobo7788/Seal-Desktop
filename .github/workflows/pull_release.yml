@@ -1,0 +1,110 @@
+name: pull release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version number, e.g. 1.2.3
+        required: true
+        type: string
+      release_type:
+        description: Release type
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - prerelease
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve latest successful workflow runs
+        id: resolve_runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            async function findLatestSuccessfulRun(workflowFile) {
+              const res = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowFile,
+                branch: "main",
+                status: "completed",
+                per_page: 50,
+              });
+
+              const run = res.data.workflow_runs.find((workflowRun) => workflowRun.conclusion === "success");
+              if (!run) {
+                throw new Error(`No successful run found for ${workflowFile} on branch main`);
+              }
+
+              core.info(`Selected ${workflowFile} run: ${run.id} (${run.html_url})`);
+              return String(run.id);
+            }
+
+            async function findArtifactId(runId, artifactName) {
+              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner,
+                repo,
+                run_id: Number(runId),
+                per_page: 100,
+              });
+
+              const artifact = artifacts.data.artifacts.find((a) => a.name === artifactName && !a.expired);
+              if (!artifact) {
+                throw new Error(`Artifact '${artifactName}' not found (or expired) in run ${runId}`);
+              }
+
+              core.info(`Selected artifact ${artifactName}: ${artifact.id}`);
+              return String(artifact.id);
+            }
+
+            const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
+            const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
+            const linuxArtifactId = await findArtifactId(linuxRunId, "desktop-portable-linux-x64");
+            const windowsArtifactId = await findArtifactId(windowsRunId, "desktop-portable-win-x64");
+
+            core.setOutput("linux_run_id", linuxRunId);
+            core.setOutput("windows_run_id", windowsRunId);
+            core.setOutput("linux_artifact_id", linuxArtifactId);
+            core.setOutput("windows_artifact_id", windowsArtifactId);
+
+      - name: Download raw artifact zips (no repack)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+
+          curl -L \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.linux_artifact_id }}/zip" \
+            -o "release-assets/seal-desktop-linux-x64-portable-v${{ inputs.version }}.zip"
+
+          curl -L \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
+            -o "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.zip"
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          prerelease: ${{ inputs.release_type == 'prerelease' }}
+          make_latest: ${{ inputs.release_type == 'stable' }}
+          files: |
+            release-assets/*.zip
+          generate_release_notes: true

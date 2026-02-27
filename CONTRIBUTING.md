@@ -2,7 +2,7 @@
 
 Before reading, you may know what [yt-dlp](https://github.com/yt-dlp/yt-dlp) is and what it does. In short, it's a CLI (Command Line Interface) program written in python, which lets you download videos from [1000+ websites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
-For bug reports and feature requests, please search in issues first (including the closed ones). If there're no duplicates, feel free to [submit an issue](https://github.com/JunkFood02/Seal/issues/new) with an issue template.
+For bug reports and feature requests, please search in issues first (including the closed ones). If there're no duplicates, feel free to [submit an issue](https://github.com/Axiaobo7788/Seal-Desktop/issues/new) with an issue template.
 
 **We'll probably ignore and close your issue if it's not using the existing templates or doesn't contain sufficient description.**
 
@@ -43,7 +43,7 @@ To avoid multiple pull requests resolving the same issue, let others know you ar
 
 ## New contributors
 
-Scan through our [existing issues](https://github.com/JunkFood02/Seal/issues) to find one that interests you. The [👋 good first issue](https://github.com/JunkFood02/Seal/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) is a good place to start exploring issues that are up-for-grab for newcomers. (Do not hesitate to ask for more details or clarifying questions on the issue!)
+Scan through our [existing issues](https://github.com/Axiaobo7788/Seal-Desktop/issues) to find one that interests you. The [👋 good first issue](https://github.com/JunkFood02/Seal/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) is a good place to start exploring issues that are up-for-grab for newcomers. (Do not hesitate to ask for more details or clarifying questions on the issue!)
 
 
 
