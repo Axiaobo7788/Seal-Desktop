@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,11 +15,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import java.awt.Toolkit
+import java.beans.PropertyChangeListener
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 
 private const val SYSTEM_THEME_POLL_INTERVAL_MS = 5000L
+
+private enum class DesktopOs {
+    Linux,
+    Mac,
+    Windows,
+    Other,
+}
 
 @Composable
 fun DesktopSealTheme(
@@ -26,17 +36,70 @@ fun DesktopSealTheme(
     content: @Composable () -> Unit,
 ) {
     val prefs = themeState.preferences
+    val currentOs = remember { detectDesktopOs() }
     val composeSystemDark = isSystemInDarkTheme()
     var observedSystemDark by remember { mutableStateOf(composeSystemDark) }
+    val portalThemeEvents = remember { Channel<Boolean?>(Channel.CONFLATED) }
 
-    LaunchedEffect(prefs.darkThemeValue, composeSystemDark) {
+    LaunchedEffect(portalThemeEvents, composeSystemDark) {
+        for (event in portalThemeEvents) {
+            val fromPortal = event
+            observedSystemDark = fromPortal ?: composeSystemDark
+        }
+    }
+
+    DisposableEffect(prefs.darkThemeValue, currentOs) {
+        if (prefs.darkThemeValue != DarkThemePreference.FOLLOW_SYSTEM || currentOs != DesktopOs.Linux) {
+            onDispose { }
+        } else {
+            val watcher = startPortalSettingsWatcher { isDark ->
+                portalThemeEvents.trySend(isDark)
+            }
+            onDispose { watcher?.close() }
+        }
+    }
+
+    DisposableEffect(prefs.darkThemeValue) {
+        if (prefs.darkThemeValue != DarkThemePreference.FOLLOW_SYSTEM) {
+            onDispose { }
+        } else {
+            val toolkit = runCatching { Toolkit.getDefaultToolkit() }.getOrNull()
+            val listener =
+                PropertyChangeListener { evt ->
+                    val normalized = evt.newValue?.toString()?.lowercase(Locale.getDefault())
+                    val next =
+                        when (normalized) {
+                            "dark" -> true
+                            "light" -> false
+                            else -> null
+                        }
+                    if (next != null && next != observedSystemDark) {
+                        observedSystemDark = next
+                    }
+                }
+
+            runCatching {
+                toolkit?.addPropertyChangeListener("awt.application.appearance", listener)
+            }
+
+            onDispose {
+                runCatching {
+                    toolkit?.removePropertyChangeListener("awt.application.appearance", listener)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(prefs.darkThemeValue, composeSystemDark, currentOs) {
         if (prefs.darkThemeValue != DarkThemePreference.FOLLOW_SYSTEM) return@LaunchedEffect
         observedSystemDark = detectSystemDarkTheme() ?: composeSystemDark
-        while (true) {
-            delay(SYSTEM_THEME_POLL_INTERVAL_MS)
-            val latest = detectSystemDarkTheme() ?: composeSystemDark
-            if (latest != observedSystemDark) {
-                observedSystemDark = latest
+        if (currentOs == DesktopOs.Linux) {
+            while (true) {
+                delay(SYSTEM_THEME_POLL_INTERVAL_MS)
+                val latest = detectSystemDarkTheme() ?: composeSystemDark
+                if (latest != observedSystemDark) {
+                    observedSystemDark = latest
+                }
             }
         }
     }
@@ -70,6 +133,16 @@ fun DesktopSealTheme(
     MaterialTheme(colorScheme = finalScheme, content = content)
 }
 
+private fun detectDesktopOs(): DesktopOs {
+    val osName = System.getProperty("os.name")?.lowercase(Locale.getDefault()).orEmpty()
+    return when {
+        osName.contains("linux") -> DesktopOs.Linux
+        osName.contains("mac") -> DesktopOs.Mac
+        osName.contains("win") -> DesktopOs.Windows
+        else -> DesktopOs.Other
+    }
+}
+
 private fun detectSystemDarkTheme(): Boolean? {
     detectAwtAppearance()?.let { return it }
 
@@ -94,6 +167,8 @@ private fun detectAwtAppearance(): Boolean? {
 }
 
 private fun detectLinuxDarkTheme(): Boolean? {
+    readPortalColorScheme()?.let { return it }
+
     val colorScheme = runCommand("gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
     if (colorScheme != null) {
         val normalized = colorScheme.lowercase(Locale.getDefault())
@@ -112,6 +187,89 @@ private fun detectLinuxDarkTheme(): Boolean? {
     }
 
     return null
+}
+
+private fun readPortalColorScheme(): Boolean? {
+    val output =
+        runCommand(
+            "gdbus",
+            "call",
+            "--session",
+            "--dest",
+            "org.freedesktop.portal.Desktop",
+            "--object-path",
+            "/org/freedesktop/portal/desktop",
+            "--method",
+            "org.freedesktop.portal.Settings.Read",
+            "org.freedesktop.appearance",
+            "color-scheme",
+        ) ?: return null
+
+    val value = Regex("uint32\\s+(\\d+)").find(output)?.groupValues?.getOrNull(1)?.toIntOrNull()
+    return colorSchemeValueToDarkMode(value)
+}
+
+private fun startPortalSettingsWatcher(onThemeChanged: (Boolean?) -> Unit): AutoCloseable? {
+    return runCatching {
+        val process =
+            ProcessBuilder(
+                "gdbus",
+                "monitor",
+                "--session",
+                "--dest",
+                "org.freedesktop.portal.Desktop",
+                "--object-path",
+                "/org/freedesktop/portal/desktop",
+            )
+                .redirectErrorStream(true)
+                .start()
+
+        val readerThread =
+            Thread {
+                process.inputStream.bufferedReader().useLines { lines ->
+                    var pendingPortalSignal = false
+                    lines.forEach { line ->
+                        val normalized = line.lowercase(Locale.getDefault())
+                        val matchesSignal =
+                            normalized.contains("settingchanged") &&
+                                normalized.contains("org.freedesktop.appearance") &&
+                                normalized.contains("color-scheme")
+
+                        if (matchesSignal) {
+                            pendingPortalSignal = true
+                        }
+
+                        val raw = Regex("uint32\\s+(\\d+)").find(normalized)?.groupValues?.getOrNull(1)?.toIntOrNull()
+                        if (pendingPortalSignal && raw != null) {
+                            onThemeChanged(colorSchemeValueToDarkMode(raw))
+                            pendingPortalSignal = false
+                        }
+                    }
+                }
+            }.apply {
+                name = "portal-settings-watcher"
+                isDaemon = true
+                start()
+            }
+
+        AutoCloseable {
+            runCatching { process.destroy() }
+            runCatching { readerThread.interrupt() }
+            runCatching {
+                if (process.isAlive) {
+                    process.destroyForcibly()
+                }
+            }
+        }
+    }.getOrNull()
+}
+
+private fun colorSchemeValueToDarkMode(value: Int?): Boolean? {
+    return when (value) {
+        1 -> true
+        2 -> false
+        else -> null
+    }
 }
 
 private fun detectMacDarkTheme(): Boolean? {

@@ -6,6 +6,9 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.SignalWifi4Bar
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
@@ -36,6 +39,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun NetworkSettingsPage(
     preferences: DownloadPreferences,
     onUpdate: ((DownloadPreferences) -> DownloadPreferences) -> Unit,
+    appSettings: DesktopAppSettings,
+    onUpdateAppSettings: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     onBack: () -> Unit,
 ) {
     val cookiePath = DesktopYtDlpPaths.cookiesFile().toAbsolutePath().toString()
@@ -43,6 +48,12 @@ internal fun NetworkSettingsPage(
         if (preferences.concurrentFragments > 0)
             stringResource(Res.string.concurrent_download_num, preferences.concurrentFragments)
         else stringResource(Res.string.concurrent_download_desc)
+    val detectedProxy =
+        remember(appSettings.autoProxyEnabled) {
+            if (appSettings.autoProxyEnabled)
+                DesktopProxyAutoDetector.detectXrayProxy()
+            else null
+        }
 
     SettingsPageScaffold(title = stringResource(Res.string.network), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
@@ -86,6 +97,18 @@ internal fun NetworkSettingsPage(
             value = preferences.proxyUrl,
             enabled = preferences.proxy,
         ) { newValue -> onUpdate { it.copy(proxyUrl = newValue) } }
+
+        ToggleCard(
+            title = "自动检测本机代理（Xray）",
+            description = "开启后自动检测本机 xray 端口并覆盖上方代理地址",
+            icon = Icons.Rounded.SignalWifi4Bar,
+            checked = appSettings.autoProxyEnabled,
+            enabled = preferences.proxy,
+        ) { checked -> onUpdateAppSettings { it.copy(autoProxyEnabled = checked) } }
+
+        if (preferences.proxy && appSettings.autoProxyEnabled) {
+            PreferenceInfo(text = "当前检测结果：${detectedProxy ?: "未检测到可用 xray 代理"}")
+        }
 
         ToggleCard(
             title = stringResource(Res.string.force_ipv4),

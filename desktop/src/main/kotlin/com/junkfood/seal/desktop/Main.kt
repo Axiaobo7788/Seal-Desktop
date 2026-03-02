@@ -149,6 +149,7 @@ private fun installResourceEnvironmentProvider() {
 fun main() = application {
     installResourceEnvironmentProvider()
     val appSettingsState = rememberDesktopAppSettingsState()
+    val downloadController = remember { DesktopDownloadController(appSettingsProvider = { appSettingsState.settings }) }
     val themeState = rememberDesktopThemeState()
     val systemLocale = remember { Locale.getDefault() }
     val languageTag = appSettingsState.settings.languageTag
@@ -166,7 +167,13 @@ fun main() = application {
     ) {
         key(languageTag) {
             DesktopSealTheme(themeState = themeState) {
-                Surface { DesktopApp(themeState = themeState, appSettingsState = appSettingsState) }
+                Surface {
+                    DesktopApp(
+                        themeState = themeState,
+                        appSettingsState = appSettingsState,
+                        downloadController = downloadController,
+                    )
+                }
             }
         }
     }
@@ -176,10 +183,10 @@ fun main() = application {
 private fun DesktopApp(
     themeState: DesktopThemeState,
     appSettingsState: DesktopAppSettingsState,
+    downloadController: DesktopDownloadController,
 ) {
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
-    val downloadController = remember { DesktopDownloadController() }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()

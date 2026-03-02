@@ -14,6 +14,8 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
@@ -43,6 +45,7 @@ class DesktopDownloadController(
     private val executor: DownloadPlanExecutor = DownloadPlanExecutor(),
     private val metadataFetcher: YtDlpMetadataFetcher = YtDlpMetadataFetcher(),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
+    private val appSettingsProvider: () -> DesktopAppSettings = { DesktopAppSettings() },
 ) {
     var filter by mutableStateOf(DownloadQueueFilter.All)
     var viewMode by mutableStateOf(DownloadQueueViewMode.Grid)
@@ -78,7 +81,14 @@ class DesktopDownloadController(
 
     suspend fun fetchVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
         runCatching {
-            metadataFetcher.fetch(url)
+            val appSettings = appSettingsProvider()
+            val runtimeProxy = resolveAutomaticProxy(appSettings)
+            val env = proxyEnvironment(runtimeProxy)
+            metadataFetcher.fetch(
+                url,
+                proxyUrl = runtimeProxy,
+                extraEnv = env,
+            )
         }
     }
 
@@ -233,7 +243,8 @@ class DesktopDownloadController(
 
         val itemId = System.currentTimeMillis().toString()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
-        val effectivePreferences = preferencesForType(basePreferences, type)
+        val appSettings = appSettingsProvider()
+        val effectivePreferences = applyRuntimeProxy(preferencesForType(basePreferences, type), appSettings)
 
         queueItems.add(
             DownloadQueueItemState(
@@ -277,7 +288,8 @@ class DesktopDownloadController(
                 selectedAutoCaptions = emptyList(),
             )
 
-        val effectivePreferences = preferencesForType(selection.preferences, type)
+        val appSettings = appSettingsProvider()
+        val effectivePreferences = applyRuntimeProxy(preferencesForType(selection.preferences, type), appSettings)
 
         queueItems.add(
             DownloadQueueItemState(
@@ -317,7 +329,11 @@ class DesktopDownloadController(
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            var config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val runtimeProxy = effectivePreferences.proxyUrl.takeIf { effectivePreferences.proxy }
+            if (runtimeProxy != null) {
+                config = config.copy(extraEnv = proxyEnvironment(runtimeProxy))
+            }
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
@@ -441,9 +457,17 @@ class DesktopDownloadController(
         scope.launch {
             appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}]")
 
+            val appSettings = appSettingsProvider()
+            val runtimeProxy = resolveAutomaticProxy(appSettings)
             val videoInfo =
                 try {
-                    withContext(Dispatchers.IO) { metadataFetcher.fetch(trimmed) }
+                    withContext(Dispatchers.IO) {
+                        metadataFetcher.fetch(
+                            trimmed,
+                            proxyUrl = runtimeProxy,
+                            extraEnv = proxyEnvironment(runtimeProxy),
+                        )
+                    }
                 } catch (e: Exception) {
                     appendLog("metadata failed: ${e.message}")
                     VideoInfo(originalUrl = trimmed, webpageUrl = trimmed, title = trimmed)
@@ -466,15 +490,21 @@ class DesktopDownloadController(
                 )
             }
 
+            val preferencesWithProxy = applyRuntimeProxy(effectivePreferences, appSettings)
+
             val plan =
                 buildDownloadPlan(
                     videoInfo,
-                    effectivePreferences,
+                    preferencesWithProxy,
                     playlistUrl = trimmed,
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            var config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val resolvedProxy = preferencesWithProxy.proxyUrl.takeIf { preferencesWithProxy.proxy }
+            if (resolvedProxy != null) {
+                config = config.copy(extraEnv = proxyEnvironment(resolvedProxy))
+            }
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
@@ -581,6 +611,30 @@ class DesktopDownloadController(
             )
         }
     }
+}
+
+private fun resolveAutomaticProxy(appSettings: DesktopAppSettings): String? {
+    if (!appSettings.autoProxyEnabled) return null
+    return DesktopProxyAutoDetector.detectXrayProxy()
+}
+
+private fun applyRuntimeProxy(preferences: DownloadPreferences, appSettings: DesktopAppSettings): DownloadPreferences {
+    val auto = if (appSettings.autoProxyEnabled) resolveAutomaticProxy(appSettings) else null
+    val manual = if (preferences.proxy) preferences.proxyUrl.trim().takeIf { it.isNotBlank() } else null
+    val resolved = auto ?: manual ?: return preferences
+    return preferences.copy(proxy = true, proxyUrl = resolved)
+}
+
+private fun proxyEnvironment(proxyUrl: String?): Map<String, String> {
+    val proxy = proxyUrl?.trim()?.takeIf { it.isNotBlank() } ?: return emptyMap()
+    return mapOf(
+        "HTTP_PROXY" to proxy,
+        "HTTPS_PROXY" to proxy,
+        "ALL_PROXY" to proxy,
+        "http_proxy" to proxy,
+        "https_proxy" to proxy,
+        "all_proxy" to proxy,
+    )
 }
 
 private data class DesktopDownloadRequest(

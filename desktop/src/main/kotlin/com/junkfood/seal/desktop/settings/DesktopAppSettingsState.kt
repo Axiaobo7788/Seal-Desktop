@@ -46,6 +46,7 @@ data class DesktopAppSettings(
     val autoUpdateEnabled: Boolean = false,
     val updateChannel: Int = UpdateChannelStable,
     val languageTag: String? = null,
+    val autoProxyEnabled: Boolean = false,
 )
 
 private fun appSettingsPath(): Path {
