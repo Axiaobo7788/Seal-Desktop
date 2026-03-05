@@ -4,4 +4,6 @@
     <string name="create_thumbnail">Shrani sličico</string>
     <string name="settings">Nastavite</string>
     <string name="extract_audio">Shrani kot avdio</string>
+    <string name="desktop_navigation">Navigacija</string>
+    <string name="desktop_open_navigation">Odpri navigacijo</string>
 </resources>

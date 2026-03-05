@@ -170,4 +170,6 @@
     <string name="download_task_count">%1$d ئەرکەکانی دابەزاندن</string>
     <string name="multiselect_item_count">%1$d ڤیدیۆ(ەکان)، %2$d فایل(ەکان)ی دەنگی</string>
     <string name="delete_multiple_items_msg">%1$d item(s) لە مێژووی دابەزاندنەکەت بۆ هەمیشە لادەبەیت؟</string>
+    <string name="desktop_navigation">ناڤیگەیشن</string>
+    <string name="desktop_open_navigation">ناڤیگەیشن بکەرەوە</string>
 </resources>

@@ -435,4 +435,6 @@
     <string name="trouble_shooting">トラブルシューティング</string>
     <string name="trouble_shooting_desc">一般的なエラーの修正、既知の問題の確認</string>
     <string name="issue_tracker_hint">エラーですか？問題を報告する前に、問題集積所を検索してください。多くの一般的な問題への対処法は既に文書化済みです。</string>
+    <string name="desktop_navigation">ナビゲーション</string>
+    <string name="desktop_open_navigation">ナビゲーションを開く</string>
 </resources>

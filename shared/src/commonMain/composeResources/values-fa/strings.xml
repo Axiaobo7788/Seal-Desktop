@@ -440,4 +440,6 @@
     <string name="resume">ادامه بده</string>
     <string name="media_info">اطلاعات رسانه</string>
     <string name="issue_tracker_hint">به خطایی برخوردید؟ قبل از گزارش یک مشکل جدید، لطفاً ردیاب مشکل ما را جستجو کنید. تاکنون بسیاری از مشکلات رایج در آنجا خطاب و مستند شده‌اند.</string>
+    <string name="desktop_navigation">پیمایش</string>
+    <string name="desktop_open_navigation">باز کردن پیمایش</string>
 </resources>

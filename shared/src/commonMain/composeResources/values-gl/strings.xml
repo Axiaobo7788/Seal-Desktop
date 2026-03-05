@@ -93,4 +93,6 @@
     <string name="edit_template_desc">O directorio de saída e a URL serán engadidas pola app automaticamente.</string>
     <string name="credits">Créditos</string>
     <string name="best_quality">Mellor calidade</string>
+    <string name="desktop_navigation">Navegación</string>
+    <string name="desktop_open_navigation">Abrir navegación</string>
 </resources>

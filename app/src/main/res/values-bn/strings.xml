@@ -410,4 +410,6 @@
     <string name="cookies_in_database">%2$d টি ওয়েবসাইটের মোট %1$d টি কুকি</string>
     <string name="every_month">প্রতি মাসে</string>
     <string name="every_week">প্রতি সপ্তাহে</string>
+    <string name="desktop_navigation">নেভিগেশন</string>
+    <string name="desktop_open_navigation">নেভিগেশন খুলুন</string>
 </resources>

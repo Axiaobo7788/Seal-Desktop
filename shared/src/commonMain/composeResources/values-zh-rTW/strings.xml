@@ -21,6 +21,10 @@
     <string name="desktop_open_navigation">開啟導覽選單</string>
     <string name="desktop_view_grid">網格</string>
     <string name="desktop_view_list">清單</string>
+    <string name="desktop_download_detail_status">狀態</string>
+    <string name="desktop_download_detail_exit_code">結束代碼</string>
+    <string name="desktop_download_detail_args">命令參數</string>
+    <string name="desktop_download_detail_error">錯誤詳情</string>
     <string name="desktop_placeholder_android_parity">與 Android 保持 1:1 的入口占位，後續會逐步加入功能。</string>
     <string name="desktop_placeholder_download_tip">目前可切換回「下載」頁面繼續使用下載功能。</string>
     <string name="desktop_history_filter_bilibili">嗶哩嗶哩</string>

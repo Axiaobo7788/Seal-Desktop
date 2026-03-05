@@ -188,4 +188,6 @@
     <string name="status_fetching_video_info">Informatie aan het ophalen</string>
     <string name="open_file">Bestand openen</string>
     <string name="status_downloading">Aan het downloaden</string>
+    <string name="desktop_navigation">Navigatie</string>
+    <string name="desktop_open_navigation">Navigatie openen</string>
 </resources>

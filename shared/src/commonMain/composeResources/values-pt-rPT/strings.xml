@@ -443,4 +443,6 @@
     <string name="issue_tracker">Rastreador de problemas</string>
     <string name="trouble_shooting_desc">Correção de erros comuns e verificação de problemas conhecidos</string>
     <string name="issue_tracker_hint">Encontrou um erro? Antes de comunicar um novo problema, procure no nosso registo de problemas. Muitos problemas comuns já foram resolvidos e documentados lá.</string>
+    <string name="desktop_navigation">Navegação</string>
+    <string name="desktop_open_navigation">Abrir navegação</string>
 </resources>

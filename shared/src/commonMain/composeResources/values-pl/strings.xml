@@ -420,4 +420,6 @@
     <string name="task_added">Zadanie dodane do kolejki</string>
     <string name="reset">Reset</string>
     <string name="custom_format_selection_desc">Wybieraj spośród formatów, napisów i dostosowuj dalej</string>
+    <string name="desktop_navigation">Nawigacja</string>
+    <string name="desktop_open_navigation">Otwórz nawigację</string>
 </resources>

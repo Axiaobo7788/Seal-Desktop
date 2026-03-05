@@ -69,4 +69,6 @@
     <string name="paste">Esteka itsatsi</string>
     <string name="yt_dlp_docs">yt-dlp-rako erabilera-erreferentziak</string>
     <string name="edit_template_desc">Irteera-direktorioa eta URLa automatikoki erantsiko ditu aplikazioak.</string>
+    <string name="desktop_navigation">Nabigazioa</string>
+    <string name="desktop_open_navigation">Ireki nabigazioa</string>
 </resources>

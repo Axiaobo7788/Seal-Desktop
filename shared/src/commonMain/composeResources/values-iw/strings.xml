@@ -443,4 +443,6 @@
     <string name="delete">מחק</string>
     <string name="resume">להמשיך</string>
     <string name="media_info">מידע על המדיה</string>
+    <string name="desktop_navigation">ניווט</string>
+    <string name="desktop_open_navigation">פתח ניווט</string>
 </resources>

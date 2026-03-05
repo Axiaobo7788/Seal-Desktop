@@ -443,4 +443,6 @@
     <string name="saved_urls">Saxlanan bağlantılar</string>
     <string name="add_new_url">Yeni link əlavə et</string>
     <string name="add_to">%1$s-a əlavə et</string>
+    <string name="desktop_navigation">Naviqasiya</string>
+    <string name="desktop_open_navigation">Naviqasiyanı aç</string>
 </resources>

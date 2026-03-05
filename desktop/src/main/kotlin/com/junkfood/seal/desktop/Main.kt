@@ -3,6 +3,8 @@
 package com.junkfood.seal.desktop
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,8 +26,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
@@ -38,7 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -51,10 +53,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FileDownload
@@ -153,11 +158,13 @@ fun main() = application {
     val themeState = rememberDesktopThemeState()
     val systemLocale = remember { Locale.getDefault() }
     val languageTag = appSettingsState.settings.languageTag
+    val normalizedLanguageTag = languageTag?.takeIf { it.isNotBlank() }
+    val locale = normalizedLanguageTag?.let(Locale::forLanguageTag) ?: systemLocale
 
-    LaunchedEffect(languageTag) {
-        val locale = languageTag?.takeIf { it.isNotBlank() }?.let(Locale::forLanguageTag) ?: systemLocale
+    languageOverrideTag = normalizedLanguageTag
+
+    SideEffect {
         Locale.setDefault(locale)
-        languageOverrideTag = languageTag
     }
 
     Window(
@@ -165,15 +172,14 @@ fun main() = application {
         title = stringResource(Res.string.app_name),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
-        key(languageTag) {
-            DesktopSealTheme(themeState = themeState) {
-                Surface {
-                    DesktopApp(
-                        themeState = themeState,
-                        appSettingsState = appSettingsState,
-                        downloadController = downloadController,
-                    )
-                }
+        DesktopSealTheme(themeState = themeState) {
+            Surface {
+                DesktopApp(
+                    themeState = themeState,
+                    appSettingsState = appSettingsState,
+                    downloadController = downloadController,
+                    languageRefreshToken = normalizedLanguageTag,
+                )
             }
         }
     }
@@ -184,6 +190,7 @@ private fun DesktopApp(
     themeState: DesktopThemeState,
     appSettingsState: DesktopAppSettingsState,
     downloadController: DesktopDownloadController,
+    languageRefreshToken: String?,
 ) {
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
@@ -196,67 +203,70 @@ private fun DesktopApp(
             maxWidth < 1200.dp -> NavLayout.NavigationRail
             else -> NavLayout.PermanentDrawer
         }
+        val sideNavTargetWidth =
+            when (navType) {
+                NavLayout.NavigationRail -> 88.dp
+                NavLayout.PermanentDrawer -> 240.dp
+                NavLayout.ModalDrawer -> 0.dp
+            }
+        val sideNavWidth by animateDpAsState(
+            targetValue = sideNavTargetWidth,
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+            label = "sideNavWidth",
+        )
+        val showPermanentNav = navType == NavLayout.PermanentDrawer && sideNavWidth >= 180.dp
+        val compactMode = navType == NavLayout.ModalDrawer
 
         when (navType) {
-            NavLayout.ModalDrawer -> {
+            NavLayout.ModalDrawer,
+            NavLayout.NavigationRail,
+            -> {
                 ModalNavigationDrawer(
                     drawerState = drawerState,
                     scrimColor = Color.Black.copy(alpha = 0.2f),
                     drawerContent = {
                         Surface(
-                            modifier = Modifier.width(320.dp).fillMaxHeight(),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 2.dp,
+                            modifier =
+                                Modifier
+                                    .width(320.dp)
+                                    .fillMaxHeight()
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                    ),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            tonalElevation = 0.dp,
                         ) {
-                            DrawerContent(current = current, onSelect = {
-                                current = it
-                                scope.launch { drawerState.close() }
-                            })
-                        }
-                    },
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        ContentArea(
-                            current,
-                            modifier = Modifier.fillMaxWidth(),
-                            onMenuClick = { scope.launch { drawerState.open() } },
-                            isCompact = true,
-                            settingsState = settingsState,
-                            appSettingsState = appSettingsState,
-                            themeState = themeState,
-                            downloadController = downloadController,
-                        )
-                    }
-                }
-            }
-
-            NavLayout.NavigationRail -> {
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    scrimColor = Color.Black.copy(alpha = 0.2f),
-                    drawerContent = {
-                        Surface(
-                            modifier = Modifier.width(320.dp).fillMaxHeight(),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 2.dp,
-                        ) {
-                            DrawerContent(current = current, onSelect = {
-                                current = it
-                                scope.launch { drawerState.close() }
-                            })
+                            key(languageRefreshToken) {
+                                DrawerContent(current = current, onSelect = {
+                                    current = it
+                                    scope.launch { drawerState.close() }
+                                }, languageRefreshToken = languageRefreshToken)
+                            }
                         }
                     },
                 ) {
                     Row(modifier = Modifier.fillMaxSize()) {
-                        NavigationRailMenu(
-                            current = current,
-                            onSelect = { current = it },
-                            onOpenDrawer = { scope.launch { drawerState.open() } },
-                        )
+                        Box(modifier = Modifier.width(sideNavWidth).fillMaxHeight()) {
+                            if (navType == NavLayout.NavigationRail || sideNavWidth >= 72.dp) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                                    key(languageRefreshToken) {
+                                        NavigationRailMenu(
+                                            current = current,
+                                            onSelect = { current = it },
+                                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                                            languageRefreshToken = languageRefreshToken,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         ContentArea(
                             current,
                             modifier = Modifier.weight(1f),
-                            isCompact = false,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            isCompact = compactMode,
                             settingsState = settingsState,
                             appSettingsState = appSettingsState,
                             themeState = themeState,
@@ -266,9 +276,33 @@ private fun DesktopApp(
                 }
             }
 
-            NavLayout.PermanentDrawer -> {
+            NavLayout.PermanentDrawer,
+            -> {
                 Row(modifier = Modifier.fillMaxSize()) {
-                    PermanentNav(current = current, onSelect = { current = it })
+                    Box(modifier = Modifier.width(sideNavWidth).fillMaxHeight()) {
+                        if (showPermanentNav) {
+                            key(languageRefreshToken) {
+                                PermanentNav(
+                                    modifier = Modifier.fillMaxSize(),
+                                    current = current,
+                                    onSelect = { current = it },
+                                    languageRefreshToken = languageRefreshToken,
+                                )
+                            }
+                        } else if (sideNavWidth > 1.dp) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                                key(languageRefreshToken) {
+                                    NavigationRailMenu(
+                                        current = current,
+                                        onSelect = { current = it },
+                                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                                        languageRefreshToken = languageRefreshToken,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     ContentArea(
                         current,
                         modifier = Modifier.weight(1f),
@@ -285,7 +319,8 @@ private fun DesktopApp(
 }
 
 @Composable
-private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit) {
+private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit, languageRefreshToken: String?) {
+    val destinations = remember(languageRefreshToken) { Destination.entries.toList() }
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -297,7 +332,7 @@ private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit)
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
-        Destination.entries.forEach { dest ->
+        destinations.forEach { dest ->
             val selected = current == dest
             NavigationDrawerItem(
                 label = { Text(stringResource(dest.labelRes)) },
@@ -311,11 +346,16 @@ private fun DrawerContent(current: Destination, onSelect: (Destination) -> Unit)
 }
 
 @Composable
-private fun PermanentNav(current: Destination, onSelect: (Destination) -> Unit) {
+private fun PermanentNav(
+    modifier: Modifier = Modifier,
+    current: Destination,
+    onSelect: (Destination) -> Unit,
+    languageRefreshToken: String?,
+) {
     Surface(
         modifier =
-            Modifier
-                .width(240.dp)
+            modifier
+                .fillMaxWidth()
                 .fillMaxHeight()
                 .border(
                     width = 1.dp,
@@ -324,27 +364,52 @@ private fun PermanentNav(current: Destination, onSelect: (Destination) -> Unit) 
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 0.dp,
     ) {
-        DrawerContent(current = current, onSelect = onSelect)
+        DrawerContent(current = current, onSelect = onSelect, languageRefreshToken = languageRefreshToken)
     }
 }
 
 @Composable
-private fun NavigationRailMenu(current: Destination, onSelect: (Destination) -> Unit, onOpenDrawer: (() -> Unit)? = null) {
+private fun NavigationRailMenu(
+    current: Destination,
+    onSelect: (Destination) -> Unit,
+    onOpenDrawer: (() -> Unit)? = null,
+    languageRefreshToken: String?,
+) {
+    val destinations = remember(languageRefreshToken) { Destination.entries.toList() }
+    val navigationLabel = stringResource(Res.string.desktop_navigation)
+    val openNavigationLabel = stringResource(Res.string.desktop_open_navigation)
+
     NavigationRail(modifier = Modifier.fillMaxHeight()) {
         onOpenDrawer?.let {
             NavigationRailItem(
                 selected = false,
                 onClick = it,
-                icon = { Icon(Icons.Outlined.Menu, contentDescription = stringResource(Res.string.desktop_open_navigation)) },
-                label = { Text(stringResource(Res.string.desktop_navigation)) },
+                icon = { Icon(Icons.Outlined.Menu, contentDescription = openNavigationLabel) },
+                label = {
+                    Text(
+                        text = navigationLabel,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
             )
         }
-        Destination.entries.forEach { dest ->
+        destinations.forEach { dest ->
             NavigationRailItem(
                 selected = current == dest,
                 onClick = { onSelect(dest) },
                 icon = { Icon(dest.icon, contentDescription = stringResource(dest.labelRes)) },
-                label = { Text(stringResource(dest.labelRes)) },
+                label = {
+                    Text(
+                        text = stringResource(dest.labelRes),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
             )
         }
     }
@@ -465,7 +530,7 @@ private fun PlaceholderScreen(text: String, modifier: Modifier = Modifier, onMen
             Text(text, style = MaterialTheme.typography.headlineSmall)
         }
         Text("This page is not available on Desktop yet.", style = MaterialTheme.typography.bodyMedium)
-        Divider()
+        HorizontalDivider()
         Text("Tip: use the Android app for now.", style = MaterialTheme.typography.bodySmall)
     }
 }

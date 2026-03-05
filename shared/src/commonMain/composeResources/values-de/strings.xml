@@ -440,4 +440,6 @@
     <string name="resume">Fortsetzen</string>
     <string name="delete">Löschen</string>
     <string name="media_info">Medien Info</string>
+    <string name="desktop_navigation">Navigation</string>
+    <string name="desktop_open_navigation">Navigation öffnen</string>
 </resources>

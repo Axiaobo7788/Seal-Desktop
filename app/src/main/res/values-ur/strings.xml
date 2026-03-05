@@ -15,4 +15,6 @@
     <string name="create_thumbnail_summary">ویڈیو تھمب نیل کو بطور فائل محفوظ کریں</string>
     <string name="yt_dlp_up_to_date">yt-dlp کا تازہ ترین ورژن استعمال کرنا</string>
     <string name="fetching_info">ویڈیو کی معلومات حاصل کی جا رہی ہے…</string>
+    <string name="desktop_navigation">نیویگیشن</string>
+    <string name="desktop_open_navigation">نیویگیشن کھولیں</string>
 </resources>

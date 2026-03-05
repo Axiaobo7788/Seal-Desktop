@@ -206,4 +206,6 @@
     <string name="crop_artwork">Beskjær illustrasjon</string>
     <string name="crop_artwork_desc">Beskjær innebygd bilde til kvadrat</string>
     <string name="network_settings_desc">Overføringsterskler, nedlaster, kaker</string>
+    <string name="desktop_navigation">Navigasjon</string>
+    <string name="desktop_open_navigation">Åpne navigasjon</string>
 </resources>

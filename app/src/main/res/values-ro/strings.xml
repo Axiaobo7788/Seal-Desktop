@@ -308,4 +308,6 @@
     <string name="edit_template">Editați \"%1$s\"</string>
     <string name="start">Pornire</string>
     <string name="ytdlp_update_action">Actualizează yt-dlp</string>
+    <string name="desktop_navigation">Navigare</string>
+    <string name="desktop_open_navigation">Deschide navigarea</string>
 </resources>

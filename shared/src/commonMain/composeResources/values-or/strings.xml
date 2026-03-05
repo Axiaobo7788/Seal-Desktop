@@ -30,4 +30,6 @@
     <string name="language">ଭାଷା ଦେଖାନ୍ତୁ</string>
     <string name="permission_denied">ଅନୁମତି ଅସ୍ବୀକୃତ</string>
     <string name="download_success_msg">ଡାଉନଲୋଡ୍ ସମ୍ପୂର୍ଣ୍ଣ ହେଲା</string>
+    <string name="desktop_navigation">ନାଭିଗେସନ୍</string>
+    <string name="desktop_open_navigation">ନାଭିଗେସନ୍ ଖୋଲନ୍ତୁ</string>
 </resources>

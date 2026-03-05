@@ -89,4 +89,6 @@
     <string name="start_download">डाऊनलोड</string>
     <string name="not_specified">निर्दिष्ट नाही</string>
     <string name="video_format_preference">आवडीचा व्हिडिओ स्वरूप</string>
+    <string name="desktop_navigation">नेव्हिगेशन</string>
+    <string name="desktop_open_navigation">नेव्हिगेशन उघडा</string>
 </resources>

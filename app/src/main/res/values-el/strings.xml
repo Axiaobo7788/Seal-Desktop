@@ -393,4 +393,6 @@
     <string name="download_history_imported">Εισήχθησαν %1$s στο ιστορικό λήψης</string>
     <string name="redownload">Επανακατέβασμα</string>
     <string name="search_in_downloads">Αναζήτηση στις λήψεις</string>
+    <string name="desktop_navigation">Πλοήγηση</string>
+    <string name="desktop_open_navigation">Άνοιγμα πλοήγησης</string>
 </resources>

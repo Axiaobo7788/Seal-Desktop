@@ -50,4 +50,6 @@
     <string name="edit">Upraviť</string>
     <string name="start_execute">­</string>
     <string name="advanced_settings">Pokročilé</string>
+    <string name="desktop_navigation">Navigácia</string>
+    <string name="desktop_open_navigation">Otvoriť navigáciu</string>
 </resources>

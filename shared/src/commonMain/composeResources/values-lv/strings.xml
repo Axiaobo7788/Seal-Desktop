@@ -4,4 +4,6 @@
     <string name="create_thumbnail">saglabāt sīktēlu</string>
     <string name="settings">Iestatījumi</string>
     <string name="video_directory">Video mape</string>
+    <string name="desktop_navigation">Navigācija</string>
+    <string name="desktop_open_navigation">Atvērt navigāciju</string>
 </resources>

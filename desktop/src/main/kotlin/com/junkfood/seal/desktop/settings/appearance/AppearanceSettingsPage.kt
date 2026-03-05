@@ -24,11 +24,11 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
@@ -111,9 +111,9 @@ fun AppearanceSettingsPage(
             title = stringResource(Res.string.dark_theme),
             description = darkThemeDesc,
             icon = if (isDarkTheme) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
-            checked = isDarkTheme,
-            onCheckedChange = {
-                val target = if (isDarkTheme) DarkThemePreference.OFF else DarkThemePreference.ON
+            checked = prefs.darkThemeValue != DarkThemePreference.OFF,
+            onCheckedChange = { checked ->
+                val target = if (checked) DarkThemePreference.FOLLOW_SYSTEM else DarkThemePreference.OFF
                 themeState.update { it.copy(darkThemeValue = target) }
             },
             onClick = onOpenDarkTheme,
@@ -355,7 +355,7 @@ private fun DarkThemeSwitchCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Divider(modifier = Modifier.height(24.dp).width(1.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            VerticalDivider(modifier = Modifier.height(24.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }
@@ -386,7 +386,7 @@ private fun SwitchCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Divider(modifier = Modifier.height(24.dp).width(1.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            VerticalDivider(modifier = Modifier.height(24.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }

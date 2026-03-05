@@ -282,4 +282,6 @@
     <string name="clear">Clear</string>
     <string name="cookies_usage_msg">Bizonyos oldalakról való letöltéshez hitelesítés szükséges. Kattintson a(z) \"Új sütik generálása\" gombra, írja be az oldal címét, majd jelentkezzen be az oldalra. Ezután az alkalmazás legenerálja magától a szükséges adatokat.</string>
     <string name="video_creator_sample_text">Videó készitő példa szöveg</string>
+    <string name="desktop_navigation">Navigáció</string>
+    <string name="desktop_open_navigation">Navigáció megnyitása</string>
 </resources>

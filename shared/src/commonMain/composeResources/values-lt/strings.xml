@@ -84,4 +84,6 @@
         <item quantity="few">%d vaizdo įrašai</item>
         <item quantity="other">%d vaizdo įrašų</item>
     </plurals>
+    <string name="desktop_navigation">Navigacija</string>
+    <string name="desktop_open_navigation">Atidaryti naršymą</string>
 </resources>

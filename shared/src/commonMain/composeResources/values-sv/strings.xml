@@ -127,4 +127,6 @@
     <string name="battery_configuration">Batterikonfiguration</string>
     <string name="battery_configuration_desc">Avaktivera appens batterioptimering för att aktivera bakgrundsnedladdning</string>
     <string name="ytdlp_update_action">Uppdatera yt-dlp</string>
+    <string name="desktop_navigation">Navigering</string>
+    <string name="desktop_open_navigation">Öppna navigering</string>
 </resources>

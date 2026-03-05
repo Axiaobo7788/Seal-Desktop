@@ -435,4 +435,6 @@
     <plurals name="audio_count">
         <item quantity="other">%d ไฟล์เสียง</item>
     </plurals>
+    <string name="desktop_navigation">การนำทาง</string>
+    <string name="desktop_open_navigation">เปิดการนำทาง</string>
 </resources>

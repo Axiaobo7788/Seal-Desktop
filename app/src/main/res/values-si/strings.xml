@@ -214,4 +214,6 @@
     <string name="video_only">වීඩියෝව (ශ්‍රව්‍ය නැත)</string>
     <string name="cookies">කුකීස්</string>
     <string name="suggested">යෝජිත</string>
+    <string name="desktop_navigation">සංචාලනය</string>
+    <string name="desktop_open_navigation">සංචාලනය විවෘත කරන්න</string>
 </resources>

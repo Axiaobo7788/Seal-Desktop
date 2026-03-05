@@ -440,4 +440,6 @@
     <string name="delete">Устгах</string>
     <string name="all">Бүгд</string>
     <string name="media_info">Медиа мэдээлэл</string>
+    <string name="desktop_navigation">Навигаци</string>
+    <string name="desktop_open_navigation">Навигаци нээх</string>
 </resources>

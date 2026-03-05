@@ -137,4 +137,6 @@
     <string name="show_logs">Jurnalni ko\'rsatish</string>
     <string name="share">Ulashish</string>
     <string name="video_url">Video havolasi</string>
+    <string name="desktop_navigation">Navigatsiya</string>
+    <string name="desktop_open_navigation">Navigatsiyani ochish</string>
 </resources>

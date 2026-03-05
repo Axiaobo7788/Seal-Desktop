@@ -401,4 +401,6 @@
     <string name="redownload">Baixa novament</string>
     <string name="search">Cerca</string>
     <string name="search_in_downloads">Cerca a les baixades</string>
+    <string name="desktop_navigation">Navegació</string>
+    <string name="desktop_open_navigation">Obre la navegació</string>
 </resources>

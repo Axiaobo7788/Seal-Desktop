@@ -449,4 +449,6 @@
     <string name="saved_urls">Збережені посилання</string>
     <string name="add_new_url">Додати нове посилання</string>
     <string name="add_to">Додати до %1$s</string>
+    <string name="desktop_navigation">Навігація</string>
+    <string name="desktop_open_navigation">Відкрити навігацію</string>
 </resources>

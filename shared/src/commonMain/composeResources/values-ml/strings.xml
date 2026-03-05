@@ -440,4 +440,6 @@
     <string name="trouble_shooting_desc">പൊതുവായ പിശകുകൾ പരിഹരിക്കുക, അറിയപ്പെടുന്ന പ്രശ്നങ്ങൾ കാണുക</string>
     <string name="trouble_shooting">പ്രശ്നനിർണയവും പരിഹാരവും</string>
     <string name="issue_tracker">പ്രശ്ന ട്രാക്കർ</string>
+    <string name="desktop_navigation">നാവിഗേഷൻ</string>
+    <string name="desktop_open_navigation">നാവിഗേഷൻ തുറക്കുക</string>
 </resources>

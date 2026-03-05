@@ -270,4 +270,6 @@
     <string name="show_logs">Vis log</string>
     <string name="embed_subtitles_mkv_msg">Ved indlejring af undertekster vil videoer blive remuxet til mkv-container.</string>
     <string name="temporary_directory_desc">Gem midlertidige filer i den interne mappe</string>
+    <string name="desktop_navigation">Navigation</string>
+    <string name="desktop_open_navigation">Åbn navigation</string>
 </resources>

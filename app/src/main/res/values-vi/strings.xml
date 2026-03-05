@@ -423,4 +423,6 @@
         <item quantity="other">%d âm thanh</item>
     </plurals>
     <string name="custom_format_selection_desc">Chọn từ các định dạng, phụ đề và tùy chỉnh nhiều hơn</string>
+    <string name="desktop_navigation">Điều hướng</string>
+    <string name="desktop_open_navigation">Mở điều hướng</string>
 </resources>

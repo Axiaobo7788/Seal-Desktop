@@ -443,4 +443,6 @@
     <string name="saved_urls">सहेजे गए लिंक</string>
     <string name="add_new_url">नया लिंक शामिल करें</string>
     <string name="add_to">%1$s में शामिल करें</string>
+    <string name="desktop_navigation">नेविगेशन</string>
+    <string name="desktop_open_navigation">नेविगेशन खोलें</string>
 </resources>

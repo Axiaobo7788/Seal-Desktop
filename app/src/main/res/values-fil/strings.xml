@@ -443,4 +443,6 @@
     <string name="saved_urls">Na-save na mga link</string>
     <string name="add_new_url">Magdagdag ng bagong link</string>
     <string name="add_to">Idagdag sa %1$s</string>
+    <string name="desktop_navigation">Nabigasyon</string>
+    <string name="desktop_open_navigation">Buksan ang nabigasyon</string>
 </resources>

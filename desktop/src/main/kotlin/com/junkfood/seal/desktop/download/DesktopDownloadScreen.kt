@@ -65,11 +65,22 @@ import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_hint
 import com.junkfood.seal.shared.generated.resources.download_queue
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_args
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_error
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_exit_code
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_status
 import com.junkfood.seal.shared.generated.resources.start_download
+import com.junkfood.seal.shared.generated.resources.file
+import com.junkfood.seal.shared.generated.resources.logs
+import com.junkfood.seal.shared.generated.resources.open_file
+import com.junkfood.seal.shared.generated.resources.print_details
+import com.junkfood.seal.shared.generated.resources.restart
 import com.junkfood.seal.shared.generated.resources.status_canceled
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.status_error
+import com.junkfood.seal.shared.generated.resources.video_file_size
+import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
 import com.junkfood.seal.shared.generated.resources.desktop_view_grid
 import com.junkfood.seal.shared.generated.resources.desktop_view_list
@@ -116,11 +127,11 @@ fun DesktopDownloadScreen(
             emptyBody = stringResource(Res.string.download_hint),
             gridLabel = stringResource(Res.string.desktop_view_grid),
             listLabel = stringResource(Res.string.desktop_view_list),
-            statusCanceled = "已暂停",
-            resumeLabel = "继续",
-            cancelLabel = "暂停",
-            shareFileLabel = "打开所在文件夹",
-            showDetailsLabel = "详情",
+            statusCanceled = stringResource(Res.string.status_canceled),
+            resumeLabel = stringResource(Res.string.restart),
+            cancelLabel = stringResource(Res.string.cancel),
+            shareFileLabel = stringResource(Res.string.open_file),
+            showDetailsLabel = stringResource(Res.string.print_details),
         )
 
     Column(modifier = modifier.fillMaxHeight()) {
@@ -338,18 +349,20 @@ fun DesktopDownloadScreen(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("URL: ${item.url}")
-                    Text("Status: $statusText")
-                    item.filePath?.takeIf { it.isNotBlank() }?.let { Text("File: $it") }
-                    fileSizeText?.let { Text("Size: $it") }
-                    item.exitCode?.let { Text("Exit code: $it") }
+                    Text("${stringResource(Res.string.video_url)}: ${item.url}")
+                    Text("${stringResource(Res.string.desktop_download_detail_status)}: $statusText")
+                    item.filePath?.takeIf { it.isNotBlank() }?.let { Text("${stringResource(Res.string.file)}: $it") }
+                    fileSizeText?.let { Text("${stringResource(Res.string.video_file_size)}: $it") }
+                    item.exitCode?.let { Text("${stringResource(Res.string.desktop_download_detail_exit_code)}: $it") }
                     if (cliArgs.isNotBlank()) {
-                        Text("Args:")
+                        Text("${stringResource(Res.string.desktop_download_detail_args)}:")
                         Text(cliArgs, style = MaterialTheme.typography.bodySmall)
                     }
-                    item.errorMessage?.takeIf { it.isNotBlank() }?.let { Text("Error: $it") }
+                    item.errorMessage?.takeIf { it.isNotBlank() }?.let {
+                        Text("${stringResource(Res.string.desktop_download_detail_error)}: $it")
+                    }
                     if (logPreview.isNotBlank()) {
-                        Text("Logs:")
+                        Text("${stringResource(Res.string.logs)}:")
                         Text(logPreview, style = MaterialTheme.typography.bodySmall)
                     }
                 }

@@ -280,4 +280,6 @@
     <string name="sponsor_desc">Stø appen ved å gje pengar gjennom GitHub</string>
     <string name="feedback">Tilbakemelding</string>
     <string name="sponsors">Støarar</string>
+    <string name="desktop_navigation">Navigasjon</string>
+    <string name="desktop_open_navigation">Opne navigasjon</string>
 </resources>

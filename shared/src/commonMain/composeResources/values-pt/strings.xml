@@ -446,4 +446,6 @@
     <string name="saved_urls">Links salvos</string>
     <string name="add_new_url">Adicionar novo link</string>
     <string name="add_to">Adicionar a %1$s</string>
+    <string name="desktop_navigation">Navegação</string>
+    <string name="desktop_open_navigation">Abrir navegação</string>
 </resources>

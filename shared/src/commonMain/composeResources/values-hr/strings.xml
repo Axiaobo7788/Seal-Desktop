@@ -429,4 +429,6 @@
     </plurals>
     <string name="preset_format_selection_desc">Preuzmi automatski koristeći tvoje postavke formata</string>
     <string name="best_quality_desc">Preuzmi najbolji dostupni format</string>
+    <string name="desktop_navigation">Navigacija</string>
+    <string name="desktop_open_navigation">Otvori navigaciju</string>
 </resources>

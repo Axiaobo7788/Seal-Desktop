@@ -433,4 +433,6 @@
     <string name="resume">재개</string>
     <string name="delete">삭제</string>
     <string name="media_info">미디어 정보</string>
+    <string name="desktop_navigation">탐색</string>
+    <string name="desktop_open_navigation">탐색 열기</string>
 </resources>

@@ -443,4 +443,6 @@
     <string name="trouble_shooting">Dépannage</string>
     <string name="issue_tracker">Suivi des problèmes</string>
     <string name="trouble_shooting_desc">Corriger les erreurs courantes et vérifier les problèmes connus</string>
+    <string name="desktop_navigation">Navigation</string>
+    <string name="desktop_open_navigation">Ouvrir la navigation</string>
 </resources>

@@ -440,4 +440,6 @@
     <string name="trouble_shooting">Sorun giderme</string>
     <string name="issue_tracker_hint">Bir hatayla mı karşılaştınız? Yeni bir sorun bildirmeden önce lütfen sorun izleyicimizde arama yapın. Birçok yaygın sorun zaten ele alınmış ve orada belgelenmiştir.</string>
     <string name="issue_tracker">Sorun izleyici</string>
+    <string name="desktop_navigation">Gezinme</string>
+    <string name="desktop_open_navigation">Gezinmeyi aç</string>
 </resources>

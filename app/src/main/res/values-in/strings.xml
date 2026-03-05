@@ -440,4 +440,6 @@
     <string name="saved_urls">Tautan tersimpan</string>
     <string name="add_new_url">Tambahkan tautan baru</string>
     <string name="add_to">Tambahkan ke %1$s</string>
+    <string name="desktop_navigation">Navigasi</string>
+    <string name="desktop_open_navigation">Buka navigasi</string>
 </resources>
