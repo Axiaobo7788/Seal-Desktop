@@ -104,4 +104,8 @@
     <string name="to">முடிவு</string>
     <string name="desktop_navigation">வழிசெலுத்தல்</string>
     <string name="desktop_open_navigation">வழிசெலுத்தலைத் திற</string>
+    <string name="desktop_download_detail_status">நிலை</string>
+    <string name="desktop_download_detail_exit_code">வெளியேற்றக் குறியீடு</string>
+    <string name="desktop_download_detail_args">கட்டளை அளவுருக்கள்</string>
+    <string name="desktop_download_detail_error">பிழை விவரங்கள்</string>
 </resources>

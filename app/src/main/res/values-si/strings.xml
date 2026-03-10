@@ -216,4 +216,8 @@
     <string name="suggested">යෝජිත</string>
     <string name="desktop_navigation">සංචාලනය</string>
     <string name="desktop_open_navigation">සංචාලනය විවෘත කරන්න</string>
+    <string name="desktop_download_detail_status">තත්ත්වය</string>
+    <string name="desktop_download_detail_exit_code">පිටවීමේ කේතය</string>
+    <string name="desktop_download_detail_args">විධාන තර්ක</string>
+    <string name="desktop_download_detail_error">දෝෂ විස්තර</string>
 </resources>

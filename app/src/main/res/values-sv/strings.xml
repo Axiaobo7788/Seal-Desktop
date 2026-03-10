@@ -129,4 +129,8 @@
     <string name="ytdlp_update_action">Uppdatera yt-dlp</string>
     <string name="desktop_navigation">Navigering</string>
     <string name="desktop_open_navigation">Öppna navigering</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Avslutningskod</string>
+    <string name="desktop_download_detail_args">Kommandoargument</string>
+    <string name="desktop_download_detail_error">Felinformation</string>
 </resources>

@@ -272,4 +272,8 @@
     <string name="temporary_directory_desc">Gem midlertidige filer i den interne mappe</string>
     <string name="desktop_navigation">Navigation</string>
     <string name="desktop_open_navigation">Åbn navigation</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Afslutningskode</string>
+    <string name="desktop_download_detail_args">Kommandoargumenter</string>
+    <string name="desktop_download_detail_error">Fejldetaljer</string>
 </resources>

@@ -41,4 +41,8 @@
     <string name="off">אויסגעלאשן</string>
     <string name="desktop_navigation">נאַוויגאַציע</string>
     <string name="desktop_open_navigation">עפֿענען נאַוויגאַציע</string>
+    <string name="desktop_download_detail_status">סטאַטוס</string>
+    <string name="desktop_download_detail_exit_code">אַרויסגאַנג-קאָד</string>
+    <string name="desktop_download_detail_args">באַפֿעל-אַרגומענטן</string>
+    <string name="desktop_download_detail_error">טעות-דעטאַלן</string>
 </resources>

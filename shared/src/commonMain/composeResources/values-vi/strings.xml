@@ -425,4 +425,8 @@
     <string name="custom_format_selection_desc">Chọn từ các định dạng, phụ đề và tùy chỉnh nhiều hơn</string>
     <string name="desktop_navigation">Điều hướng</string>
     <string name="desktop_open_navigation">Mở điều hướng</string>
+    <string name="desktop_download_detail_status">Trạng thái</string>
+    <string name="desktop_download_detail_exit_code">Mã thoát</string>
+    <string name="desktop_download_detail_args">Tham số lệnh</string>
+    <string name="desktop_download_detail_error">Chi tiết lỗi</string>
 </resources>

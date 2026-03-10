@@ -406,4 +406,8 @@
     <string name="status_downloaded">Спампавана</string>
     <string name="desktop_navigation">Навігацыя</string>
     <string name="desktop_open_navigation">Адкрыць навігацыю</string>
+    <string name="desktop_download_detail_status">Статус</string>
+    <string name="desktop_download_detail_exit_code">Код выхаду</string>
+    <string name="desktop_download_detail_args">Аргументы каманды</string>
+    <string name="desktop_download_detail_error">Падрабязнасці памылкі</string>
 </resources>

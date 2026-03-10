@@ -442,4 +442,8 @@
     <string name="issue_tracker_hint">به خطایی برخوردید؟ قبل از گزارش یک مشکل جدید، لطفاً ردیاب مشکل ما را جستجو کنید. تاکنون بسیاری از مشکلات رایج در آنجا خطاب و مستند شده‌اند.</string>
     <string name="desktop_navigation">پیمایش</string>
     <string name="desktop_open_navigation">باز کردن پیمایش</string>
+    <string name="desktop_download_detail_status">وضعیت</string>
+    <string name="desktop_download_detail_exit_code">کد خروج</string>
+    <string name="desktop_download_detail_args">آرگومان‌های فرمان</string>
+    <string name="desktop_download_detail_error">جزئیات خطا</string>
 </resources>

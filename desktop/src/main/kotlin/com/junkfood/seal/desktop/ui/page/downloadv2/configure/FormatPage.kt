@@ -60,6 +60,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadController
@@ -67,12 +70,27 @@ import com.junkfood.seal.desktop.download.DesktopDownloadType
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.back
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_availability
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_channel
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_chapters
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_comments
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_creator
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_description
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_duration
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_id
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_likes
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_platform
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_tags
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_upload_date
+import com.junkfood.seal.shared.generated.resources.desktop_video_info_views
 import com.junkfood.seal.shared.generated.resources.format_selection
+import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.show_all_items
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.suggested
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_only
+import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
@@ -418,48 +436,211 @@ private fun FormatPageImpl(
 
 @Composable
 private fun FormatPreviewHeader(videoInfo: VideoInfo) {
+    val clipboard = LocalClipboardManager.current
+    val uriHandler = LocalUriHandler.current
     val thumbnailUrl = videoInfo.thumbnail.toHttpsUrl()
     val durationText = formatDuration(videoInfo.duration?.toInt() ?: 0)
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier.size(width = 200.dp, height = 112.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            DownloadThumbnail(url = thumbnailUrl, modifier = Modifier.fillMaxSize())
-            Surface(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
-                color = Color.Black.copy(alpha = 0.68f),
-                shape = RoundedCornerShape(6.dp),
-            ) {
-                Text(
-                    text = durationText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
+    val creatorText = listOf(videoInfo.uploader, videoInfo.uploaderId).firstOrNull { !it.isNullOrBlank() }.orEmpty()
+    val channelText = videoInfo.channel?.takeIf { !it.isNullOrBlank() && it != creatorText }
+    val sourceUrl = videoInfo.webpageUrl?.takeIf { it.isNotBlank() } ?: videoInfo.originalUrl?.takeIf { it.isNotBlank() }
+    val platformText = listOf(videoInfo.extractorKey, videoInfo.extractor, videoInfo.webpageUrlDomain)
+        .firstOrNull { !it.isNullOrBlank() }
+        ?.replace('_', ' ')
+    val uploadDateText = formatUploadDate(videoInfo.uploadDate ?: videoInfo.releaseDate)
+    val summaryText = listOfNotNull(
+        creatorText.takeIf { it.isNotBlank() },
+        platformText?.takeIf { it.isNotBlank() },
+        videoInfo.webpageUrlDomain?.takeIf { it.isNotBlank() },
+    ).distinct().joinToString(" • ")
+    val detailItems = buildList {
+        creatorText.takeIf { it.isNotBlank() }?.let {
+            add(stringResource(Res.string.desktop_video_info_creator) to it)
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = videoInfo.title.ifBlank { videoInfo.webpageUrlBasename.orEmpty() },
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            videoInfo.uploader?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        channelText?.let {
+            add(stringResource(Res.string.desktop_video_info_channel) to it)
+        }
+        platformText?.takeIf { it.isNotBlank() }?.let {
+            add(stringResource(Res.string.desktop_video_info_platform) to it)
+        }
+        uploadDateText?.let {
+            add(stringResource(Res.string.desktop_video_info_upload_date) to it)
+        }
+        videoInfo.duration?.toInt()?.takeIf { it > 0 }?.let {
+            add(stringResource(Res.string.desktop_video_info_duration) to formatDuration(it))
+        }
+        videoInfo.viewCount?.takeIf { it > 0 }?.let {
+            add(stringResource(Res.string.desktop_video_info_views) to formatCount(it))
+        }
+        videoInfo.likeCount?.takeIf { it > 0 }?.let {
+            add(stringResource(Res.string.desktop_video_info_likes) to formatCount(it.toLong()))
+        }
+        videoInfo.commentCount?.takeIf { it > 0 }?.let {
+            add(stringResource(Res.string.desktop_video_info_comments) to formatCount(it.toLong()))
+        }
+        videoInfo.availability?.takeIf { it.isNotBlank() }?.let {
+            add(stringResource(Res.string.desktop_video_info_availability) to it)
+        }
+        videoInfo.playlist?.takeIf { it.isNotBlank() }?.let {
+            val playlistText = buildString {
+                append(it)
+                videoInfo.playlistIndex?.let { index -> append(" · #").append(index) }
+            }
+            add(stringResource(Res.string.playlist) to playlistText)
+        }
+        videoInfo.chapters?.takeIf { it.isNotEmpty() }?.let {
+            add(stringResource(Res.string.desktop_video_info_chapters) to it.size.toString())
+        }
+        sourceUrl?.let {
+            add(stringResource(Res.string.video_url) to it)
+        }
+        videoInfo.id.takeIf { it.isNotBlank() }?.let {
+            add(stringResource(Res.string.desktop_video_info_id) to it)
+        }
+        videoInfo.tags?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }?.let {
+            add(stringResource(Res.string.desktop_video_info_tags) to it.take(8).joinToString(", "))
+        }
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(4.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier.size(width = 220.dp, height = 124.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                ) {
+                    DownloadThumbnail(url = thumbnailUrl, modifier = Modifier.fillMaxSize())
+                    if ((videoInfo.duration ?: 0.0) > 0.0) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
+                            color = Color.Black.copy(alpha = 0.68f),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = durationText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                    }
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = videoInfo.title.ifBlank { videoInfo.webpageUrlBasename.orEmpty() },
+                        style = MaterialTheme.typography.headlineSmall,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    summaryText.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    sourceUrl?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { uriHandler.openUri(it) },
+                        )
+                    }
+                }
+            }
+            if (detailItems.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    detailItems.chunked(2).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            rowItems.forEach { (label, value) ->
+                                val clickHandler =
+                                    when (label) {
+                                        stringResource(Res.string.video_url) -> { { uriHandler.openUri(value) } }
+                                        stringResource(Res.string.desktop_video_info_id) -> { { clipboard.setText(AnnotatedString(value)) } }
+                                        else -> null
+                                    }
+                                VideoInfoDetailItem(
+                                    label = label,
+                                    value = value,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = clickHandler,
+                                )
+                            }
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+            videoInfo.description?.takeIf { it.isNotBlank() }?.let {
+                VideoInfoDetailItem(
+                    label = stringResource(Res.string.desktop_video_info_description),
+                    value = it.trim(),
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
     }
+}
+
+@Composable
+private fun VideoInfoDetailItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 2,
+    onClick: (() -> Unit)? = null,
+) {
+    Surface(
+        modifier = modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private fun formatCount(value: Long): String = "%,d".format(value)
+
+private fun formatUploadDate(raw: String?): String? {
+    val value = raw?.trim().orEmpty()
+    if (value.length != 8 || value.any { !it.isDigit() }) return raw?.takeIf { it.isNotBlank() }
+    return "${value.substring(0, 4)}-${value.substring(4, 6)}-${value.substring(6, 8)}"
 }
 
 @Composable

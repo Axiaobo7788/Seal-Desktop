@@ -412,4 +412,8 @@
     <string name="every_week">প্রতি সপ্তাহে</string>
     <string name="desktop_navigation">নেভিগেশন</string>
     <string name="desktop_open_navigation">নেভিগেশন খুলুন</string>
+    <string name="desktop_download_detail_status">অবস্থা</string>
+    <string name="desktop_download_detail_exit_code">এক্সিট কোড</string>
+    <string name="desktop_download_detail_args">কমান্ড আর্গুমেন্ট</string>
+    <string name="desktop_download_detail_error">ত্রুটির বিবরণ</string>
 </resources>

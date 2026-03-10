@@ -442,4 +442,8 @@
     <string name="add_to">Tambahkan ke %1$s</string>
     <string name="desktop_navigation">Navigasi</string>
     <string name="desktop_open_navigation">Buka navigasi</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Kode keluar</string>
+    <string name="desktop_download_detail_args">Argumen perintah</string>
+    <string name="desktop_download_detail_error">Detail kesalahan</string>
 </resources>

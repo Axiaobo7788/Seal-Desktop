@@ -71,4 +71,8 @@
     <string name="edit_template_desc">Irteera-direktorioa eta URLa automatikoki erantsiko ditu aplikazioak.</string>
     <string name="desktop_navigation">Nabigazioa</string>
     <string name="desktop_open_navigation">Ireki nabigazioa</string>
+    <string name="desktop_download_detail_status">Egoera</string>
+    <string name="desktop_download_detail_exit_code">Irteera-kodea</string>
+    <string name="desktop_download_detail_args">Komando-argumentuak</string>
+    <string name="desktop_download_detail_error">Errorearen xehetasunak</string>
 </resources>

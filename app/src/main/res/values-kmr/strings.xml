@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>    <string name="desktop_navigation">Navîgasyon</string>
     <string name="desktop_open_navigation">Navîgasyonê veke</string>
+    <string name="desktop_download_detail_status">Rewş</string>
+    <string name="desktop_download_detail_exit_code">Koda derketinê</string>
+    <string name="desktop_download_detail_args">Argumanên fermanê</string>
+    <string name="desktop_download_detail_error">Hûrguliyên çewtiyê</string>
 </resources>

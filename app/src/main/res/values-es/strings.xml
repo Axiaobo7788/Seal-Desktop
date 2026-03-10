@@ -448,4 +448,8 @@
     <string name="saved_urls">Enlaces guardados</string>
     <string name="desktop_navigation">Navegación</string>
     <string name="desktop_open_navigation">Abrir navegación</string>
+    <string name="desktop_download_detail_status">Estado</string>
+    <string name="desktop_download_detail_exit_code">Código de salida</string>
+    <string name="desktop_download_detail_args">Argumentos del comando</string>
+    <string name="desktop_download_detail_error">Detalles del error</string>
 </resources>

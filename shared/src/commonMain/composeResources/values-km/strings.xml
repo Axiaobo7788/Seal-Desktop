@@ -158,4 +158,8 @@
     <string name="new_template">ពុម្ពគំរូថ្មី</string>
     <string name="desktop_navigation">ការរុករក</string>
     <string name="desktop_open_navigation">បើកការរុករក</string>
+    <string name="desktop_download_detail_status">ស្ថានភាព</string>
+    <string name="desktop_download_detail_exit_code">កូដចាកចេញ</string>
+    <string name="desktop_download_detail_args">អាគុយម៉ង់ពាក្យបញ្ជា</string>
+    <string name="desktop_download_detail_error">លម្អិតកំហុស</string>
 </resources>

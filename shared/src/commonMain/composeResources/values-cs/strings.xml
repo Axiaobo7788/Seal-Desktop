@@ -448,4 +448,8 @@
     <string name="add_to">Přidat do %1$s</string>
     <string name="desktop_navigation">Navigace</string>
     <string name="desktop_open_navigation">Otevřít navigaci</string>
+    <string name="desktop_download_detail_status">Stav</string>
+    <string name="desktop_download_detail_exit_code">Návratový kód</string>
+    <string name="desktop_download_detail_args">Argumenty příkazu</string>
+    <string name="desktop_download_detail_error">Podrobnosti chyby</string>
 </resources>

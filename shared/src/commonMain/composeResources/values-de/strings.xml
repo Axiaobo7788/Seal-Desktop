@@ -442,4 +442,8 @@
     <string name="media_info">Medien Info</string>
     <string name="desktop_navigation">Navigation</string>
     <string name="desktop_open_navigation">Navigation öffnen</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Exit-Code</string>
+    <string name="desktop_download_detail_args">Befehlsargumente</string>
+    <string name="desktop_download_detail_error">Fehlerdetails</string>
 </resources>

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>    <string name="desktop_navigation">Tunigin</string>
     <string name="desktop_open_navigation">Ldi tunigin</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Exit code</string>
+    <string name="desktop_download_detail_args">Command arguments</string>
+    <string name="desktop_download_detail_error">Error details</string>
 </resources>

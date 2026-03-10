@@ -422,4 +422,8 @@
     <string name="custom_format_selection_desc">Wybieraj spośród formatów, napisów i dostosowuj dalej</string>
     <string name="desktop_navigation">Nawigacja</string>
     <string name="desktop_open_navigation">Otwórz nawigację</string>
+    <string name="desktop_download_detail_status">Stan</string>
+    <string name="desktop_download_detail_exit_code">Kod zakończenia</string>
+    <string name="desktop_download_detail_args">Argumenty polecenia</string>
+    <string name="desktop_download_detail_error">Szczegóły błędu</string>
 </resources>

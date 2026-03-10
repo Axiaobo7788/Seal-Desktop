@@ -445,4 +445,8 @@
     <string name="media_info">מידע על המדיה</string>
     <string name="desktop_navigation">ניווט</string>
     <string name="desktop_open_navigation">פתח ניווט</string>
+    <string name="desktop_download_detail_status">מצב</string>
+    <string name="desktop_download_detail_exit_code">קוד יציאה</string>
+    <string name="desktop_download_detail_args">ארגומנטים של הפקודה</string>
+    <string name="desktop_download_detail_error">פרטי השגיאה</string>
 </resources>

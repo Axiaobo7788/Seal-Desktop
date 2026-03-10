@@ -445,4 +445,8 @@
     <string name="add_to">Idagdag sa %1$s</string>
     <string name="desktop_navigation">Nabigasyon</string>
     <string name="desktop_open_navigation">Buksan ang nabigasyon</string>
+    <string name="desktop_download_detail_status">Katayuan</string>
+    <string name="desktop_download_detail_exit_code">Code ng paglabas</string>
+    <string name="desktop_download_detail_args">Mga argumento ng utos</string>
+    <string name="desktop_download_detail_error">Mga detalye ng error</string>
 </resources>

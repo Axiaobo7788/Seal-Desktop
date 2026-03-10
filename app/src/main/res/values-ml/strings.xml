@@ -442,4 +442,8 @@
     <string name="issue_tracker">പ്രശ്ന ട്രാക്കർ</string>
     <string name="desktop_navigation">നാവിഗേഷൻ</string>
     <string name="desktop_open_navigation">നാവിഗേഷൻ തുറക്കുക</string>
+    <string name="desktop_download_detail_status">നില</string>
+    <string name="desktop_download_detail_exit_code">എക്സിറ്റ് കോഡ്</string>
+    <string name="desktop_download_detail_args">കമാൻഡ് ആർഗ്യുമെന്റുകൾ</string>
+    <string name="desktop_download_detail_error">പിശക് വിശദാംശങ്ങൾ</string>
 </resources>

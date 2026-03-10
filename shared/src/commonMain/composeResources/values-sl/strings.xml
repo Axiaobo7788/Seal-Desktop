@@ -6,4 +6,8 @@
     <string name="extract_audio">Shrani kot avdio</string>
     <string name="desktop_navigation">Navigacija</string>
     <string name="desktop_open_navigation">Odpri navigacijo</string>
+    <string name="desktop_download_detail_status">Stanje</string>
+    <string name="desktop_download_detail_exit_code">Izhodna koda</string>
+    <string name="desktop_download_detail_args">Argumenti ukaza</string>
+    <string name="desktop_download_detail_error">Podrobnosti napake</string>
 </resources>

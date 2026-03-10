@@ -445,4 +445,8 @@
     <string name="add_to">%1$s-a əlavə et</string>
     <string name="desktop_navigation">Naviqasiya</string>
     <string name="desktop_open_navigation">Naviqasiyanı aç</string>
+    <string name="desktop_download_detail_status">Vəziyyət</string>
+    <string name="desktop_download_detail_exit_code">Çıxış kodu</string>
+    <string name="desktop_download_detail_args">Əmr arqumentləri</string>
+    <string name="desktop_download_detail_error">Xəta təfərrüatları</string>
 </resources>

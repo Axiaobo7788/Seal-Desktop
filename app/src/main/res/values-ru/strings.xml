@@ -448,4 +448,8 @@
     <string name="issue_tracker_hint">Возникла ошибка? Прежде чем сообщать о новой проблеме, воспользуйтесь нашим отслеживанием проблем. Многие распространённые проблемы уже решены и задокументированы там.</string>
     <string name="desktop_navigation">Навигация</string>
     <string name="desktop_open_navigation">Открыть навигацию</string>
+    <string name="desktop_download_detail_status">Статус</string>
+    <string name="desktop_download_detail_exit_code">Код выхода</string>
+    <string name="desktop_download_detail_args">Аргументы команды</string>
+    <string name="desktop_download_detail_error">Сведения об ошибке</string>
 </resources>

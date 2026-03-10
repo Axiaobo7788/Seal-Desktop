@@ -95,4 +95,8 @@
     <string name="best_quality">Mellor calidade</string>
     <string name="desktop_navigation">Navegación</string>
     <string name="desktop_open_navigation">Abrir navegación</string>
+    <string name="desktop_download_detail_status">Estado</string>
+    <string name="desktop_download_detail_exit_code">Código de saída</string>
+    <string name="desktop_download_detail_args">Argumentos do comando</string>
+    <string name="desktop_download_detail_error">Detalles do erro</string>
 </resources>

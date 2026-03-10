@@ -403,4 +403,8 @@
     <string name="search_in_downloads">Cerca a les baixades</string>
     <string name="desktop_navigation">Navegació</string>
     <string name="desktop_open_navigation">Obre la navegació</string>
+    <string name="desktop_download_detail_status">Estat</string>
+    <string name="desktop_download_detail_exit_code">Codi de sortida</string>
+    <string name="desktop_download_detail_args">Arguments de l'ordre</string>
+    <string name="desktop_download_detail_error">Detalls de l'error</string>
 </resources>

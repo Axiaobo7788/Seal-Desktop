@@ -17,4 +17,8 @@
     <string name="fetching_info">ویڈیو کی معلومات حاصل کی جا رہی ہے…</string>
     <string name="desktop_navigation">نیویگیشن</string>
     <string name="desktop_open_navigation">نیویگیشن کھولیں</string>
+    <string name="desktop_download_detail_status">حالت</string>
+    <string name="desktop_download_detail_exit_code">ایگزٹ کوڈ</string>
+    <string name="desktop_download_detail_args">کمانڈ آرگیومنٹس</string>
+    <string name="desktop_download_detail_error">خرابی کی تفصیلات</string>
 </resources>

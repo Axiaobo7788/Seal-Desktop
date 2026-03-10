@@ -445,4 +445,8 @@
     <string name="add_to">%1$s ਵਿੱਚ ਸ਼ਾਮਿਲ ਕਰੋ</string>
     <string name="desktop_navigation">ਨੇਵੀਗੇਸ਼ਨ</string>
     <string name="desktop_open_navigation">ਨੇਵੀਗੇਸ਼ਨ ਖੋਲ੍ਹੋ</string>
+    <string name="desktop_download_detail_status">ਸਥਿਤੀ</string>
+    <string name="desktop_download_detail_exit_code">ਏਗਜ਼ਿਟ ਕੋਡ</string>
+    <string name="desktop_download_detail_args">ਕਮਾਂਡ ਆਰਗੂਮੈਂਟ</string>
+    <string name="desktop_download_detail_error">ਗਲਤੀ ਦੇ ਵੇਰਵੇ</string>
 </resources>

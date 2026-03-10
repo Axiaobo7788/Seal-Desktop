@@ -190,4 +190,8 @@
     <string name="status_downloading">Aan het downloaden</string>
     <string name="desktop_navigation">Navigatie</string>
     <string name="desktop_open_navigation">Navigatie openen</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Afsluitcode</string>
+    <string name="desktop_download_detail_args">Opdrachtargumenten</string>
+    <string name="desktop_download_detail_error">Foutdetails</string>
 </resources>

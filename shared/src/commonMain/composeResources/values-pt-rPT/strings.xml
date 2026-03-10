@@ -445,4 +445,8 @@
     <string name="issue_tracker_hint">Encontrou um erro? Antes de comunicar um novo problema, procure no nosso registo de problemas. Muitos problemas comuns já foram resolvidos e documentados lá.</string>
     <string name="desktop_navigation">Navegação</string>
     <string name="desktop_open_navigation">Abrir navegação</string>
+    <string name="desktop_download_detail_status">Estado</string>
+    <string name="desktop_download_detail_exit_code">Código de saída</string>
+    <string name="desktop_download_detail_args">Argumentos do comando</string>
+    <string name="desktop_download_detail_error">Detalhes do erro</string>
 </resources>

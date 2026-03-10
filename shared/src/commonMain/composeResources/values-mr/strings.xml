@@ -91,4 +91,8 @@
     <string name="video_format_preference">आवडीचा व्हिडिओ स्वरूप</string>
     <string name="desktop_navigation">नेव्हिगेशन</string>
     <string name="desktop_open_navigation">नेव्हिगेशन उघडा</string>
+    <string name="desktop_download_detail_status">स्थिती</string>
+    <string name="desktop_download_detail_exit_code">एक्झिट कोड</string>
+    <string name="desktop_download_detail_args">कमांड आर्ग्युमेंट्स</string>
+    <string name="desktop_download_detail_error">त्रुटी तपशील</string>
 </resources>

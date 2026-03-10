@@ -437,4 +437,8 @@
     <string name="issue_tracker_hint">エラーですか？問題を報告する前に、問題集積所を検索してください。多くの一般的な問題への対処法は既に文書化済みです。</string>
     <string name="desktop_navigation">ナビゲーション</string>
     <string name="desktop_open_navigation">ナビゲーションを開く</string>
+    <string name="desktop_download_detail_status">状態</string>
+    <string name="desktop_download_detail_exit_code">終了コード</string>
+    <string name="desktop_download_detail_args">コマンド引数</string>
+    <string name="desktop_download_detail_error">エラー詳細</string>
 </resources>

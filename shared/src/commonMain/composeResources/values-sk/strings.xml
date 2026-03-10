@@ -52,4 +52,8 @@
     <string name="advanced_settings">Pokročilé</string>
     <string name="desktop_navigation">Navigácia</string>
     <string name="desktop_open_navigation">Otvoriť navigáciu</string>
+    <string name="desktop_download_detail_status">Stav</string>
+    <string name="desktop_download_detail_exit_code">Návratový kód</string>
+    <string name="desktop_download_detail_args">Argumenty príkazu</string>
+    <string name="desktop_download_detail_error">Podrobnosti chyby</string>
 </resources>

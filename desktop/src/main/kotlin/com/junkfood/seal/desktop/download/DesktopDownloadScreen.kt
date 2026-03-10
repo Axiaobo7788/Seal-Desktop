@@ -62,28 +62,32 @@ import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.all
 import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.copy_link
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_hint
 import com.junkfood.seal.shared.generated.resources.download_queue
-import com.junkfood.seal.shared.generated.resources.desktop_download_detail_args
-import com.junkfood.seal.shared.generated.resources.desktop_download_detail_error
-import com.junkfood.seal.shared.generated.resources.desktop_download_detail_exit_code
-import com.junkfood.seal.shared.generated.resources.desktop_download_detail_status
+import com.junkfood.seal.shared.generated.resources.delete
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.file
 import com.junkfood.seal.shared.generated.resources.logs
 import com.junkfood.seal.shared.generated.resources.open_file
+import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.print_details
 import com.junkfood.seal.shared.generated.resources.restart
 import com.junkfood.seal.shared.generated.resources.status_canceled
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.status_error
+import com.junkfood.seal.shared.generated.resources.thumbnail
 import com.junkfood.seal.shared.generated.resources.video_file_size
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
 import com.junkfood.seal.shared.generated.resources.desktop_view_grid
 import com.junkfood.seal.shared.generated.resources.desktop_view_list
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_args
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_error
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_exit_code
+import com.junkfood.seal.shared.generated.resources.desktop_download_detail_status
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,7 +134,12 @@ fun DesktopDownloadScreen(
             statusCanceled = stringResource(Res.string.status_canceled),
             resumeLabel = stringResource(Res.string.restart),
             cancelLabel = stringResource(Res.string.cancel),
+            deleteLabel = stringResource(Res.string.delete),
+            openFileLabel = stringResource(Res.string.open_file),
             shareFileLabel = stringResource(Res.string.open_file),
+            copyUrlLabel = stringResource(Res.string.copy_link),
+            openUrlLabel = stringResource(Res.string.open_url),
+            openThumbLabel = stringResource(Res.string.thumbnail),
             showDetailsLabel = stringResource(Res.string.print_details),
         )
 
@@ -355,8 +364,7 @@ fun DesktopDownloadScreen(
                     fileSizeText?.let { Text("${stringResource(Res.string.video_file_size)}: $it") }
                     item.exitCode?.let { Text("${stringResource(Res.string.desktop_download_detail_exit_code)}: $it") }
                     if (cliArgs.isNotBlank()) {
-                        Text("${stringResource(Res.string.desktop_download_detail_args)}:")
-                        Text(cliArgs, style = MaterialTheme.typography.bodySmall)
+                        Text("${stringResource(Res.string.desktop_download_detail_args)}: $cliArgs", style = MaterialTheme.typography.bodySmall)
                     }
                     item.errorMessage?.takeIf { it.isNotBlank() }?.let {
                         Text("${stringResource(Res.string.desktop_download_detail_error)}: $it")

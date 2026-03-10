@@ -112,4 +112,8 @@
     <string name="best_quality">ಬೆಸ್ಟ್ ಕ್ವಾಲಿಟಿ</string>
     <string name="desktop_navigation">ನ್ಯಾವಿಗೇಶನ್</string>
     <string name="desktop_open_navigation">ನ್ಯಾವಿಗೇಶನ್ ತೆರೆಯಿರಿ</string>
+    <string name="desktop_download_detail_status">ಸ್ಥಿತಿ</string>
+    <string name="desktop_download_detail_exit_code">ನಿರ್ಗಮನ ಕೋಡ್</string>
+    <string name="desktop_download_detail_args">ಕಮಾಂಡ್ ಆರ್ಗ್ಯುಮೆಂಟ್‌ಗಳು</string>
+    <string name="desktop_download_detail_error">ದೋಷ ವಿವರಗಳು</string>
 </resources>

@@ -431,4 +431,8 @@
     <string name="best_quality_desc">Preuzmi najbolji dostupni format</string>
     <string name="desktop_navigation">Navigacija</string>
     <string name="desktop_open_navigation">Otvori navigaciju</string>
+    <string name="desktop_download_detail_status">Status</string>
+    <string name="desktop_download_detail_exit_code">Izlazni kod</string>
+    <string name="desktop_download_detail_args">Argumenti naredbe</string>
+    <string name="desktop_download_detail_error">Pojedinosti pogreške</string>
 </resources>

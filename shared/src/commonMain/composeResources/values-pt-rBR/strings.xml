@@ -445,4 +445,8 @@
     <string name="issue_tracker">Rastreador de problemas</string>
     <string name="desktop_navigation">Navegação</string>
     <string name="desktop_open_navigation">Abrir navegação</string>
+    <string name="desktop_download_detail_status">Estado</string>
+    <string name="desktop_download_detail_exit_code">Código de saída</string>
+    <string name="desktop_download_detail_args">Argumentos do comando</string>
+    <string name="desktop_download_detail_error">Detalhes do erro</string>
 </resources>

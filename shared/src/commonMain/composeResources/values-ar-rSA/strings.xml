@@ -52,4 +52,8 @@
     <string name="credits_desc">الاعتمادات والبرمجيات الحرة</string>
     <string name="desktop_navigation">التنقل</string>
     <string name="desktop_open_navigation">فتح التنقل</string>
+    <string name="desktop_download_detail_status">الحالة</string>
+    <string name="desktop_download_detail_exit_code">رمز الخروج</string>
+    <string name="desktop_download_detail_args">وسيطات الأمر</string>
+    <string name="desktop_download_detail_error">تفاصيل الخطأ</string>
 </resources>

@@ -437,4 +437,8 @@
     </plurals>
     <string name="desktop_navigation">การนำทาง</string>
     <string name="desktop_open_navigation">เปิดการนำทาง</string>
+    <string name="desktop_download_detail_status">สถานะ</string>
+    <string name="desktop_download_detail_exit_code">รหัสออก</string>
+    <string name="desktop_download_detail_args">อาร์กิวเมนต์คำสั่ง</string>
+    <string name="desktop_download_detail_error">รายละเอียดข้อผิดพลาด</string>
 </resources>

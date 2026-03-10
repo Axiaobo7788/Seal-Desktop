@@ -451,4 +451,8 @@
     <string name="add_to">Додати до %1$s</string>
     <string name="desktop_navigation">Навігація</string>
     <string name="desktop_open_navigation">Відкрити навігацію</string>
+    <string name="desktop_download_detail_status">Стан</string>
+    <string name="desktop_download_detail_exit_code">Код виходу</string>
+    <string name="desktop_download_detail_args">Аргументи команди</string>
+    <string name="desktop_download_detail_error">Відомості про помилку</string>
 </resources>

@@ -445,4 +445,8 @@
     <string name="trouble_shooting_desc">Corriger les erreurs courantes et vérifier les problèmes connus</string>
     <string name="desktop_navigation">Navigation</string>
     <string name="desktop_open_navigation">Ouvrir la navigation</string>
+    <string name="desktop_download_detail_status">Statut</string>
+    <string name="desktop_download_detail_exit_code">Code de sortie</string>
+    <string name="desktop_download_detail_args">Arguments de la commande</string>
+    <string name="desktop_download_detail_error">Détails de l'erreur</string>
 </resources>

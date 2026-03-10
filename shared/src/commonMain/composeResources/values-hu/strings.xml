@@ -284,4 +284,8 @@
     <string name="video_creator_sample_text">Videó készitő példa szöveg</string>
     <string name="desktop_navigation">Navigáció</string>
     <string name="desktop_open_navigation">Navigáció megnyitása</string>
+    <string name="desktop_download_detail_status">Állapot</string>
+    <string name="desktop_download_detail_exit_code">Kilépési kód</string>
+    <string name="desktop_download_detail_args">Parancsargumentumok</string>
+    <string name="desktop_download_detail_error">Hiba részletei</string>
 </resources>

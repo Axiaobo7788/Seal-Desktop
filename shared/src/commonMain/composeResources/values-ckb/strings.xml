@@ -172,4 +172,8 @@
     <string name="delete_multiple_items_msg">%1$d item(s) لە مێژووی دابەزاندنەکەت بۆ هەمیشە لادەبەیت؟</string>
     <string name="desktop_navigation">ناڤیگەیشن</string>
     <string name="desktop_open_navigation">ناڤیگەیشن بکەرەوە</string>
+    <string name="desktop_download_detail_status">دۆخ</string>
+    <string name="desktop_download_detail_exit_code">کۆدی دەرچوون</string>
+    <string name="desktop_download_detail_args">ئارگیومێنتەکانی فەرمان</string>
+    <string name="desktop_download_detail_error">وردەکاریی هەڵە</string>
 </resources>

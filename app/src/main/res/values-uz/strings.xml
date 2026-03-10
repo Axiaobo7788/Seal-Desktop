@@ -139,4 +139,8 @@
     <string name="video_url">Video havolasi</string>
     <string name="desktop_navigation">Navigatsiya</string>
     <string name="desktop_open_navigation">Navigatsiyani ochish</string>
+    <string name="desktop_download_detail_status">Holat</string>
+    <string name="desktop_download_detail_exit_code">Chiqish kodi</string>
+    <string name="desktop_download_detail_args">Buyruq argumentlari</string>
+    <string name="desktop_download_detail_error">Xato tafsilotlari</string>
 </resources>

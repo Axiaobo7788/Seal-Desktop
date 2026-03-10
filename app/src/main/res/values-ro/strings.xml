@@ -310,4 +310,8 @@
     <string name="ytdlp_update_action">Actualizează yt-dlp</string>
     <string name="desktop_navigation">Navigare</string>
     <string name="desktop_open_navigation">Deschide navigarea</string>
+    <string name="desktop_download_detail_status">Stare</string>
+    <string name="desktop_download_detail_exit_code">Cod de ieșire</string>
+    <string name="desktop_download_detail_args">Argumente comandă</string>
+    <string name="desktop_download_detail_error">Detalii eroare</string>
 </resources>

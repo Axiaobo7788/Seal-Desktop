@@ -445,4 +445,8 @@
     <string name="add_to">%1$s में शामिल करें</string>
     <string name="desktop_navigation">नेविगेशन</string>
     <string name="desktop_open_navigation">नेविगेशन खोलें</string>
+    <string name="desktop_download_detail_status">स्थिति</string>
+    <string name="desktop_download_detail_exit_code">एग्ज़िट कोड</string>
+    <string name="desktop_download_detail_args">कमांड आर्ग्युमेंट</string>
+    <string name="desktop_download_detail_error">त्रुटि विवरण</string>
 </resources>

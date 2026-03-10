@@ -22,8 +22,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.foundation.Image
@@ -59,6 +64,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -87,8 +94,11 @@ import com.junkfood.seal.shared.generated.resources.item_count
 import com.junkfood.seal.shared.generated.resources.no_downloaded_media
 import com.junkfood.seal.shared.generated.resources.open_file
 import com.junkfood.seal.shared.generated.resources.open_url
+import com.junkfood.seal.shared.generated.resources.remove
 import com.junkfood.seal.shared.generated.resources.search
 import com.junkfood.seal.shared.generated.resources.search_in_downloads
+import com.junkfood.seal.shared.generated.resources.show_more_actions
+import com.junkfood.seal.shared.generated.resources.thumbnail
 import com.junkfood.seal.shared.generated.resources.unknown
 import com.junkfood.seal.shared.generated.resources.unavailable
 import com.junkfood.seal.shared.generated.resources.video
@@ -435,8 +445,12 @@ private fun HistoryRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
+    val previewInteractionSource = remember { MutableInteractionSource() }
     val clipboard = LocalClipboardManager.current
+    val thumbnailLabel = stringResource(Res.string.thumbnail)
+    val moreActionsLabel = stringResource(Res.string.show_more_actions)
     val exists = entry.filePath?.let { runCatching { Files.exists(Path.of(it)) }.getOrDefault(false) } ?: false
+    val thumbnailUrl = entry.thumbnailUrl?.takeIf { !disablePreview && it.isNotBlank() }
     val metaLine =
         when {
             !exists -> stringResource(Res.string.unavailable)
@@ -473,10 +487,18 @@ private fun HistoryRow(
                         Modifier
                             .height(90.dp)
                             .aspectRatio(16f / 9f)
-                            .clip(MaterialTheme.shapes.extraSmall),
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .semantics { contentDescription = thumbnailLabel }
+                            .clickable(
+                                interactionSource = previewInteractionSource,
+                                indication = null,
+                                enabled = thumbnailUrl != null,
+                            ) {
+                                thumbnailUrl?.let { safeBrowse(it) }
+                            },
                 ) {
                     DownloadThumbnail(
-                        url = if (disablePreview) null else entry.thumbnailUrl,
+                        url = thumbnailUrl,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                     )
@@ -551,17 +573,28 @@ private fun HistoryRow(
 
             Box(modifier = Modifier.align(Alignment.BottomEnd)) {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.MoreVert, contentDescription = moreActionsLabel, modifier = Modifier.size(18.dp))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.delete)) },
+                        leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
+                        text = { Text(stringResource(Res.string.open_file)) },
+                        enabled = exists,
+                        onClick = {
+                            menuOpen = false
+                            entry.filePath?.let { openFile(it) }
+                        },
+                    )
+                    DropdownMenuItem(
+                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                        text = { Text(stringResource(Res.string.remove)) },
                         onClick = {
                             menuOpen = false
                             onDelete(entry.id)
                         },
                     )
                     DropdownMenuItem(
+                        leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
                         text = { Text(stringResource(Res.string.copy_link)) },
                         onClick = {
                             menuOpen = false
@@ -569,6 +602,7 @@ private fun HistoryRow(
                         },
                     )
                     DropdownMenuItem(
+                        leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null) },
                         text = { Text(stringResource(Res.string.open_url)) },
                         enabled = entry.url.isNotBlank(),
                         onClick = {
@@ -577,11 +611,12 @@ private fun HistoryRow(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.open_file)) },
-                        enabled = exists,
+                        leadingIcon = { Icon(Icons.Outlined.Image, contentDescription = null) },
+                        text = { Text(stringResource(Res.string.thumbnail)) },
+                        enabled = thumbnailUrl != null,
                         onClick = {
                             menuOpen = false
-                            entry.filePath?.let { openFile(it) }
+                            thumbnailUrl?.let { safeBrowse(it) }
                         },
                     )
                 }

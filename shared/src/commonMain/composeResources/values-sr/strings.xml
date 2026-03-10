@@ -448,4 +448,8 @@
     <string name="saved_urls">Сачувани линкови</string>
     <string name="desktop_navigation">Навигација</string>
     <string name="desktop_open_navigation">Отвори навигацију</string>
+    <string name="desktop_download_detail_status">Статус</string>
+    <string name="desktop_download_detail_exit_code">Излазни код</string>
+    <string name="desktop_download_detail_args">Аргументи команде</string>
+    <string name="desktop_download_detail_error">Детаљи грешке</string>
 </resources>
