@@ -5,6 +5,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -13,7 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import com.kyant.monet.PaletteStyle
+import com.kyant.monet.TonalPalettes.Companion.toTonalPalettes
+import com.kyant.monet.LocalTonalPalettes
+import com.kyant.monet.dynamicColorScheme
 import java.awt.Toolkit
 import java.beans.PropertyChangeListener
 import java.util.Locale
@@ -111,26 +115,44 @@ fun DesktopSealTheme(
             else -> false
         }
 
-    val base = if (darkTheme) darkColorScheme() else lightColorScheme()
-    val scheme =
-        if (prefs.dynamicColorEnabled) {
-            applySeedAccent(
-                base = base,
-                seed = seedColorForIndex(prefs.seedColorIndex),
-                darkTheme = darkTheme,
-            )
-        } else {
-            base
+    val dynamicSeed = detectSystemAccentColor()
+    val seed =
+        when {
+            prefs.dynamicColorEnabled && dynamicSeed != null -> dynamicSeed
+            prefs.paletteStyleIndex == PaletteStylePreference.MONOCHROME -> Color.Black
+            else -> seedColorForIndex(prefs.seedColorIndex)
         }
 
-    val finalScheme =
-        if (darkTheme && prefs.highContrastEnabled) {
-            scheme.copy(surface = Color.Black, background = Color.Black)
-        } else {
-            scheme
-        }
+    val style = when(if (prefs.dynamicColorEnabled) PaletteStylePreference.TONAL_SPOT else prefs.paletteStyleIndex) {
+        PaletteStylePreference.TONAL_SPOT -> PaletteStyle.TonalSpot
+        PaletteStylePreference.SPRITZ -> PaletteStyle.Spritz
+        PaletteStylePreference.FRUIT_SALAD -> PaletteStyle.FruitSalad
+        PaletteStylePreference.VIBRANT -> PaletteStyle.Vibrant
+        PaletteStylePreference.MONOCHROME -> PaletteStyle.Monochrome
+        else -> PaletteStyle.TonalSpot
+    }
 
-    MaterialTheme(colorScheme = finalScheme, content = content)
+    val tonalPalettes = seed.toTonalPalettes(style)
+    
+    CompositionLocalProvider(LocalTonalPalettes provides tonalPalettes) {
+        val scheme = dynamicColorScheme(isLight = !darkTheme)
+        val finalScheme =
+            if (darkTheme && prefs.highContrastEnabled) {
+                scheme.copy(
+                    surface = Color.Black,
+                    background = Color.Black,
+                    surfaceContainerLowest = Color.Black,
+                    surfaceContainerLow = scheme.surfaceContainerLowest,
+                    surfaceContainer = scheme.surfaceContainerLow,
+                    surfaceContainerHigh = scheme.surfaceContainerLow,
+                    surfaceContainerHighest = scheme.surfaceContainer,
+                )
+            } else {
+                scheme
+            }
+
+        MaterialTheme(colorScheme = finalScheme, content = content)
+    }
 }
 
 private fun detectDesktopOs(): DesktopOs {
@@ -301,6 +323,66 @@ private fun detectWindowsDarkTheme(): Boolean? {
     }
 }
 
+private fun detectSystemAccentColor(): Color? {
+    return when (detectDesktopOs()) {
+        DesktopOs.Mac -> detectMacAccentColor()
+        DesktopOs.Windows -> detectWindowsAccentColor()
+        DesktopOs.Linux -> detectLinuxAccentColor()
+        DesktopOs.Other -> null
+    }
+}
+
+private fun detectMacAccentColor(): Color? {
+    val raw = runCommand("defaults", "read", "-g", "AppleAccentColor") ?: return Color(0xFF0A84FF)
+    val value = raw.trim().toIntOrNull() ?: return Color(0xFF0A84FF)
+    return when (value) {
+        -1 -> Color(0xFF8E8E93)
+        0 -> Color(0xFFFF453A)
+        1 -> Color(0xFFFF9F0A)
+        2 -> Color(0xFFFFD60A)
+        3 -> Color(0xFF30D158)
+        4 -> Color(0xFF0A84FF)
+        5 -> Color(0xFFBF5AF2)
+        6 -> Color(0xFFFF375F)
+        else -> Color(0xFF0A84FF)
+    }
+}
+
+private fun detectWindowsAccentColor(): Color? {
+    val output =
+        runCommand(
+            "reg",
+            "query",
+            "HKCU\\Software\\Microsoft\\Windows\\DWM",
+            "/v",
+            "AccentColor",
+        ) ?: return null
+    val hex = Regex("0x([0-9a-fA-F]+)").find(output)?.groupValues?.getOrNull(1) ?: return null
+    val value = hex.toLongOrNull(16) ?: return null
+    val bgr = (value and 0x00FFFFFF).toInt()
+    val red = bgr and 0xFF
+    val green = (bgr shr 8) and 0xFF
+    val blue = (bgr shr 16) and 0xFF
+    return Color(red = red / 255f, green = green / 255f, blue = blue / 255f, alpha = 1f)
+}
+
+private fun detectLinuxAccentColor(): Color? {
+    val output = runCommand("gsettings", "get", "org.gnome.desktop.interface", "accent-color") ?: return null
+    val normalized = output.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("red") -> Color(0xFFE53935)
+        normalized.contains("orange") -> Color(0xFFFB8C00)
+        normalized.contains("yellow") -> Color(0xFFFBC02D)
+        normalized.contains("green") -> Color(0xFF43A047)
+        normalized.contains("teal") -> Color(0xFF00897B)
+        normalized.contains("blue") -> Color(0xFF1E88E5)
+        normalized.contains("purple") -> Color(0xFF8E24AA)
+        normalized.contains("pink") -> Color(0xFFD81B60)
+        normalized.contains("slate") -> Color(0xFF546E7A)
+        else -> null
+    }
+}
+
 private fun runCommand(vararg args: String): String? {
     return runCatching {
         val process = ProcessBuilder(*args).redirectErrorStream(true).start()
@@ -331,40 +413,23 @@ private fun seedColorForIndex(index: Int): Color {
     return swatches.getOrElse(index) { swatches.first() }
 }
 
-private fun applySeedAccent(base: ColorScheme, seed: Color, darkTheme: Boolean): ColorScheme {
-    val onSeed = if (seed.luminance() > 0.55f) Color.Black else Color.White
-    val container =
-        if (darkTheme) {
-            mix(seed, Color.Black, 0.55f)
-        } else {
-            mix(seed, Color.White, 0.70f)
-        }
-    val onContainer = if (container.luminance() > 0.55f) Color.Black else Color.White
-
-    val secondary = mix(seed, base.secondary, 0.40f)
-    val onSecondary = if (secondary.luminance() > 0.55f) Color.Black else Color.White
-
-    val tertiary = mix(seed, base.tertiary, 0.50f)
-    val onTertiary = if (tertiary.luminance() > 0.55f) Color.Black else Color.White
-
-    return base.copy(
-        primary = seed,
-        onPrimary = onSeed,
-        primaryContainer = container,
-        onPrimaryContainer = onContainer,
-        secondary = secondary,
-        onSecondary = onSecondary,
-        tertiary = tertiary,
-        onTertiary = onTertiary,
-    )
-}
-
-private fun mix(a: Color, b: Color, t: Float): Color {
-    val clamped = t.coerceIn(0f, 1f)
-    return Color(
-        red = a.red * (1f - clamped) + b.red * clamped,
-        green = a.green * (1f - clamped) + b.green * clamped,
-        blue = a.blue * (1f - clamped) + b.blue * clamped,
-        alpha = 1f,
+fun md3RolePreviewSwatches(
+    seed: Color,
+    paletteStyleIndex: Int,
+): List<Color> {
+    val style = when(paletteStyleIndex) {
+        PaletteStylePreference.TONAL_SPOT -> PaletteStyle.TonalSpot
+        PaletteStylePreference.SPRITZ -> PaletteStyle.Spritz
+        PaletteStylePreference.FRUIT_SALAD -> PaletteStyle.FruitSalad
+        PaletteStylePreference.VIBRANT -> PaletteStyle.Vibrant
+        PaletteStylePreference.MONOCHROME -> PaletteStyle.Monochrome
+        else -> PaletteStyle.TonalSpot
+    }
+    
+    val palettes = seed.toTonalPalettes(style)
+    return listOf(
+        palettes.accent1(80.0),
+        palettes.accent2(90.0),
+        palettes.accent3(60.0)
     )
 }

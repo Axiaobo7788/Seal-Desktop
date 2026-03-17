@@ -150,6 +150,14 @@
     <string name="status_downloading">正在下載</string>
     <string name="status_fetching_video_info">正在擷取資訊</string>
     <string name="open_file">開啟檔案</string>
+    <string name="open_file_location">開啟檔案位置</string>
+    <string name="desktop_delete_queue_item_msg">要從下載佇列移除此項目嗎？</string>
+    <string name="desktop_delete_local_file_also">同時刪除本機檔案</string>
+    <string name="desktop_delete_local_file_unavailable">找不到可刪除的本機檔案</string>
+    <string name="desktop_open_local_file_unavailable">找不到本機檔案</string>
+    <string name="desktop_action_failed_prefix">操作失敗：%1$s</string>
+    <string name="desktop_error_item_not_found">找不到該項目</string>
+    <string name="desktop_error_link_empty">連結為空</string>
     <string name="restart">重新啟動</string>
     <string name="status_error">錯誤</string>
     <string name="video_resolution">影片解析度</string>

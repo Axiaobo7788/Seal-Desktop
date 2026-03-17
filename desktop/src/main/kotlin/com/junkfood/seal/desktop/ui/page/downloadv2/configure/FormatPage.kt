@@ -37,11 +37,14 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,31 +72,25 @@ import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.audio
+import com.junkfood.seal.shared.generated.resources.auto_subtitle
 import com.junkfood.seal.shared.generated.resources.back
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_availability
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_channel
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_chapters
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_comments
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_creator
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_description
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_duration
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_id
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_likes
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_platform
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_tags
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_upload_date
-import com.junkfood.seal.shared.generated.resources.desktop_video_info_views
+import com.junkfood.seal.shared.generated.resources.clip_end
+import com.junkfood.seal.shared.generated.resources.clip_start
+import com.junkfood.seal.shared.generated.resources.clip_video
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.playlist
+import com.junkfood.seal.shared.generated.resources.rename
 import com.junkfood.seal.shared.generated.resources.show_all_items
+import com.junkfood.seal.shared.generated.resources.split_video
 import com.junkfood.seal.shared.generated.resources.start_download
+import com.junkfood.seal.shared.generated.resources.subtitle_language
 import com.junkfood.seal.shared.generated.resources.suggested
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_only
-import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
+import com.junkfood.seal.util.VideoClip
 import com.junkfood.seal.util.VideoInfo
 import com.junkfood.seal.util.connectWithDelimiter
 import com.junkfood.seal.util.toHttpsUrl
@@ -102,12 +99,22 @@ import kotlin.math.min
 
 private const val NotSelected = -1
 
+private data class FormatConfig(
+    val formatList: List<Format>,
+    val videoClips: List<VideoClip>,
+    val splitByChapter: Boolean,
+    val newTitle: String,
+    val selectedSubtitles: List<String>,
+    val selectedAutoCaptions: List<String>,
+)
+
 @Composable
 internal fun CustomFormatSelectionSheet(
     url: String,
     controller: DesktopDownloadController,
     downloadType: DesktopDownloadType,
     basePreferences: DownloadPreferences,
+    onPreferencesUpdated: (DownloadPreferences) -> Unit,
     onBack: () -> Unit,
     onDownloadComplete: () -> Unit,
 ) {
@@ -142,15 +149,22 @@ internal fun CustomFormatSelectionSheet(
         videoInfo != null ->
             FormatPageImpl(
                 videoInfo = videoInfo!!,
+                basePreferences = basePreferences,
                 allowMultiAudio = basePreferences.mergeAudioStream,
                 onNavigateBack = onBack,
-                onDownloadPressed = { formats ->
+                onDownloadPressed = { config ->
                     controller.startDownloadWithSelection(
                         url = url,
                         type = downloadType,
                         basePreferences = basePreferences,
                         videoInfo = videoInfo!!,
-                        formatList = formats,
+                        formatList = config.formatList,
+                        videoClips = config.videoClips,
+                        splitByChapter = config.splitByChapter,
+                        newTitle = config.newTitle,
+                        selectedSubtitles = config.selectedSubtitles,
+                        selectedAutoCaptions = config.selectedAutoCaptions,
+                        onSelectionApplied = onPreferencesUpdated,
                     )
                     onDownloadComplete()
                 },
@@ -237,9 +251,10 @@ private fun EmptyState(onBack: () -> Unit) {
 @Composable
 private fun FormatPageImpl(
     videoInfo: VideoInfo,
+    basePreferences: DownloadPreferences,
     allowMultiAudio: Boolean,
     onNavigateBack: () -> Unit,
-    onDownloadPressed: (List<Format>) -> Unit,
+    onDownloadPressed: (FormatConfig) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val formats = videoInfo.formats.orEmpty()
@@ -250,6 +265,12 @@ private fun FormatPageImpl(
     val videoAudioFormats = formats.filter { it.containsAudio() && it.containsVideo() }.reversed()
 
     val duration = videoInfo.duration ?: 0.0
+    val durationSeconds = duration.toInt().coerceAtLeast(0)
+    val chapterCount = videoInfo.chapters?.size ?: 0
+
+    val initialSubtitleCodes = remember(basePreferences.subtitleLanguage) { parseLanguageCodes(basePreferences.subtitleLanguage) }
+    val subtitleCodes = remember(videoInfo.subtitles) { videoInfo.subtitles.keys.sorted() }
+    val autoCaptionCodes = remember(videoInfo.automaticCaptions) { videoInfo.automaticCaptions.keys.sorted() }
 
     var videoOnlyItemLimit by remember { mutableIntStateOf(6) }
     var audioOnlyItemLimit by remember { mutableIntStateOf(6) }
@@ -262,6 +283,34 @@ private fun FormatPageImpl(
     var selectedVideoAudioFormat by remember { mutableIntStateOf(NotSelected) }
     var selectedVideoOnlyFormat by remember { mutableIntStateOf(NotSelected) }
     val selectedAudioOnlyFormats = remember { mutableStateListOf<Int>() }
+    val selectedSubtitles =
+        remember(videoInfo.id, basePreferences.subtitleLanguage) {
+            mutableStateListOf<String>().apply {
+                addAll(subtitleCodes.filter { code -> initialSubtitleCodes.contains(code) })
+            }
+        }
+    val selectedAutoCaptions =
+        remember(videoInfo.id, basePreferences.subtitleLanguage, basePreferences.autoSubtitle) {
+            mutableStateListOf<String>().apply {
+                if (basePreferences.autoSubtitle) {
+                    addAll(autoCaptionCodes.filter { code -> initialSubtitleCodes.contains(code) })
+                }
+            }
+        }
+    var splitByChapter by remember(videoInfo.id) { mutableStateOf(basePreferences.splitByChapter && chapterCount > 0) }
+    var clipVideo by remember(videoInfo.id) { mutableStateOf(basePreferences.videoClips.isNotEmpty()) }
+    var clipStartText by remember(videoInfo.id) {
+        mutableStateOf(basePreferences.videoClips.firstOrNull()?.start?.coerceAtLeast(0)?.toString() ?: "0")
+    }
+    var clipEndText by remember(videoInfo.id) {
+        mutableStateOf(
+            (
+                basePreferences.videoClips.firstOrNull()?.end?.takeIf { it > 0 }
+                    ?: durationSeconds
+            ).toString(),
+        )
+    }
+    var newTitle by remember(videoInfo.id) { mutableStateOf(basePreferences.newTitle.takeIf { it.isNotBlank() } ?: "") }
 
     val lazyGridState = rememberLazyGridState()
     val isFabExpanded by remember { derivedStateOf { lazyGridState.firstVisibleItemIndex > 0 } }
@@ -297,7 +346,24 @@ private fun FormatPageImpl(
         floatingActionButton = {
             if (selectedFormats.isNotEmpty()) {
                 ExtendedFloatingActionButton(
-                    onClick = { onDownloadPressed(selectedFormats) },
+                    onClick = {
+                        val clips = buildVideoClips(
+                            enabled = clipVideo,
+                            startText = clipStartText,
+                            endText = clipEndText,
+                            maxSeconds = durationSeconds,
+                        )
+                        onDownloadPressed(
+                            FormatConfig(
+                                formatList = selectedFormats,
+                                videoClips = clips,
+                                splitByChapter = splitByChapter && clips.isEmpty(),
+                                newTitle = newTitle.trim(),
+                                selectedSubtitles = selectedSubtitles.toList(),
+                                selectedAutoCaptions = selectedAutoCaptions.toList(),
+                            ),
+                        )
+                    },
                     icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
                     text = { Text(stringResource(Res.string.start_download)) },
                     expanded = isFabExpanded,
@@ -315,6 +381,37 @@ private fun FormatPageImpl(
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 FormatPreviewHeader(videoInfo = videoInfo)
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                AdvancedOptionsCard(
+                    durationSeconds = durationSeconds,
+                    chapterCount = chapterCount,
+                    splitByChapter = splitByChapter,
+                    onSplitByChapterChange = { checked ->
+                        splitByChapter = checked
+                        if (checked) {
+                            clipVideo = false
+                        }
+                    },
+                    clipVideo = clipVideo,
+                    onClipVideoChange = { checked ->
+                        clipVideo = checked
+                        if (checked) {
+                            splitByChapter = false
+                        }
+                    },
+                    clipStartText = clipStartText,
+                    onClipStartTextChange = { clipStartText = it },
+                    clipEndText = clipEndText,
+                    onClipEndTextChange = { clipEndText = it },
+                    newTitle = newTitle,
+                    onNewTitleChange = { newTitle = it },
+                    subtitleCodes = subtitleCodes,
+                    selectedSubtitles = selectedSubtitles,
+                    autoCaptionCodes = autoCaptionCodes,
+                    selectedAutoCaptions = selectedAutoCaptions,
+                )
             }
 
             if (isSuggestedFormatAvailable) {
@@ -436,70 +533,18 @@ private fun FormatPageImpl(
 
 @Composable
 private fun FormatPreviewHeader(videoInfo: VideoInfo) {
-    val clipboard = LocalClipboardManager.current
     val uriHandler = LocalUriHandler.current
     val thumbnailUrl = videoInfo.thumbnail.toHttpsUrl()
     val durationText = formatDuration(videoInfo.duration?.toInt() ?: 0)
     val creatorText = listOf(videoInfo.uploader, videoInfo.uploaderId).firstOrNull { !it.isNullOrBlank() }.orEmpty()
-    val channelText = videoInfo.channel?.takeIf { !it.isNullOrBlank() && it != creatorText }
     val sourceUrl = videoInfo.webpageUrl?.takeIf { it.isNotBlank() } ?: videoInfo.originalUrl?.takeIf { it.isNotBlank() }
-    val platformText = listOf(videoInfo.extractorKey, videoInfo.extractor, videoInfo.webpageUrlDomain)
-        .firstOrNull { !it.isNullOrBlank() }
-        ?.replace('_', ' ')
-    val uploadDateText = formatUploadDate(videoInfo.uploadDate ?: videoInfo.releaseDate)
+    val platformText = listOf(videoInfo.extractorKey, videoInfo.extractor, videoInfo.webpageUrlDomain).firstOrNull { !it.isNullOrBlank() }?.replace('_', ' ')
     val summaryText = listOfNotNull(
         creatorText.takeIf { it.isNotBlank() },
         platformText?.takeIf { it.isNotBlank() },
         videoInfo.webpageUrlDomain?.takeIf { it.isNotBlank() },
     ).distinct().joinToString(" • ")
-    val detailItems = buildList {
-        creatorText.takeIf { it.isNotBlank() }?.let {
-            add(stringResource(Res.string.desktop_video_info_creator) to it)
-        }
-        channelText?.let {
-            add(stringResource(Res.string.desktop_video_info_channel) to it)
-        }
-        platformText?.takeIf { it.isNotBlank() }?.let {
-            add(stringResource(Res.string.desktop_video_info_platform) to it)
-        }
-        uploadDateText?.let {
-            add(stringResource(Res.string.desktop_video_info_upload_date) to it)
-        }
-        videoInfo.duration?.toInt()?.takeIf { it > 0 }?.let {
-            add(stringResource(Res.string.desktop_video_info_duration) to formatDuration(it))
-        }
-        videoInfo.viewCount?.takeIf { it > 0 }?.let {
-            add(stringResource(Res.string.desktop_video_info_views) to formatCount(it))
-        }
-        videoInfo.likeCount?.takeIf { it > 0 }?.let {
-            add(stringResource(Res.string.desktop_video_info_likes) to formatCount(it.toLong()))
-        }
-        videoInfo.commentCount?.takeIf { it > 0 }?.let {
-            add(stringResource(Res.string.desktop_video_info_comments) to formatCount(it.toLong()))
-        }
-        videoInfo.availability?.takeIf { it.isNotBlank() }?.let {
-            add(stringResource(Res.string.desktop_video_info_availability) to it)
-        }
-        videoInfo.playlist?.takeIf { it.isNotBlank() }?.let {
-            val playlistText = buildString {
-                append(it)
-                videoInfo.playlistIndex?.let { index -> append(" · #").append(index) }
-            }
-            add(stringResource(Res.string.playlist) to playlistText)
-        }
-        videoInfo.chapters?.takeIf { it.isNotEmpty() }?.let {
-            add(stringResource(Res.string.desktop_video_info_chapters) to it.size.toString())
-        }
-        sourceUrl?.let {
-            add(stringResource(Res.string.video_url) to it)
-        }
-        videoInfo.id.takeIf { it.isNotBlank() }?.let {
-            add(stringResource(Res.string.desktop_video_info_id) to it)
-        }
-        videoInfo.tags?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }?.let {
-            add(stringResource(Res.string.desktop_video_info_tags) to it.take(8).joinToString(", "))
-        }
-    }
+
     Surface(
         modifier = Modifier.fillMaxWidth().padding(4.dp),
         shape = RoundedCornerShape(18.dp),
@@ -560,87 +605,17 @@ private fun FormatPreviewHeader(videoInfo: VideoInfo) {
                     }
                 }
             }
-            if (detailItems.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    detailItems.chunked(2).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            rowItems.forEach { (label, value) ->
-                                val clickHandler =
-                                    when (label) {
-                                        stringResource(Res.string.video_url) -> { { uriHandler.openUri(value) } }
-                                        stringResource(Res.string.desktop_video_info_id) -> { { clipboard.setText(AnnotatedString(value)) } }
-                                        else -> null
-                                    }
-                                VideoInfoDetailItem(
-                                    label = label,
-                                    value = value,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = clickHandler,
-                                )
-                            }
-                            if (rowItems.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
-            videoInfo.description?.takeIf { it.isNotBlank() }?.let {
-                VideoInfoDetailItem(
-                    label = stringResource(Res.string.desktop_video_info_description),
-                    value = it.trim(),
-                    maxLines = 8,
-                    modifier = Modifier.fillMaxWidth(),
+            videoInfo.playlist?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = stringResource(Res.string.playlist) + ": " + it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
-}
-
-@Composable
-private fun VideoInfoDetailItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    maxLines: Int = 2,
-    onClick: (() -> Unit)? = null,
-) {
-    Surface(
-        modifier = modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = maxLines,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-private fun formatCount(value: Long): String = "%,d".format(value)
-
-private fun formatUploadDate(raw: String?): String? {
-    val value = raw?.trim().orEmpty()
-    if (value.length != 8 || value.any { !it.isDigit() }) return raw?.takeIf { it.isNotBlank() }
-    return "${value.substring(0, 4)}-${value.substring(4, 6)}-${value.substring(6, 8)}"
 }
 
 @Composable
@@ -694,6 +669,145 @@ private fun FormatHintInfo(text: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
         )
+    }
+}
+
+@Composable
+private fun AdvancedOptionsCard(
+    durationSeconds: Int,
+    chapterCount: Int,
+    splitByChapter: Boolean,
+    onSplitByChapterChange: (Boolean) -> Unit,
+    clipVideo: Boolean,
+    onClipVideoChange: (Boolean) -> Unit,
+    clipStartText: String,
+    onClipStartTextChange: (String) -> Unit,
+    clipEndText: String,
+    onClipEndTextChange: (String) -> Unit,
+    newTitle: String,
+    onNewTitleChange: (String) -> Unit,
+    subtitleCodes: List<String>,
+    selectedSubtitles: MutableList<String>,
+    autoCaptionCodes: List<String>,
+    selectedAutoCaptions: MutableList<String>,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(stringResource(Res.string.format_selection), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+            OutlinedTextField(
+                value = newTitle,
+                onValueChange = onNewTitleChange,
+                label = { Text(stringResource(Res.string.rename)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            if (chapterCount > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onSplitByChapterChange(!splitByChapter) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = splitByChapter, onCheckedChange = onSplitByChapterChange)
+                    Text("${stringResource(Res.string.split_video)} ($chapterCount)")
+                }
+            }
+
+            if (durationSeconds > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onClipVideoChange(!clipVideo) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = clipVideo, onCheckedChange = onClipVideoChange)
+                    Text("${stringResource(Res.string.clip_video)} (${formatDuration(durationSeconds)})")
+                }
+                if (clipVideo) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = clipStartText,
+                            onValueChange = { onClipStartTextChange(it.filter(Char::isDigit)) },
+                            label = { Text(stringResource(Res.string.clip_start)) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = clipEndText,
+                            onValueChange = { onClipEndTextChange(it.filter(Char::isDigit)) },
+                            label = { Text(stringResource(Res.string.clip_end)) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Text(
+                        text = "单位：秒，范围 0-$durationSeconds",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (subtitleCodes.isNotEmpty() || autoCaptionCodes.isNotEmpty()) {
+                HorizontalDivider()
+            }
+
+            if (subtitleCodes.isNotEmpty()) {
+                Text(stringResource(Res.string.subtitle_language), style = MaterialTheme.typography.titleSmall)
+                LanguageSelectorList(
+                    codes = subtitleCodes,
+                    selectedCodes = selectedSubtitles,
+                )
+            }
+
+            if (autoCaptionCodes.isNotEmpty()) {
+                Text(stringResource(Res.string.auto_subtitle), style = MaterialTheme.typography.titleSmall)
+                LanguageSelectorList(
+                    codes = autoCaptionCodes,
+                    selectedCodes = selectedAutoCaptions,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSelectorList(
+    codes: List<String>,
+    selectedCodes: MutableList<String>,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        codes.forEach { code ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable {
+                    if (selectedCodes.contains(code)) {
+                        selectedCodes.remove(code)
+                    } else {
+                        selectedCodes.add(code)
+                    }
+                },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = selectedCodes.contains(code),
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            if (!selectedCodes.contains(code)) {
+                                selectedCodes.add(code)
+                            }
+                        } else {
+                            selectedCodes.remove(code)
+                        }
+                    },
+                )
+                Text(code)
+            }
+        }
     }
 }
 
@@ -862,4 +976,26 @@ private fun formatDuration(totalSeconds: Int): String {
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%02d:%02d".format(minutes, seconds)
+}
+
+private fun parseLanguageCodes(value: String): Set<String> =
+    value
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .toSet()
+
+private fun buildVideoClips(
+    enabled: Boolean,
+    startText: String,
+    endText: String,
+    maxSeconds: Int,
+): List<VideoClip> {
+    if (!enabled || maxSeconds <= 0) return emptyList()
+    val rawStart = startText.toIntOrNull() ?: 0
+    val rawEnd = endText.toIntOrNull() ?: maxSeconds
+    val start = rawStart.coerceIn(0, maxSeconds)
+    val end = rawEnd.coerceIn(0, maxSeconds)
+    if (end <= start) return emptyList()
+    return listOf(VideoClip(start = start, end = end))
 }

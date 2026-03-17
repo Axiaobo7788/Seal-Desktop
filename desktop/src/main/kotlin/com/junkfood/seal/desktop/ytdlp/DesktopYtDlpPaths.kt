@@ -43,10 +43,49 @@ object DesktopYtDlpPaths {
     }
 
     private fun resolveDownloadsRoot(): Path {
-        System.getenv("XDG_DOWNLOAD_DIR")?.takeIf { it.isNotBlank() }?.let { return Path.of(it) }
-        val home = System.getProperty("user.home")
-        val downloads = Path.of(home, "Downloads")
+        val xdg = parseXdgDownloadDir()
+        if (xdg != null) {
+            runCatching {
+                if (!xdg.exists()) Files.createDirectories(xdg)
+                return xdg
+            }
+        }
+
+        val downloads = defaultDownloadsDirectory()
         if (!downloads.exists()) Files.createDirectories(downloads)
         return downloads
+    }
+
+    private fun parseXdgDownloadDir(): Path? {
+        val raw = System.getenv("XDG_DOWNLOAD_DIR")?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        val stripped = raw.removeSurrounding("\"")
+        val home = System.getProperty("user.home")
+        val expanded =
+            when {
+                stripped == "~" -> home
+                stripped.startsWith("~/") -> home + stripped.removePrefix("~")
+                stripped.startsWith("\$HOME/") -> home + stripped.removePrefix("\$HOME")
+                stripped.startsWith("\${HOME}/") -> home + stripped.removePrefix("\${HOME}")
+                else -> stripped
+            }
+
+        return runCatching { Path.of(expanded) }
+            .getOrNull()
+            ?.takeIf { it.isAbsolute }
+    }
+
+    private fun defaultDownloadsDirectory(): Path {
+        val osName = System.getProperty("os.name")?.lowercase().orEmpty()
+        val userHome = System.getProperty("user.home")
+
+        if (osName.contains("win")) {
+            val base = System.getenv("USERPROFILE")?.takeIf { it.isNotBlank() } ?: userHome
+            return Path.of(base, "Downloads")
+        }
+
+        val base = System.getenv("HOME")?.takeIf { it.isNotBlank() } ?: userHome.ifBlank {
+            Path.of("/home", System.getProperty("user.name")).toString()
+        }
+        return Path.of(base, "Downloads")
     }
 }

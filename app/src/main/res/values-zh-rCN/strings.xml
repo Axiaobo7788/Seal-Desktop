@@ -177,6 +177,14 @@
     <string name="status_canceled">已取消</string>
     <string name="status_fetching_video_info">正在获取信息</string>
     <string name="open_file">打开文件</string>
+    <string name="open_file_location">打开文件位置</string>
+    <string name="desktop_delete_queue_item_msg">要从下载队列中移除该条目吗？</string>
+    <string name="desktop_delete_local_file_also">同时删除本地文件</string>
+    <string name="desktop_delete_local_file_unavailable">未找到可删除的本地文件</string>
+    <string name="desktop_open_local_file_unavailable">未找到本地文件</string>
+    <string name="desktop_action_failed_prefix">操作失败：%1$s</string>
+    <string name="desktop_error_item_not_found">未找到该条目</string>
+    <string name="desktop_error_link_empty">链接为空</string>
     <string name="restart">重新开始</string>
     <string name="status_error">发生错误</string>
     <string name="copy_link">复制链接</string>

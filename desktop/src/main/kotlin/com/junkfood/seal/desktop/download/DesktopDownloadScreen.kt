@@ -21,7 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -48,15 +48,20 @@ import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelectionSheet
 import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadInputSheet
 import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadOptionsSheet
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
 import com.junkfood.seal.ui.download.queue.DownloadQueueScreenShared
 import com.junkfood.seal.ui.download.queue.DownloadQueueState
 import com.junkfood.seal.ui.download.queue.DownloadQueueStrings
 import com.junkfood.seal.util.DownloadPreferences
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.awt.Desktop
 import java.io.File
 import java.net.URI
+import java.net.URLDecoder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.shared.generated.resources.Res
@@ -71,6 +76,7 @@ import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.file
 import com.junkfood.seal.shared.generated.resources.logs
 import com.junkfood.seal.shared.generated.resources.open_file
+import com.junkfood.seal.shared.generated.resources.open_file_location
 import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.print_details
 import com.junkfood.seal.shared.generated.resources.restart
@@ -88,6 +94,14 @@ import com.junkfood.seal.shared.generated.resources.desktop_download_detail_args
 import com.junkfood.seal.shared.generated.resources.desktop_download_detail_error
 import com.junkfood.seal.shared.generated.resources.desktop_download_detail_exit_code
 import com.junkfood.seal.shared.generated.resources.desktop_download_detail_status
+import com.junkfood.seal.shared.generated.resources.desktop_action_failed_prefix
+import com.junkfood.seal.shared.generated.resources.desktop_delete_local_file_also
+import com.junkfood.seal.shared.generated.resources.desktop_delete_local_file_unavailable
+import com.junkfood.seal.shared.generated.resources.desktop_open_local_file_unavailable
+import com.junkfood.seal.shared.generated.resources.desktop_delete_queue_item_msg
+import com.junkfood.seal.shared.generated.resources.desktop_error_item_not_found
+import com.junkfood.seal.shared.generated.resources.desktop_error_link_empty
+import com.junkfood.seal.shared.generated.resources.confirm
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,8 +129,43 @@ fun DesktopDownloadScreen(
     var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
     var workingPreferences by remember { mutableStateOf(preferences) }
     var detailsItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
+    var detailsDialogItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
+    var deleteTargetItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
+    var deleteDialogItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
+    var deleteLocalFileTogether by remember { mutableStateOf(false) }
+    var actionErrorMessage by remember { mutableStateOf<String?>(null) }
+    var actionErrorDialogMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(preferences) { workingPreferences = preferences }
+    LaunchedEffect(detailsItem) {
+        if (detailsItem != null) {
+            detailsDialogItem = detailsItem
+        } else {
+            delay(170)
+            detailsDialogItem = null
+        }
+    }
+    LaunchedEffect(deleteTargetItem) {
+        if (deleteTargetItem != null) {
+            deleteDialogItem = deleteTargetItem
+        } else {
+            delay(170)
+            deleteDialogItem = null
+        }
+    }
+    LaunchedEffect(actionErrorMessage) {
+        if (actionErrorMessage != null) {
+            actionErrorDialogMessage = actionErrorMessage
+        } else {
+            delay(170)
+            actionErrorDialogMessage = null
+        }
+    }
     val logLines = controller.logLines
+    val actionFailedPrefix = stringResource(Res.string.desktop_action_failed_prefix)
+    val itemNotFoundMessage = stringResource(Res.string.desktop_error_item_not_found)
+    val linkEmptyMessage = stringResource(Res.string.desktop_error_link_empty)
+    val deleteLocalFileUnavailableMessage = stringResource(Res.string.desktop_delete_local_file_unavailable)
+    val openLocalFileUnavailableMessage = stringResource(Res.string.desktop_open_local_file_unavailable)
 
 
     val queueStrings =
@@ -136,7 +185,7 @@ fun DesktopDownloadScreen(
             cancelLabel = stringResource(Res.string.cancel),
             deleteLabel = stringResource(Res.string.delete),
             openFileLabel = stringResource(Res.string.open_file),
-            shareFileLabel = stringResource(Res.string.open_file),
+            shareFileLabel = stringResource(Res.string.open_file_location),
             copyUrlLabel = stringResource(Res.string.copy_link),
             openUrlLabel = stringResource(Res.string.open_url),
             openThumbLabel = stringResource(Res.string.thumbnail),
@@ -173,31 +222,58 @@ fun DesktopDownloadScreen(
                                 val item = controller.queueItems.firstOrNull { it.id == itemId }
                                 when (action) {
                                     DownloadQueueAction.Cancel -> controller.cancelIfRunning(itemId)
-                                    DownloadQueueAction.Delete -> controller.deleteQueueItem(itemId)
+                                    DownloadQueueAction.Delete -> {
+                                        if (item != null) {
+                                            deleteTargetItem = item
+                                            deleteLocalFileTogether = false
+                                        } else {
+                                            actionErrorMessage = itemNotFoundMessage
+                                        }
+                                    }
                                     DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId)
                                     DownloadQueueAction.OpenFile -> {
-                                        item?.filePath?.let { safeOpenFile(it) }
+                                        val localPathResolution = resolveLocalPathFromItem(item)
+                                        val localPath = localPathResolution.selectedPath
+                                        val result =
+                                            localPath
+                                                ?.let { safeOpenFile(it, openLocalFileUnavailableMessage) }
+                                                ?: Result.failure(IllegalStateException(openLocalFileUnavailableMessage))
+                                        result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                     }
                                     DownloadQueueAction.ShareFile -> {
-                                        // Desktop: no share sheet for now; best-effort open folder.
-                                        item?.filePath?.let { safeRevealInFolder(it) }
+                                        val localPathResolution = resolveLocalPathFromItem(item)
+                                        val localPath = localPathResolution.selectedPath
+                                        val result =
+                                            localPath
+                                                ?.let { safeRevealInFolder(it, openLocalFileUnavailableMessage) }
+                                                ?: Result.failure(IllegalStateException(openLocalFileUnavailableMessage))
+                                        result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                     }
                                     DownloadQueueAction.CopyVideoUrl -> {
-                                        item?.url?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                                        val url = item?.url?.trim().orEmpty()
+                                        val result = if (url.isNotBlank()) safeCopyToClipboard(clipboard, url) else Result.failure(IllegalStateException(linkEmptyMessage))
+                                        result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                     }
                                     DownloadQueueAction.OpenVideoUrl -> {
-                                        item?.url?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                                        val url = item?.url?.trim().orEmpty()
+                                        val result = if (url.isNotBlank()) safeBrowse(url) else Result.failure(IllegalStateException(linkEmptyMessage))
+                                        result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                     }
                                     DownloadQueueAction.OpenThumbnailUrl -> {
                                         if (!disablePreview) {
-                                            item?.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { safeBrowse(it) }
+                                            val thumb = item?.thumbnailUrl?.trim().orEmpty()
+                                            val result = if (thumb.isNotBlank()) safeBrowse(thumb) else Result.failure(IllegalStateException(linkEmptyMessage))
+                                            result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                         }
                                     }
                                     DownloadQueueAction.CopyError -> {
-                                        item?.errorMessage?.takeIf { it.isNotBlank() }?.let { clipboard.setText(AnnotatedString(it)) }
+                                        val errorText = item?.errorMessage?.trim().orEmpty()
+                                        val result = if (errorText.isNotBlank()) safeCopyToClipboard(clipboard, errorText) else Result.failure(IllegalStateException(linkEmptyMessage))
+                                        result.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
                                     }
                                     DownloadQueueAction.ShowDetails -> {
                                         detailsItem = item
+                                        detailsDialogItem = item
                                     }
                                 }
                             },
@@ -229,6 +305,11 @@ fun DesktopDownloadScreen(
                         controller = controller,
                         downloadType = formatType,
                         basePreferences = formatPreferences,
+                        onPreferencesUpdated = { updated ->
+                            formatPreferences = updated
+                            workingPreferences = updated
+                            onPreferencesChange(updated)
+                        },
                         onBack = {
                             mainPage = DownloadMainPage.Queue
                             sheetPage = DownloadSheetPage.Options
@@ -337,7 +418,7 @@ fun DesktopDownloadScreen(
         }
     }
 
-    detailsItem?.let { item ->
+    detailsDialogItem?.let { item ->
         val statusText =
             when (item.status) {
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Running -> stringResource(Res.string.status_downloading)
@@ -350,7 +431,8 @@ fun DesktopDownloadScreen(
         val cliArgs = item.cliArgs?.joinToString(separator = " ").orEmpty()
         val fileSizeText = item.fileSizeApproxBytes?.let { formatSizeApprox(it) }
 
-        AlertDialog(
+        AnimatedAlertDialog(
+            visible = detailsItem != null,
             onDismissRequest = { detailsItem = null },
             title = { Text(text = item.title.ifBlank { item.url }) },
             text = {
@@ -380,6 +462,75 @@ fun DesktopDownloadScreen(
             },
         )
     }
+
+    deleteDialogItem?.let { item ->
+        val localPathResolution = resolveLocalPathFromItem(item)
+        val localPath = localPathResolution.selectedPath
+        val hasLocalFile = localPath?.let { runCatching { resolveExistingFile(it) }.isSuccess } == true
+
+        AnimatedAlertDialog(
+            visible = deleteTargetItem != null,
+            onDismissRequest = {
+                deleteTargetItem = null
+                deleteLocalFileTogether = false
+            },
+            title = { Text(stringResource(Res.string.delete)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(Res.string.desktop_delete_queue_item_msg))
+                    if (hasLocalFile) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = deleteLocalFileTogether,
+                                onCheckedChange = { deleteLocalFileTogether = it },
+                            )
+                            Text(stringResource(Res.string.desktop_delete_local_file_also))
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        deleteTargetItem = null
+                        deleteLocalFileTogether = false
+                    },
+                ) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (deleteLocalFileTogether) {
+                            val deleteResult = localPath?.let { deleteLocalFile(it, deleteLocalFileUnavailableMessage) }
+                                ?: Result.failure(IllegalStateException(deleteLocalFileUnavailableMessage))
+                            deleteResult.exceptionOrNull()?.let { actionErrorMessage = it.message ?: it.toString() }
+                        }
+                        controller.deleteQueueItem(item.id)
+                        deleteTargetItem = null
+                        deleteLocalFileTogether = false
+                    },
+                ) {
+                    Text(stringResource(Res.string.delete))
+                }
+            },
+        )
+    }
+
+    actionErrorDialogMessage?.let { message ->
+        AnimatedAlertDialog(
+            visible = actionErrorMessage != null,
+            onDismissRequest = { actionErrorMessage = null },
+            title = { Text(stringResource(Res.string.status_error)) },
+            text = { Text(actionFailedPrefix.format(message)) },
+            confirmButton = {
+                TextButton(onClick = { actionErrorMessage = null }) {
+                    Text(stringResource(Res.string.confirm))
+                }
+            },
+        )
+    }
 }
 
 private enum class DownloadSheetPage {
@@ -392,25 +543,168 @@ private enum class DownloadMainPage {
     Format,
 }
 
-private fun safeBrowse(url: String) {
+private fun safeBrowse(url: String): Result<Unit> =
     runCatching {
-        if (!Desktop.isDesktopSupported()) return
-        Desktop.getDesktop().browse(URI(url))
+        val normalized = normalizeUrl(url)
+        val uri = URI(normalized)
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            Desktop.getDesktop().browse(uri)
+        } else {
+            openWithSystem(normalized).getOrThrow()
+        }
+    }
+
+private fun safeCopyToClipboard(clipboard: androidx.compose.ui.platform.ClipboardManager, text: String): Result<Unit> {
+    val trimmed = text.trim()
+    if (trimmed.isBlank()) return Result.failure(IllegalStateException("Link is empty"))
+    return runCatching {
+        clipboard.setText(AnnotatedString(trimmed))
+    }.recoverCatching {
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(trimmed), null)
     }
 }
 
-private fun safeOpenFile(path: String) {
+private fun safeOpenFile(path: String, fileUnavailableMessage: String): Result<Unit> =
     runCatching {
-        if (!Desktop.isDesktopSupported()) return
-        Desktop.getDesktop().open(File(path))
+        val file = resolveExistingFile(path, fileUnavailableMessage)
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            Desktop.getDesktop().open(file)
+        } else {
+            openWithSystem(file.absolutePath).getOrThrow()
+        }
     }
+
+private fun safeRevealInFolder(path: String, fileUnavailableMessage: String): Result<Unit> =
+    runCatching {
+        val dir = resolveExistingDirectory(path)
+            ?: throw IllegalStateException(fileUnavailableMessage)
+        if (!dir.exists()) throw IllegalStateException(fileUnavailableMessage)
+
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            Desktop.getDesktop().open(dir)
+        } else {
+            openWithSystem(dir.absolutePath).getOrThrow()
+        }
+    }
+
+private fun deleteLocalFile(path: String, fileUnavailableMessage: String): Result<Unit> =
+    runCatching {
+        val file = resolveExistingFile(path, fileUnavailableMessage)
+        if (!file.isFile) throw IllegalStateException("Local target is not a file")
+        if (!file.delete()) throw IllegalStateException("Failed to delete local file")
+    }
+
+private fun resolveExistingFile(path: String, fileUnavailableMessage: String = "Local file is unavailable"): File {
+    val candidates = buildPathCandidates(path)
+    return candidates.firstOrNull { it.exists() && it.isFile }
+        ?: throw IllegalStateException(fileUnavailableMessage)
 }
 
-private fun safeRevealInFolder(path: String) {
+private fun resolveExistingDirectory(path: String): File? {
+    val candidates = buildPathCandidates(path)
+    val direct = candidates.firstOrNull { it.exists() && it.isDirectory }
+    if (direct != null) return direct
+
+    return candidates
+        .mapNotNull { it.parentFile }
+        .firstOrNull { it.exists() && it.isDirectory }
+}
+
+private fun buildPathCandidates(rawPath: String): List<File> {
+    val trimmed = rawPath.trim().trim('"', '\'')
+    if (trimmed.isBlank()) return emptyList()
+
+    val expandedHome =
+        when {
+            trimmed == "~" -> System.getProperty("user.home")
+            trimmed.startsWith("~/") -> System.getProperty("user.home") + trimmed.removePrefix("~")
+            else -> trimmed
+        }
+
+    val candidates = linkedSetOf<File>()
+    candidates += File(expandedHome)
+
+    if (expandedHome.startsWith("file:")) {
+        runCatching { File(URI(expandedHome)) }.getOrNull()?.let { candidates += it }
+    }
+
+    if (expandedHome.contains('%')) {
+        runCatching { URLDecoder.decode(expandedHome, Charsets.UTF_8.name()) }
+            .getOrNull()
+            ?.let { decoded ->
+                candidates += File(decoded)
+                if (decoded.startsWith("file:")) {
+                    runCatching { File(URI(decoded)) }.getOrNull()?.let { candidates += it }
+                }
+            }
+    }
+
+    val relativeStrings = candidates.map { it.path }.filter { File(it).isAbsolute.not() }
+    relativeStrings.forEach { relative ->
+        candidates += File(System.getProperty("user.dir"), relative)
+        candidates += File(System.getProperty("user.home"), relative)
+    }
+
+    return candidates.map { it.absoluteFile }
+}
+
+private fun normalizeUrl(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isBlank()) throw IllegalStateException("Link is empty")
+    return if (Regex("^[a-zA-Z][a-zA-Z\\d+.-]*:").containsMatchIn(trimmed)) trimmed else "https://$trimmed"
+}
+
+private fun openWithSystem(target: String): Result<Unit> =
     runCatching {
-        val file = File(path)
-        val dir = if (file.isDirectory) file else file.parentFile
-        if (dir != null) safeOpenFile(dir.absolutePath)
+        val os = System.getProperty("os.name").lowercase()
+        val command =
+            when {
+                os.contains("win") -> listOf("rundll32", "url.dll,FileProtocolHandler", target)
+                os.contains("mac") -> listOf("open", target)
+                else -> listOf("xdg-open", target)
+            }
+        ProcessBuilder(command).start()
+    }
+
+private data class LocalPathResolution(
+    val selectedPath: String?,
+)
+
+private fun resolveLocalPathFromItem(item: DownloadQueueItemState?): LocalPathResolution {
+    if (item == null) return LocalPathResolution(selectedPath = null)
+    val rawCandidates = buildList<String> {
+        item.filePath?.trim()?.takeIf { it.isNotBlank() }?.let(::add)
+        extractDestinationPathFromLogs(item.logLines)?.let(::add)
+    }.distinct()
+
+    val verified = rawCandidates.firstOrNull { raw ->
+        runCatching { resolveExistingFile(raw) }.isSuccess
+    }
+
+    return LocalPathResolution(
+        selectedPath = verified ?: rawCandidates.firstOrNull(),
+    )
+}
+
+private fun extractDestinationPathFromLogs(lines: List<String>?): String? {
+    if (lines.isNullOrEmpty()) return null
+    val patterns = listOf(
+        Regex("(?:\\[download\\]\\s*)?Destination:\\s*(.+)$"),
+        Regex("\\[Merger\\].*?into\\s+\\\"(.+)\\\"$"),
+        Regex("\\[ExtractAudio\\].*?Destination:\\s*(.+)$"),
+        Regex("\\[download\\]\\s+(.+?)\\s+has already been downloaded"),
+    )
+
+    return lines.asReversed().firstNotNullOfOrNull { rawLine ->
+        val line = rawLine.replace(Regex("\\u001B\\[[;\\d]*m"), "").trim()
+        patterns.firstNotNullOfOrNull { regex ->
+            regex.find(line)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.trim()
+                ?.trim('"', '\'')
+                ?.takeIf { it.isNotBlank() }
+        }
     }
 }
 

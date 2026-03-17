@@ -184,6 +184,14 @@
     <string name="status_canceled">Canceled</string>
     <string name="status_fetching_video_info">Fetching info</string>
     <string name="open_file">Open file</string>
+    <string name="open_file_location">Open file location</string>
+    <string name="desktop_delete_queue_item_msg">Remove this item from queue?</string>
+    <string name="desktop_delete_local_file_also">Also delete local file</string>
+    <string name="desktop_delete_local_file_unavailable">Local file is unavailable</string>
+    <string name="desktop_open_local_file_unavailable">Local file not found</string>
+    <string name="desktop_action_failed_prefix">Action failed: %1$s</string>
+    <string name="desktop_error_item_not_found">Item not found</string>
+    <string name="desktop_error_link_empty">Link is empty</string>
     <string name="restart">Restart</string>
     <string name="status_error">Error</string>
     <string name="copy_link">Copy link</string>

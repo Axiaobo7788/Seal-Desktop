@@ -16,17 +16,32 @@ val syncAndroidStringsXml by tasks.registering(Copy::class) {
     into(layout.buildDirectory.dir("generated/androidStringResources"))
 }
 
+val syncAndroidPreviewDrawables by tasks.registering(Copy::class) {
+    from(project(":app").layout.projectDirectory.dir("src/main/res")) {
+        include("drawable/sample*.webp")
+    }
+    into(layout.buildDirectory.dir("generated/androidPreviewResources"))
+}
+
 tasks.named<ProcessResources>("processResources") {
     dependsOn(syncAndroidStringsXml)
+    dependsOn(syncAndroidPreviewDrawables)
     from(layout.buildDirectory.dir("generated/androidStringResources"))
+    from(layout.buildDirectory.dir("generated/androidPreviewResources"))
 }
 
 kotlin {
     jvmToolchain(21)
+    sourceSets {
+        main {
+            kotlin.srcDir(project(":color").layout.projectDirectory.dir("src/main/java"))
+        }
+    }
 }
 
 dependencies {
     implementation(project(":shared"))
+    
     implementation(compose.desktop.currentOs)
     implementation(compose.foundation)
     implementation(compose.material3)

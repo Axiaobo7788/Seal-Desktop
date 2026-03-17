@@ -50,10 +50,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
@@ -104,6 +104,7 @@ import com.junkfood.seal.shared.generated.resources.unavailable
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.videoSteaming
 import java.awt.Desktop
@@ -113,6 +114,7 @@ import java.io.File
 import java.nio.file.InvalidPathException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -148,6 +150,9 @@ fun DesktopDownloadHistoryPage(
     var showImportDialog by remember { mutableStateOf(false) }
     var errorDialog by remember { mutableStateOf<String?>(null) }
 
+    var exportDialogHost by remember { mutableStateOf(false) }
+    var importDialogHost by remember { mutableStateOf(false) }
+    var errorDialogHost by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -348,8 +353,9 @@ fun DesktopDownloadHistoryPage(
         }
     }
 
-    if (showExportDialog) {
+    if (exportDialogHost) {
         DesktopHistoryExportDialog(
+            visible = showExportDialog,
             itemCount = entries.size,
             onDismissRequest = { showExportDialog = false },
             onExport = { type, destination ->
@@ -378,8 +384,9 @@ fun DesktopDownloadHistoryPage(
         )
     }
 
-    if (showImportDialog) {
+    if (importDialogHost) {
         DesktopHistoryImportDialog(
+            visible = showImportDialog,
             onDismissRequest = { showImportDialog = false },
             onImport = { destination ->
                 showImportDialog = false
@@ -424,14 +431,15 @@ fun DesktopDownloadHistoryPage(
         )
     }
 
-    if (errorDialog != null) {
-        AlertDialog(
+    if (errorDialogHost != null) {
+        AnimatedAlertDialog(
+            visible = errorDialog != null,
             onDismissRequest = { errorDialog = null },
             confirmButton = {
                 Button(onClick = { errorDialog = null }) { Text("OK") }
             },
             title = { Text("Error") },
-            text = { Text(errorDialog.orEmpty()) },
+            text = { Text(errorDialogHost.orEmpty()) },
         )
     }
 }
@@ -652,6 +660,7 @@ private enum class DesktopHistoryIoDestination { File, Clipboard }
 
 @Composable
 private fun DesktopHistoryExportDialog(
+    visible: Boolean,
     itemCount: Int,
     onDismissRequest: () -> Unit,
     onExport: (DesktopHistoryExportType, DesktopHistoryIoDestination) -> Unit,
@@ -661,7 +670,8 @@ private fun DesktopHistoryExportDialog(
 
     val itemCountLabel = pluralStringResource(Res.plurals.item_count, itemCount, itemCount)
 
-    AlertDialog(
+    AnimatedAlertDialog(
+        visible = visible,
         onDismissRequest = onDismissRequest,
         icon = {
             Icon(
@@ -750,12 +760,14 @@ private fun DesktopHistoryExportDialog(
 
 @Composable
 private fun DesktopHistoryImportDialog(
+    visible: Boolean,
     onDismissRequest: () -> Unit,
     onImport: (DesktopHistoryIoDestination) -> Unit,
 ) {
     var destination by remember { mutableStateOf(DesktopHistoryIoDestination.File) }
 
-    AlertDialog(
+    AnimatedAlertDialog(
+        visible = visible,
         onDismissRequest = onDismissRequest,
         icon = {
             Icon(

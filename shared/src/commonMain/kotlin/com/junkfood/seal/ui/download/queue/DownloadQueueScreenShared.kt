@@ -11,6 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.indication
@@ -109,6 +113,9 @@ import com.junkfood.seal.shared.generated.resources.video
 import org.jetbrains.compose.resources.stringResource
 
 private val StatusLabelContainerColor = Color.Black.copy(alpha = 0.68f)
+
+@Composable
+expect fun Modifier.desktopHorizontalScrollGesture(state: androidx.compose.foundation.lazy.LazyListState): Modifier
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -675,6 +682,9 @@ private fun ActionSheetShared(
     onAction: (DownloadQueueAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val actionListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = 20.dp),
@@ -685,11 +695,32 @@ private fun ActionSheetShared(
 
         item {
             LazyRow(
-                modifier = Modifier.padding(top = 12.dp, bottom = 20.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 20.dp)
+                    .desktopHorizontalScrollGesture(actionListState)
+                    .draggable(
+                        orientation = Orientation.Horizontal,
+                        state = rememberDraggableState { delta ->
+                            coroutineScope.launch {
+                                actionListState.scrollBy(-delta)
+                            }
+                        },
+                    ),
+                state = actionListState,
+                contentPadding = PaddingValues(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ActionButtonsForStatus(item = item, strings = strings, onAction = onAction, onDismiss = onDismiss)
+                items(actionSpecsForStatus(item = item, strings = strings)) { action ->
+                    ActionPrimaryButtonShared(
+                        label = action.label,
+                        icon = action.icon,
+                        tone = action.tone,
+                    ) {
+                        onAction(action.action)
+                        onDismiss()
+                    }
+                }
             }
         }
 
@@ -794,13 +825,10 @@ private fun ActionSheetShared(
     }
 }
 
-private fun LazyListScope.ActionButtonsForStatus(
+private fun actionSpecsForStatus(
     item: DownloadQueueItemState,
     strings: DownloadQueueStrings,
-    onAction: (DownloadQueueAction) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val primaryActions = buildList {
+) = buildList {
         when (item.status) {
             DownloadQueueStatus.Completed -> {
                 add(ActionSpec(strings.openFileLabel, Icons.Outlined.PlayArrow, DownloadQueueAction.OpenFile, ActionTone.Primary))
@@ -828,20 +856,6 @@ private fun LazyListScope.ActionButtonsForStatus(
         if (strings.showDetailsLabel.isNotBlank()) {
             add(ActionSpec(strings.showDetailsLabel, Icons.Outlined.MoreVert, DownloadQueueAction.ShowDetails, ActionTone.Outline))
         }
-    }
-
-    primaryActions.forEach { action ->
-        item {
-            ActionPrimaryButtonShared(
-                label = action.label,
-                icon = action.icon,
-                tone = action.tone,
-            ) {
-                onAction(action.action)
-                onDismiss()
-            }
-        }
-    }
 }
 
 private data class ActionSpec(
@@ -912,16 +926,16 @@ private fun ActionPrimaryButtonShared(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
             Modifier
-                .widthIn(min = 88.dp)
+                .widthIn(min = 76.dp)
                 .clip(MaterialTheme.shapes.large)
                 .clickable(onClick = onClick, indication = null, interactionSource = interactionSource)
-                .padding(8.dp),
+                .padding(horizontal = 6.dp, vertical = 8.dp),
     ) {
         Box(
             modifier =
                 Modifier
-                    .width(80.dp)
-                    .height(64.dp)
+                    .width(72.dp)
+                    .height(56.dp)
                     .clip(CircleShape)
                     .then(
                         if (outlineColor != Color.Unspecified) {
@@ -936,7 +950,7 @@ private fun ActionPrimaryButtonShared(
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp).align(Alignment.Center),
+                modifier = Modifier.size(22.dp).align(Alignment.Center),
                 tint = contentColor,
             )
         }

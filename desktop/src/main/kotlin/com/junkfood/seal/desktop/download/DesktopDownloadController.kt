@@ -28,6 +28,7 @@ import com.junkfood.seal.ui.download.queue.DownloadQueueStatus
 import com.junkfood.seal.ui.download.queue.DownloadQueueViewMode
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
+import com.junkfood.seal.util.VideoClip
 import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Files
 import java.nio.file.Path
@@ -267,6 +268,12 @@ class DesktopDownloadController(
         basePreferences: DownloadPreferences,
         videoInfo: VideoInfo,
         formatList: List<Format>,
+        videoClips: List<VideoClip> = emptyList(),
+        splitByChapter: Boolean = false,
+        newTitle: String = "",
+        selectedSubtitles: List<String> = emptyList(),
+        selectedAutoCaptions: List<String> = emptyList(),
+        onSelectionApplied: (DownloadPreferences) -> Unit = {},
     ) {
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
@@ -281,15 +288,16 @@ class DesktopDownloadController(
                 basePreferences = basePreferences,
                 videoInfo = videoInfo,
                 formatList = formatList,
-                videoClips = emptyList(),
-                splitByChapter = false,
-                newTitle = "",
-                selectedSubtitles = emptyList(),
-                selectedAutoCaptions = emptyList(),
+                videoClips = videoClips,
+                splitByChapter = splitByChapter,
+                newTitle = newTitle,
+                selectedSubtitles = selectedSubtitles,
+                selectedAutoCaptions = selectedAutoCaptions,
             )
 
         val appSettings = appSettingsProvider()
         val effectivePreferences = applyRuntimeProxy(preferencesForType(selection.preferences, type), appSettings)
+        onSelectionApplied(selection.preferences)
 
         queueItems.add(
             DownloadQueueItemState(
@@ -715,14 +723,34 @@ private fun VideoInfo.toHistoryEntry(
 }
 
 private fun extractDestinationPath(lines: List<String>, workingDir: Path?): String? {
-    // yt-dlp commonly prints:
-    // [download] Destination: file.ext
-    // Destination: file.ext
-    val regex = Regex("(?:\\[download\\]\\s*)?Destination:\\s*(.+)$")
-    val raw = lines.asReversed().firstNotNullOfOrNull { line -> regex.find(line)?.groupValues?.getOrNull(1)?.trim() }
-        ?: return null
+    // yt-dlp/forks may print different final-path lines depending on postprocessing.
+    val patterns = listOf(
+        Regex("(?:\\[download\\]\\s*)?Destination:\\s*(.+)$"),
+        Regex("\\[Merger\\].*?into\\s+\\\"(.+)\\\"$"),
+        Regex("\\[ExtractAudio\\].*?Destination:\\s*(.+)$"),
+        Regex("\\[download\\]\\s+(.+?)\\s+has already been downloaded"),
+    )
 
-    // Some outputs might be relative to working directory.
-    val path = Path.of(raw)
-    return if (path.isAbsolute) raw else workingDir?.resolve(path)?.toAbsolutePath()?.toString() ?: raw
+    val raw =
+        lines.asReversed().firstNotNullOfOrNull { rawLine ->
+            val line = rawLine.replace(Regex("\\u001B\\[[;\\d]*m"), "").trim()
+            patterns.firstNotNullOfOrNull { regex ->
+                regex.find(line)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.trim()
+                    ?.trim('"', '\'')
+                    ?.takeIf { it.isNotBlank() }
+            }
+        } ?: return null
+
+    val normalizedRaw = raw.removePrefix("./")
+    val path = runCatching { Path.of(normalizedRaw) }.getOrNull()
+    if (path == null) return normalizedRaw
+
+    return if (path.isAbsolute) {
+        path.toAbsolutePath().normalize().toString()
+    } else {
+        workingDir?.resolve(path)?.toAbsolutePath()?.normalize()?.toString() ?: normalizedRaw
+    }
 }

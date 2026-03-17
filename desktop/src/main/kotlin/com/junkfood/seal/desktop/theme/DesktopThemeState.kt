@@ -31,9 +31,19 @@ data class DesktopThemePreferences(
     val dynamicColorEnabled: Boolean = true,
     /** Index into the built-in palette list shown in the appearance page. */
     val seedColorIndex: Int = 0,
+    /** Palette style variant for non-dynamic theme presets. */
+    val paletteStyleIndex: Int = PaletteStylePreference.TONAL_SPOT,
     val darkThemeValue: Int = DarkThemePreference.FOLLOW_SYSTEM,
     val highContrastEnabled: Boolean = false,
 )
+
+object PaletteStylePreference {
+    const val TONAL_SPOT = 0
+    const val SPRITZ = 1
+    const val FRUIT_SALAD = 2
+    const val VIBRANT = 3
+    const val MONOCHROME = 4
+}
 
 object DarkThemePreference {
     const val FOLLOW_SYSTEM = 1

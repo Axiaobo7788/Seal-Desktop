@@ -217,102 +217,67 @@ private fun DesktopApp(
         val showPermanentNav = navType == NavLayout.PermanentDrawer && sideNavWidth >= 180.dp
         val compactMode = navType == NavLayout.ModalDrawer
 
-        when (navType) {
-            NavLayout.ModalDrawer,
-            NavLayout.NavigationRail,
-            -> {
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    scrimColor = Color.Black.copy(alpha = 0.2f),
-                    drawerContent = {
-                        Surface(
-                            modifier =
-                                Modifier
-                                    .width(320.dp)
-                                    .fillMaxHeight()
-                                    .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                    ),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            tonalElevation = 0.dp,
-                        ) {
-                            key(languageRefreshToken) {
-                                DrawerContent(current = current, onSelect = {
-                                    current = it
-                                    scope.launch { drawerState.close() }
-                                }, languageRefreshToken = languageRefreshToken)
-                            }
-                        }
-                    },
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = navType == NavLayout.ModalDrawer,
+            scrimColor = Color.Black.copy(alpha = 0.2f),
+            drawerContent = {
+                Surface(
+                    modifier =
+                        Modifier
+                            .width(320.dp)
+                            .fillMaxHeight()
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                            ),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 0.dp,
                 ) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.width(sideNavWidth).fillMaxHeight()) {
-                            if (navType == NavLayout.NavigationRail || sideNavWidth >= 72.dp) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                                    key(languageRefreshToken) {
-                                        NavigationRailMenu(
-                                            current = current,
-                                            onSelect = { current = it },
-                                            onOpenDrawer = { scope.launch { drawerState.open() } },
-                                            languageRefreshToken = languageRefreshToken,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        ContentArea(
-                            current,
-                            modifier = Modifier.weight(1f),
-                            onMenuClick = { scope.launch { drawerState.open() } },
-                            isCompact = compactMode,
-                            settingsState = settingsState,
-                            appSettingsState = appSettingsState,
-                            themeState = themeState,
-                            downloadController = downloadController,
-                        )
+                    key(languageRefreshToken) {
+                        DrawerContent(current = current, onSelect = {
+                            current = it
+                            scope.launch { drawerState.close() }
+                        }, languageRefreshToken = languageRefreshToken)
                     }
                 }
-            }
-
-            NavLayout.PermanentDrawer,
-            -> {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.width(sideNavWidth).fillMaxHeight()) {
-                        if (showPermanentNav) {
+            },
+        ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.width(sideNavWidth).fillMaxHeight()) {
+                    if (showPermanentNav) {
+                        key(languageRefreshToken) {
+                            PermanentNav(
+                                modifier = Modifier.fillMaxSize(),
+                                current = current,
+                                onSelect = { current = it },
+                                languageRefreshToken = languageRefreshToken,
+                            )
+                        }
+                    } else if (navType == NavLayout.NavigationRail || sideNavWidth >= 72.dp) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                             key(languageRefreshToken) {
-                                PermanentNav(
-                                    modifier = Modifier.fillMaxSize(),
+                                NavigationRailMenu(
                                     current = current,
                                     onSelect = { current = it },
+                                    onOpenDrawer = { scope.launch { drawerState.open() } },
                                     languageRefreshToken = languageRefreshToken,
                                 )
                             }
-                        } else if (sideNavWidth > 1.dp) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                                key(languageRefreshToken) {
-                                    NavigationRailMenu(
-                                        current = current,
-                                        onSelect = { current = it },
-                                        onOpenDrawer = { scope.launch { drawerState.open() } },
-                                        languageRefreshToken = languageRefreshToken,
-                                    )
-                                }
-                            }
                         }
                     }
-
-                    ContentArea(
-                        current,
-                        modifier = Modifier.weight(1f),
-                        isCompact = false,
-                        settingsState = settingsState,
-                        appSettingsState = appSettingsState,
-                        themeState = themeState,
-                        downloadController = downloadController,
-                    )
                 }
+
+                ContentArea(
+                    current,
+                    modifier = Modifier.weight(1f),
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    isCompact = compactMode,
+                    settingsState = settingsState,
+                    appSettingsState = appSettingsState,
+                    themeState = themeState,
+                    downloadController = downloadController,
+                )
             }
         }
     }
