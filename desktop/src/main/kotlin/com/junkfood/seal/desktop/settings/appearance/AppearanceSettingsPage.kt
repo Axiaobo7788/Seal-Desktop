@@ -8,6 +8,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import kotlin.math.max
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -286,99 +288,114 @@ private fun AppearancePresetPager(
     onSelectStyle: (Int) -> Unit,
     onTapStyle: (Int) -> Unit,
 ) {
-    val itemsPerPage = 3
-    val totalItems = swatches.size + 1
-    val pageCount = ((totalItems + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
-    
-    val activeIndex = if (selectedStyle == PaletteStylePreference.MONOCHROME) swatches.size else selectedIndex
-    val initialPage = (activeIndex / itemsPerPage).coerceIn(0, maxOf(0, pageCount - 1))
-    val pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val itemWidth = 330.dp
+        val itemsPerPage = max(1, (maxWidth / itemWidth).toInt())
+        val totalItems = swatches.size + 1
+        val pageCount = ((totalItems + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
+        
+        val activeIndex = if (selectedStyle == PaletteStylePreference.MONOCHROME) swatches.size else selectedIndex
+        val initialPage = (activeIndex / itemsPerPage).coerceIn(0, max(0, pageCount - 1))
+        val pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
 
-    LaunchedEffect(selectedIndex, selectedStyle) {
-        val targetIndex = if (selectedStyle == PaletteStylePreference.MONOCHROME) swatches.size else selectedIndex
-        val targetPage = (targetIndex / itemsPerPage).coerceIn(0, maxOf(0, pageCount - 1))
-        if (targetPage != pagerState.currentPage) {
-            pagerState.animateScrollToPage(targetPage)
+        // Automatically re-center (snap) when the window/pager resizes to prevent the offset bug
+        LaunchedEffect(maxWidth, itemsPerPage) {
+            if (!pagerState.isScrollInProgress) {
+                // Ensure the pager corrects its internal fractional offsets instantly on resize
+                val targetPage = pagerState.currentPage.coerceIn(0, max(0, pageCount - 1))
+                pagerState.scrollToPage(targetPage)
+            }
         }
-    }
 
-    val coroutineScope = rememberCoroutineScope()
-    Column(modifier = Modifier.fillMaxWidth()) {
-        HorizontalPager(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            coroutineScope.launch {
-                                val offset = pagerState.currentPageOffsetFraction
-                                val target = if (offset > 0.2f) pagerState.currentPage + 1
-                                else if (offset < -0.2f) pagerState.currentPage - 1
-                                else pagerState.currentPage
-                                pagerState.animateScrollToPage(target.coerceIn(0, pageCount - 1))
+        LaunchedEffect(selectedIndex, selectedStyle, itemsPerPage) {
+            val targetIndex = if (selectedStyle == PaletteStylePreference.MONOCHROME) swatches.size else selectedIndex
+            val targetPage = (targetIndex / itemsPerPage).coerceIn(0, max(0, pageCount - 1))
+            if (targetPage != pagerState.currentPage && !pagerState.isScrollInProgress) {
+                pagerState.animateScrollToPage(targetPage)
+            }
+        }
+
+        val coroutineScope = rememberCoroutineScope()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalPager(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                coroutineScope.launch {
+                                    val offset = pagerState.currentPageOffsetFraction
+                                    val target = if (offset > 0.2f) pagerState.currentPage + 1
+                                    else if (offset < -0.2f) pagerState.currentPage - 1
+                                    else pagerState.currentPage
+                                    pagerState.animateScrollToPage(target.coerceIn(0, pageCount - 1))
+                                }
+                            },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                coroutineScope.launch {
+                                    pagerState.scrollBy(-dragAmount)
+                                }
                             }
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            coroutineScope.launch {
-                                pagerState.scrollBy(-dragAmount)
-                            }
-                        }
-                    )
-                },
-            state = pagerState,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            pageSpacing = 16.dp
-        ) { page ->
-            val start = page * itemsPerPage
-            val end = (start + itemsPerPage).coerceAtMost(totalItems)
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            ) {
-                for (index in start until end) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        )
+                    },
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                pageSpacing = 16.dp
+            ) { page ->
+                val start = page * itemsPerPage
+                val end = (start + itemsPerPage).coerceAtMost(totalItems)
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                ) {
+                    for (index in start until end) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(24.dp)
                         ) {
-                            if (index == swatches.size) {
-                                StyleColorButton(
-                                    seed = Color.Black,
-                                    style = PaletteStylePreference.MONOCHROME,
-                                    selected = selectedStyle == PaletteStylePreference.MONOCHROME,
-                                    onClick = {
-                                        onTapStyle(PaletteStylePreference.MONOCHROME)
-                                    }
-                                )
-                            } else {
-                                StyleColorButtons(
-                                    seed = swatches[index],
-                                    selectedStyle = if (index == activeIndex && selectedStyle != PaletteStylePreference.MONOCHROME) selectedStyle else -1,
-                                    onSelectStyle = { style ->
-                                        if (selectedIndex != index) {
-                                            onSelect(index)
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                if (index == swatches.size) {
+                                    StyleColorButton(
+                                        seed = Color.Black,
+                                        style = PaletteStylePreference.MONOCHROME,
+                                        selected = selectedStyle == PaletteStylePreference.MONOCHROME,
+                                        onClick = {
+                                            onTapStyle(PaletteStylePreference.MONOCHROME)
                                         }
-                                        onTapStyle(style)
-                                    }
-                                )
+                                    )
+                                } else {
+                                    StyleColorButtons(
+                                        seed = swatches[index],
+                                        selectedStyle = if (index == activeIndex && selectedStyle != PaletteStylePreference.MONOCHROME) selectedStyle else -1,
+                                        onSelectStyle = { style ->
+                                            if (selectedIndex != index) {
+                                                onSelect(index)
+                                            }
+                                            onTapStyle(style)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+            
+            val actualDots = if (pageCount <= 1) 0 else pageCount
+            if (actualDots > 0) {
+                PagerDots(
+                    total = actualDots,
+                    current = pagerState.currentPage,
+                    dotSize = 6.dp,
+                    spacing = 6.dp,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                )
+            }
         }
-        
-        PagerDots(
-            total = pageCount,
-            current = pagerState.currentPage,
-            dotSize = 6.dp,
-            spacing = 6.dp,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        )
     }
 }
 
@@ -509,7 +526,6 @@ private fun DarkThemeSwitchCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            VerticalDivider(modifier = Modifier.height(24.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }
@@ -540,7 +556,6 @@ private fun SwitchCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            VerticalDivider(modifier = Modifier.height(24.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }

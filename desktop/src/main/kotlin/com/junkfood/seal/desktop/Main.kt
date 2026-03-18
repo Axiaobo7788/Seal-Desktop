@@ -172,7 +172,7 @@ fun main() = application {
         title = stringResource(Res.string.app_name),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
-        DesktopSealTheme(themeState = themeState) {
+        DesktopSealTheme(themeState = themeState, window = window) {
             Surface {
                 DesktopApp(
                     themeState = themeState,

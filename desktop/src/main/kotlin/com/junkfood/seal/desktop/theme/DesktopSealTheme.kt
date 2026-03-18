@@ -37,6 +37,7 @@ private enum class DesktopOs {
 @Composable
 fun DesktopSealTheme(
     themeState: DesktopThemeState,
+    window: java.awt.Window? = null,
     content: @Composable () -> Unit,
 ) {
     val prefs = themeState.preferences
@@ -115,7 +116,34 @@ fun DesktopSealTheme(
             else -> false
         }
 
-    val dynamicSeed = detectSystemAccentColor()
+    LaunchedEffect(window, darkTheme) {
+        if (window is javax.swing.JFrame) {
+            window.rootPane.putClientProperty("jetbrains.awt.windowDarkAppearance", darkTheme)
+        } else if (window is javax.swing.JDialog) {
+            window.rootPane.putClientProperty("jetbrains.awt.windowDarkAppearance", darkTheme)
+        }
+    }
+
+    val dynamicSeedState = remember { mutableStateOf<Color?>(null) }
+
+    LaunchedEffect(currentOs, prefs.dynamicColorEnabled) {
+        if (!prefs.dynamicColorEnabled) return@LaunchedEffect
+        // 初始获取
+        dynamicSeedState.value = detectSystemAccentColor()
+        
+        // 可选：对于某些系统，我们可以像深色模式那样轮询或者监听，这里简单加个定期刷新防止用户中途修改
+        if (currentOs == DesktopOs.Linux) {
+            while (true) {
+                delay(SYSTEM_THEME_POLL_INTERVAL_MS)
+                val latest = detectSystemAccentColor()
+                if (latest != dynamicSeedState.value) {
+                    dynamicSeedState.value = latest
+                }
+            }
+        }
+    }
+
+    val dynamicSeed = dynamicSeedState.value
     val seed =
         when {
             prefs.dynamicColorEnabled && dynamicSeed != null -> dynamicSeed
@@ -349,6 +377,15 @@ private fun detectMacAccentColor(): Color? {
 }
 
 private fun detectWindowsAccentColor(): Color? {
+    // 优先使用 Java AWT 原生提供的方法，避免创建子进程
+    val awtColor = runCatching {
+        Toolkit.getDefaultToolkit().getDesktopProperty("win.dwm.colorizationColor") as? java.awt.Color
+    }.getOrNull()
+    if (awtColor != null) {
+        return Color(awtColor.red, awtColor.green, awtColor.blue, awtColor.alpha)
+    }
+
+    // 后备方案：命令行
     val output =
         runCommand(
             "reg",
@@ -367,20 +404,79 @@ private fun detectWindowsAccentColor(): Color? {
 }
 
 private fun detectLinuxAccentColor(): Color? {
-    val output = runCommand("gsettings", "get", "org.gnome.desktop.interface", "accent-color") ?: return null
-    val normalized = output.lowercase(Locale.getDefault())
-    return when {
-        normalized.contains("red") -> Color(0xFFE53935)
-        normalized.contains("orange") -> Color(0xFFFB8C00)
-        normalized.contains("yellow") -> Color(0xFFFBC02D)
-        normalized.contains("green") -> Color(0xFF43A047)
-        normalized.contains("teal") -> Color(0xFF00897B)
-        normalized.contains("blue") -> Color(0xFF1E88E5)
-        normalized.contains("purple") -> Color(0xFF8E24AA)
-        normalized.contains("pink") -> Color(0xFFD81B60)
-        normalized.contains("slate") -> Color(0xFF546E7A)
-        else -> null
+    val currentDesktop = System.getenv("XDG_CURRENT_DESKTOP")?.lowercase(Locale.getDefault()) ?: ""
+
+    // 如果当前是在 KDE 环境，优先解析 kdeglobals 配置避免被 GNOME gsettings 默认值覆盖
+    if (currentDesktop.contains("kde")) {
+        try {
+            val userHome = System.getProperty("user.home")
+            val kdeGlobals = java.io.File(userHome, ".config/kdeglobals")
+            if (kdeGlobals.exists()) {
+                val lines = kdeGlobals.readLines()
+                
+                // 1. 优先尝试提取 KDE 的全局主题强调色 (如 AccentColor=140,149,75)
+                val accentColorLine = lines.firstOrNull { it.trim().startsWith("AccentColor=") }
+                if (accentColorLine != null) {
+                    val rgbStr = accentColorLine.substringAfter("=").split(",")
+                    if (rgbStr.size == 3) {
+                        return Color(
+                            red = rgbStr[0].trim().toFloat() / 255f,
+                            green = rgbStr[1].trim().toFloat() / 255f,
+                            blue = rgbStr[2].trim().toFloat() / 255f,
+                            alpha = 1f
+                        )
+                    }
+                }
+
+                // 2. 如果未设置，兜底获取 [Colors:Selection] 模块下的 BackgroundNormal 颜色
+                var inSelectionSection = false
+                for (line in lines) {
+                    val trimmed = line.trim()
+                    if (trimmed.startsWith("[Colors:Selection]")) {
+                        inSelectionSection = true
+                        continue
+                    } else if (trimmed.startsWith("[")) {
+                        inSelectionSection = false
+                        continue
+                    }
+                    
+                    if (inSelectionSection && trimmed.startsWith("BackgroundNormal=")) {
+                        val rgbStr = trimmed.substringAfter("=").split(",")
+                        if (rgbStr.size == 3) {
+                            return Color(
+                                red = rgbStr[0].trim().toFloat() / 255f,
+                                green = rgbStr[1].trim().toFloat() / 255f,
+                                blue = rgbStr[2].trim().toFloat() / 255f,
+                                alpha = 1f
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
+
+    // 后备方案：检测 GNOME 方案（包含对 gsettings 返回默认值的处理）
+    val output = runCommand("gsettings", "get", "org.gnome.desktop.interface", "accent-color")
+    if (output != null) {
+        val normalized = output.lowercase(Locale.getDefault())
+        return when {
+            normalized.contains("red") -> Color(0xFFE53935)
+            normalized.contains("orange") -> Color(0xFFFB8C00)
+            normalized.contains("yellow") -> Color(0xFFFBC02D)
+            normalized.contains("green") -> Color(0xFF43A047)
+            normalized.contains("teal") -> Color(0xFF00897B)
+            normalized.contains("blue") -> Color(0xFF1E88E5)
+            normalized.contains("purple") -> Color(0xFF8E24AA)
+            normalized.contains("pink") -> Color(0xFFD81B60)
+            normalized.contains("slate") -> Color(0xFF546E7A)
+            else -> null
+        }
+    }
+
+    return null
 }
 
 private fun runCommand(vararg args: String): String? {
