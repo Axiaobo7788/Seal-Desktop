@@ -28,6 +28,10 @@ object DesktopYtDlpPaths {
         return count
     }
 
+        fun tempDirectory(): Path {
+        return Path.of(System.getProperty("java.io.tmpdir"), "seal")
+    }
+
     fun cookiesFile(): Path {
         val dir = stateRoot
         dir.createDirectories()

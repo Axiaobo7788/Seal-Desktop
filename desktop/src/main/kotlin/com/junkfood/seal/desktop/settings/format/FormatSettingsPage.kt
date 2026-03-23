@@ -214,65 +214,59 @@ internal fun FormatSettingsPage(
             checked = preferences.mergeAudioStream,
         ) { checked -> onUpdate { it.copy(mergeAudioStream = checked) } }
 
-        if (showAudioPresetDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.presets),
-                options = audioPresetOptions(),
-                selected = preferences.useCustomAudioPreset,
-                onSelect = { value -> onUpdate { it.copy(useCustomAudioPreset = value) } },
-                onDismiss = { showAudioPresetDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showAudioPresetDialog,
+            title = stringResource(Res.string.presets),
+            options = audioPresetOptions(),
+            selected = preferences.useCustomAudioPreset,
+            onSelect = { value -> onUpdate { it.copy(useCustomAudioPreset = value) } },
+            onDismiss = { showAudioPresetDialog = false },
+        )
 
-        if (showAudioFormatDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.audio_format_preference),
-                options = audioFormatOptions(),
-                selected = preferences.audioFormat,
-                onSelect = { value -> onUpdate { it.copy(audioFormat = value) } },
-                onDismiss = { showAudioFormatDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showAudioFormatDialog,
+            title = stringResource(Res.string.audio_format_preference),
+            options = audioFormatOptions(),
+            selected = preferences.audioFormat,
+            onSelect = { value -> onUpdate { it.copy(audioFormat = value) } },
+            onDismiss = { showAudioFormatDialog = false },
+        )
 
-        if (showAudioQualityDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.audio_quality),
-                options = audioQualityOptions(),
-                selected = preferences.audioQuality,
-                onSelect = { value -> onUpdate { it.copy(audioQuality = value) } },
-                onDismiss = { showAudioQualityDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showAudioQualityDialog,
+            title = stringResource(Res.string.audio_quality),
+            options = audioQualityOptions(),
+            selected = preferences.audioQuality,
+            onSelect = { value -> onUpdate { it.copy(audioQuality = value) } },
+            onDismiss = { showAudioQualityDialog = false },
+        )
 
-        if (showConvertAudioDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.convert_audio_format),
-                options = audioConvertFormatOptions(),
-                selected = preferences.audioConvertFormat,
-                onSelect = { value -> onUpdate { it.copy(audioConvertFormat = value) } },
-                onDismiss = { showConvertAudioDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showConvertAudioDialog,
+            title = stringResource(Res.string.convert_audio_format),
+            options = audioConvertFormatOptions(),
+            selected = preferences.audioConvertFormat,
+            onSelect = { value -> onUpdate { it.copy(audioConvertFormat = value) } },
+            onDismiss = { showConvertAudioDialog = false },
+        )
 
-        if (showVideoFormatDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.video_format_preference),
-                options = videoFormatOptions(),
-                selected = preferences.videoFormat,
-                onSelect = { value -> onUpdate { it.copy(videoFormat = value) } },
-                onDismiss = { showVideoFormatDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showVideoFormatDialog,
+            title = stringResource(Res.string.video_format_preference),
+            options = videoFormatOptions(),
+            selected = preferences.videoFormat,
+            onSelect = { value -> onUpdate { it.copy(videoFormat = value) } },
+            onDismiss = { showVideoFormatDialog = false },
+        )
 
-        if (showVideoQualityDialog) {
-            ChoiceDialog(
-                title = stringResource(Res.string.video_quality),
-                options = videoQualityOptions(),
-                selected = preferences.videoResolution,
-                onSelect = { value -> onUpdate { it.copy(videoResolution = value) } },
-                onDismiss = { showVideoQualityDialog = false },
-            )
-        }
+        ChoiceDialog(
+            visible = showVideoQualityDialog,
+            title = stringResource(Res.string.video_quality),
+            options = videoQualityOptions(),
+            selected = preferences.videoResolution,
+            onSelect = { value -> onUpdate { it.copy(videoResolution = value) } },
+            onDismiss = { showVideoQualityDialog = false },
+        )
     }
 }
 

@@ -124,15 +124,14 @@ internal fun AboutSettingsPage(
         )
     }
 
-    if (showChannelDialog) {
-        ChoiceDialog(
-            title = stringResource(Res.string.update_channel),
-            options = updateChannelOptions(),
-            selected = settings.updateChannel,
-            onSelect = { value -> onUpdate { it.copy(updateChannel = value) } },
-            onDismiss = { showChannelDialog = false },
-        )
-    }
+    ChoiceDialog(
+        visible = showChannelDialog,
+        title = stringResource(Res.string.update_channel),
+        options = updateChannelOptions(),
+        selected = settings.updateChannel,
+        onSelect = { value -> onUpdate { it.copy(updateChannel = value) } },
+        onDismiss = { showChannelDialog = false },
+    )
 }
 
 @Composable

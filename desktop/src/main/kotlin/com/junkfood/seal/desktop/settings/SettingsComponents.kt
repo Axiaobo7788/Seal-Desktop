@@ -16,7 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.AlertDialog
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -241,13 +241,15 @@ internal fun SelectionCard(
 
 @Composable
 internal fun <T> ChoiceDialog(
+    visible: Boolean,
     title: String,
     options: List<Pair<String, T>>,
     selected: T,
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AnimatedAlertDialog(
+        visible = visible,
         onDismissRequest = onDismiss,
         confirmButton = {},
         title = { Text(title) },

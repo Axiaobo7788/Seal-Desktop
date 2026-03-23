@@ -44,15 +44,14 @@ internal fun InteractionSettingsPage(
         )
     }
 
-    if (showDialog) {
-        ChoiceDialog(
-            title = stringResource(Res.string.download_type),
-            options = downloadTypeOptions(),
-            selected = settings.downloadTypeInitialization,
-            onSelect = { value -> onUpdate { it.copy(downloadTypeInitialization = value) } },
-            onDismiss = { showDialog = false },
-        )
-    }
+    ChoiceDialog(
+        visible = showDialog,
+        title = stringResource(Res.string.download_type),
+        options = downloadTypeOptions(),
+        selected = settings.downloadTypeInitialization,
+        onSelect = { value -> onUpdate { it.copy(downloadTypeInitialization = value) } },
+        onDismiss = { showDialog = false },
+    )
 }
 
 @Composable

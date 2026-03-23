@@ -22,7 +22,7 @@ import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Terminal
-import androidx.compose.material3.AlertDialog
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -223,66 +223,141 @@ fun DesktopCustomCommandScreen(
         }
     }
 
-    if (showHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showHelpDialog = false },
-            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = null) },
-            title = { Text(stringResource(Res.string.custom_command)) },
-            text = { Text(stringResource(Res.string.custom_command_desc)) },
-            confirmButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
-                    Text(stringResource(Res.string.dismiss))
-                }
-            },
-        )
-    }
+    AnimatedAlertDialog(
+        visible = showHelpDialog,
+        onDismissRequest = { showHelpDialog = false },
+        icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = null) },
+        title = { Text(stringResource(Res.string.custom_command)) },
+        text = { Text(stringResource(Res.string.custom_command_desc)) },
+        confirmButton = {
+            TextButton(onClick = { showHelpDialog = false }) {
+                Text(stringResource(Res.string.dismiss))
+            }
+        },
+    )
 
-    if (showEditDialog) {
-        val isNewTemplate = editingTemplateId == null
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            icon = {
-                Icon(
-                    imageVector = if (isNewTemplate) Icons.Outlined.Add else Icons.Outlined.Edit,
-                    contentDescription = null,
+    val isNewTemplate = editingTemplateId == null
+    AnimatedAlertDialog(
+        visible = showEditDialog,
+        onDismissRequest = { showEditDialog = false },
+        icon = {
+            Icon(
+                imageVector = if (isNewTemplate) Icons.Outlined.Add else Icons.Outlined.Edit,
+                contentDescription = null,
+            )
+        },
+        title = { Text(stringResource(if (isNewTemplate) Res.string.new_template else Res.string.edit)) },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (editingLabel.isBlank()) {
+                        labelError = true
+                        return@Button
+                    }
+                    appSettingsState.update { current ->
+                        val currentTemplates = current.customCommandTemplates
+                        val existingId = editingTemplateId
+                        val updatedTemplates =
+                            if (existingId == null) {
+                                val newId = (currentTemplates.maxOfOrNull { it.id } ?: 0) + 1
+                                currentTemplates +
+                                    DesktopCommandTemplate(
+                                        id = newId,
+                                        label = editingLabel.trim(),
+                                        template = editingTemplate,
+                                    )
+                            } else {
+                                currentTemplates.map {
+                                    if (it.id == existingId)
+                                        it.copy(label = editingLabel.trim(), template = editingTemplate)
+                                    else it
+                                }
+                            }
+                        val shouldSelectNew = existingId == null && current.customCommandTemplateId == 0
+                        val resolvedSelectedId =
+                            when {
+                                shouldSelectNew -> updatedTemplates.last().id
+                                existingId != null && current.customCommandTemplateId == existingId -> existingId
+                                updatedTemplates.any { it.id == current.customCommandTemplateId } ->
+                                    current.customCommandTemplateId
+                                else -> updatedTemplates.firstOrNull()?.id ?: 0
+                            }
+                        val resolvedTemplate =
+                            updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
+                        current.copy(
+                            customCommandTemplates = updatedTemplates,
+                            customCommandTemplateId = resolvedSelectedId,
+                            customCommandLabel = resolvedTemplate?.label.orEmpty(),
+                            customCommandTemplate = resolvedTemplate?.template.orEmpty(),
+                        )
+                    }
+                    showEditDialog = false
+                },
+            ) {
+                Text(stringResource(Res.string.confirm))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = { showEditDialog = false }) {
+                Text(stringResource(Res.string.dismiss))
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(Res.string.edit_template_desc),
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-            },
-            title = { Text(stringResource(if (isNewTemplate) Res.string.new_template else Res.string.edit)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (editingLabel.isBlank()) {
-                            labelError = true
-                            return@Button
-                        }
+                OutlinedTextField(
+                    value = editingLabel,
+                    onValueChange = {
+                        editingLabel = it
+                        labelError = false
+                    },
+                    isError = labelError,
+                    label = { Text(stringResource(Res.string.template_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 1,
+                    keyboardOptions = KeyboardOptions.Default,
+                )
+                OutlinedTextField(
+                    value = editingTemplate,
+                    onValueChange = { editingTemplate = it },
+                    label = { Text(stringResource(Res.string.custom_command_template)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 12,
+                    textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
+                )
+            }
+        },
+    )
+
+    val template = templates.firstOrNull { it.id == editingTemplateId }
+    AnimatedAlertDialog(
+        visible = showDeleteDialog,
+        onDismissRequest = { showDeleteDialog = false },
+        icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+        title = { Text(stringResource(Res.string.remove_template)) },
+        text = {
+            Text(
+                stringResource(Res.string.remove_template_desc).format(template?.label.orEmpty())
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    template?.let { toDelete ->
                         appSettingsState.update { current ->
-                            val currentTemplates = current.customCommandTemplates
-                            val existingId = editingTemplateId
                             val updatedTemplates =
-                                if (existingId == null) {
-                                    val newId = (currentTemplates.maxOfOrNull { it.id } ?: 0) + 1
-                                    currentTemplates +
-                                        DesktopCommandTemplate(
-                                            id = newId,
-                                            label = editingLabel.trim(),
-                                            template = editingTemplate,
-                                        )
-                                } else {
-                                    currentTemplates.map {
-                                        if (it.id == existingId)
-                                            it.copy(label = editingLabel.trim(), template = editingTemplate)
-                                        else it
-                                    }
-                                }
-                            val shouldSelectNew = existingId == null && current.customCommandTemplateId == 0
+                                current.customCommandTemplates.filterNot { it.id == toDelete.id }
                             val resolvedSelectedId =
-                                when {
-                                    shouldSelectNew -> updatedTemplates.last().id
-                                    existingId != null && current.customCommandTemplateId == existingId -> existingId
-                                    updatedTemplates.any { it.id == current.customCommandTemplateId } ->
-                                        current.customCommandTemplateId
-                                    else -> updatedTemplates.firstOrNull()?.id ?: 0
-                                }
+                                if (current.customCommandTemplateId == toDelete.id)
+                                    updatedTemplates.firstOrNull()?.id ?: 0
+                                else current.customCommandTemplateId
                             val resolvedTemplate =
                                 updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
                             current.copy(
@@ -290,101 +365,23 @@ fun DesktopCustomCommandScreen(
                                 customCommandTemplateId = resolvedSelectedId,
                                 customCommandLabel = resolvedTemplate?.label.orEmpty(),
                                 customCommandTemplate = resolvedTemplate?.template.orEmpty(),
+                                customCommandEnabled =
+                                    if (updatedTemplates.isEmpty()) false else current.customCommandEnabled,
                             )
                         }
-                        showEditDialog = false
-                    },
-                ) {
-                    Text(stringResource(Res.string.confirm))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showEditDialog = false }) {
-                    Text(stringResource(Res.string.dismiss))
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text = stringResource(Res.string.edit_template_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    OutlinedTextField(
-                        value = editingLabel,
-                        onValueChange = {
-                            editingLabel = it
-                            labelError = false
-                        },
-                        isError = labelError,
-                        label = { Text(stringResource(Res.string.template_label)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 1,
-                        keyboardOptions = KeyboardOptions.Default,
-                    )
-                    OutlinedTextField(
-                        value = editingTemplate,
-                        onValueChange = { editingTemplate = it },
-                        label = { Text(stringResource(Res.string.custom_command_template)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 12,
-                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
-                    )
-                }
-            },
-        )
-    }
-
-    if (showDeleteDialog) {
-        val template = templates.firstOrNull { it.id == editingTemplateId }
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-            title = { Text(stringResource(Res.string.remove_template)) },
-            text = {
-                Text(
-                    stringResource(Res.string.remove_template_desc).format(template?.label.orEmpty())
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        template?.let { toDelete ->
-                            appSettingsState.update { current ->
-                                val updatedTemplates =
-                                    current.customCommandTemplates.filterNot { it.id == toDelete.id }
-                                val resolvedSelectedId =
-                                    if (current.customCommandTemplateId == toDelete.id)
-                                        updatedTemplates.firstOrNull()?.id ?: 0
-                                    else current.customCommandTemplateId
-                                val resolvedTemplate =
-                                    updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
-                                current.copy(
-                                    customCommandTemplates = updatedTemplates,
-                                    customCommandTemplateId = resolvedSelectedId,
-                                    customCommandLabel = resolvedTemplate?.label.orEmpty(),
-                                    customCommandTemplate = resolvedTemplate?.template.orEmpty(),
-                                    customCommandEnabled =
-                                        if (updatedTemplates.isEmpty()) false else current.customCommandEnabled,
-                                )
-                            }
-                        }
-                        showDeleteDialog = false
-                    },
-                ) {
-                    Text(stringResource(Res.string.remove))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(Res.string.dismiss))
-                }
-            },
-        )
-    }
+                    }
+                    showDeleteDialog = false
+                },
+            ) {
+                Text(stringResource(Res.string.remove))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = { showDeleteDialog = false }) {
+                Text(stringResource(Res.string.dismiss))
+            }
+        },
+    )
 }
 
 @Composable

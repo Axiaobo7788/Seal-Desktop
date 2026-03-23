@@ -33,7 +33,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.VideoFile
-import androidx.compose.material3.AlertDialog
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenuItem
@@ -251,26 +251,25 @@ internal fun DownloadOptionsSheet(
         }
     }
 
-    if (showPresetDialog && downloadType != DesktopDownloadType.Audio) {
-        var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
-        var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
-
-        VideoPresetDialog(
-            videoResolution = resolution,
-            videoFormatPreference = format,
-            onResolutionSelect = { resolution = it },
-            onFormatSelect = { format = it },
-            onDismissRequest = { showPresetDialog = false },
-            onSave = {
-                onPreferencesChange(
-                    preferences.copy(
-                        videoResolution = resolution,
-                        videoFormat = format,
-                    ),
-                )
-            },
-        )
-    }
+    val isPresetDialogVisible = showPresetDialog && downloadType != DesktopDownloadType.Audio
+    var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
+    var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
+    VideoPresetDialog(
+        visible = isPresetDialogVisible,
+        videoResolution = resolution,
+        videoFormatPreference = format,
+        onResolutionSelect = { resolution = it },
+        onFormatSelect = { format = it },
+        onDismissRequest = { showPresetDialog = false },
+        onSave = {
+            onPreferencesChange(
+                preferences.copy(
+                    videoResolution = resolution,
+                    videoFormat = format,
+                ),
+            )
+        },
+    )
 }
 
 @Composable
@@ -462,6 +461,7 @@ private fun OptionChipRow(title: String, checked: Boolean, onCheckedChange: (Boo
 
 @Composable
 private fun VideoPresetDialog(
+    visible: Boolean,
     videoResolution: Int,
     videoFormatPreference: Int,
     onResolutionSelect: (Int) -> Unit,
@@ -477,7 +477,8 @@ private fun VideoPresetDialog(
     val resolutionOptions = listOf(0, 1, 2, 3, 4, 5, 6, 7)
     var resolutionExpanded by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AnimatedAlertDialog(
+        visible = visible,
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(Res.string.edit_preset)) },
         text = {

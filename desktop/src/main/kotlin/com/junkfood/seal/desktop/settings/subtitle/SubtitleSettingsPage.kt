@@ -130,15 +130,14 @@ internal fun SubtitleSettingsPage(
         }
     }
 
-    if (showConvertDialog) {
-        ChoiceDialog(
-            title = stringResource(Res.string.convert_subtitle),
-            options = convertSubtitleOptions(),
-            selected = preferences.convertSubtitle,
-            onSelect = { value -> onUpdate { it.copy(convertSubtitle = value) } },
-            onDismiss = { showConvertDialog = false },
-        )
-    }
+    ChoiceDialog(
+        visible = showConvertDialog,
+        title = stringResource(Res.string.convert_subtitle),
+        options = convertSubtitleOptions(),
+        selected = preferences.convertSubtitle,
+        onSelect = { value -> onUpdate { it.copy(convertSubtitle = value) } },
+        onDismiss = { showConvertDialog = false },
+    )
 }
 
 @Composable
