@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 private data class AndroidBackup(
-    val downloadHistory: List<AndroidDownloadedVideoInfo> = emptyList(),
+    val downloadHistory: List<AndroidDownloadedVideoInfo>? = emptyList(),
 )
 
 @Serializable
@@ -97,8 +97,23 @@ enum class DesktopHistoryExportType { DownloadHistory, UrlList }
 
 enum class DesktopHistoryImportMode { Merge, Replace }
 
-internal fun encodeHistoryEntries(entries: List<DesktopDownloadHistoryEntry>): String =
-    historyJson.encodeToString(entries)
+private fun DesktopDownloadHistoryEntry.toAndroidEntry(): AndroidDownloadedVideoInfo {
+    val maybeId = id.removePrefix("android-").toIntOrNull() ?: 0
+    return AndroidDownloadedVideoInfo(
+        id = maybeId,
+        videoTitle = title,
+        videoAuthor = author,
+        videoUrl = url,
+        thumbnailUrl = thumbnailUrl ?: "",
+        videoPath = filePath ?: "",
+        extractor = extractor
+    )
+}
+
+internal fun encodeHistoryEntries(entries: List<DesktopDownloadHistoryEntry>): String {
+    val backup = AndroidBackup(downloadHistory = entries.map { it.toAndroidEntry() })
+    return historyJson.encodeToString(backup)
+}
 
 @Throws(SerializationException::class)
 internal fun decodeHistoryEntries(text: String): List<DesktopDownloadHistoryEntry> {
@@ -110,9 +125,10 @@ internal fun decodeHistoryEntries(text: String): List<DesktopDownloadHistoryEntr
             // Compatibility: Android exports download history as Backup(downloadHistory=[DownloadedVideoInfo...]).
             runCatching { historyJson.decodeFromString<AndroidBackup>(trimmed) }
                 .map { backup ->
-                    if (backup.downloadHistory.isEmpty()) throw desktopErr
+                    val historyList = backup.downloadHistory ?: emptyList()
+                    if (historyList.isEmpty()) throw desktopErr
                     val now = System.currentTimeMillis()
-                    backup.downloadHistory.map { it.toDesktopEntry(nowEpochMillis = now) }
+                    historyList.map { it.toDesktopEntry(nowEpochMillis = now) }
                 }
                 .getOrElse {
                     val se = desktopErr as? SerializationException

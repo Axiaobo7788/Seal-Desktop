@@ -158,6 +158,16 @@ fun DesktopDownloadHistoryPage(
     val scope = rememberCoroutineScope()
     val importedSnackbarTemplate = stringResource(Res.string.download_history_imported)
 
+    LaunchedEffect(showImportDialog) {
+        if (showImportDialog) importDialogHost = true
+    }
+    LaunchedEffect(showExportDialog) {
+        if (showExportDialog) exportDialogHost = true
+    }
+    LaunchedEffect(errorDialog) {
+        if (errorDialog != null) errorDialogHost = errorDialog
+    }
+
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
             state = rememberTopAppBarState(),
@@ -668,7 +678,10 @@ private fun DesktopHistoryExportDialog(
     var type by remember { mutableStateOf(DesktopHistoryExportType.DownloadHistory) }
     var destination by remember { mutableStateOf(DesktopHistoryIoDestination.File) }
 
-    val itemCountLabel = pluralStringResource(Res.plurals.item_count, itemCount, itemCount)
+    val itemCountLabel =
+        pluralStringResource(Res.plurals.item_count, itemCount, itemCount)
+            .replace("%d", itemCount.toString())
+            .replace("%1\$d", itemCount.toString())
 
     AnimatedAlertDialog(
         visible = visible,

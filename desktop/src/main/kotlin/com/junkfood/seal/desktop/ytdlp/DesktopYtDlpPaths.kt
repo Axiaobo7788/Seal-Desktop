@@ -12,6 +12,22 @@ object DesktopYtDlpPaths {
     private val stateRoot: Path by lazy { resolveStateRoot() }
     private val downloadsRoot: Path by lazy { resolveDownloadsRoot() }
 
+        fun clearTempFiles(): Int {
+        var count = 0
+        runCatching {
+            val appTempDir = Path.of(System.getProperty("java.io.tmpdir"), "seal")
+            if (appTempDir.exists()) {
+                val files = Files.walk(appTempDir).filter { Files.isRegularFile(it) }.toList()
+                for (file in files) {
+                    if (Files.deleteIfExists(file)) {
+                        count++
+                    }
+                }
+            }
+        }
+        return count
+    }
+
     fun cookiesFile(): Path {
         val dir = stateRoot
         dir.createDirectories()
@@ -25,12 +41,7 @@ object DesktopYtDlpPaths {
     }
 
     fun downloadDirectory(hint: String?): Path {
-        val sub = when (hint) {
-            "audio" -> "Audio"
-            "video" -> "Video"
-            else -> null
-        }
-        val dir = sub?.let { downloadsRoot.resolve(it) } ?: downloadsRoot
+        val dir = downloadsRoot
         if (!dir.exists()) Files.createDirectories(dir)
         return dir
     }
@@ -79,8 +90,33 @@ object DesktopYtDlpPaths {
         val userHome = System.getProperty("user.home")
 
         if (osName.contains("win")) {
+            val psFallback = runCatching {
+                val process = ProcessBuilder(
+                    "powershell", "-NoProfile", "-Command",
+                    "(New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path"
+                ).start()
+                val text = process.inputStream.bufferedReader().readText().trim()
+                if (text.isNotBlank()) Path.of(text) else null
+            }.getOrNull()
+
+            if (psFallback != null && psFallback.exists()) {
+                return psFallback
+            }
+
             val base = System.getenv("USERPROFILE")?.takeIf { it.isNotBlank() } ?: userHome
             return Path.of(base, "Downloads")
+        }
+
+        if (osName.contains("linux") || osName.contains("nix") || osName.contains("nux")) {
+            val xdgPath = runCatching {
+                val process = ProcessBuilder("xdg-user-dir", "DOWNLOAD").start()
+                val text = process.inputStream.bufferedReader().readText().trim()
+                if (text.isNotBlank()) Path.of(text) else null
+            }.getOrNull()
+            
+            if (xdgPath != null) {
+                return xdgPath
+            }
         }
 
         val base = System.getenv("HOME")?.takeIf { it.isNotBlank() } ?: userHome.ifBlank {

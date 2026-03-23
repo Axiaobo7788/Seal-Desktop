@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryEntry
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryStorage
 import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
@@ -38,6 +39,9 @@ import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -46,6 +50,7 @@ class DesktopDownloadController(
     private val executor: DownloadPlanExecutor = DownloadPlanExecutor(),
     private val metadataFetcher: YtDlpMetadataFetcher = YtDlpMetadataFetcher(),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
+    private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
     private val appSettingsProvider: () -> DesktopAppSettings = { DesktopAppSettings() },
 ) {
     var filter by mutableStateOf(DownloadQueueFilter.All)
@@ -70,6 +75,56 @@ class DesktopDownloadController(
             val loaded = historyStorage.load()
             historyEntries.clear()
             historyEntries.addAll(loaded)
+            
+            // Restore from backup
+            val queueBackup = queueStorage.load()
+            val restoredQueue = queueBackup.items.map { backupItem ->
+                requestByItemId[backupItem.id] = DesktopDownloadRequest(
+                    url = backupItem.request.url,
+                    type = DesktopDownloadType.valueOf(backupItem.request.type),
+                    preferences = backupItem.request.preferences
+                )
+                DownloadQueueItemState(
+                    id = backupItem.id,
+                    title = backupItem.title,
+                    author = backupItem.author,
+                    url = backupItem.url,
+                    thumbnailUrl = backupItem.thumbnailUrl,
+                    mediaType = runCatching { DownloadQueueMediaType.valueOf(backupItem.mediaType) }.getOrDefault(DownloadQueueMediaType.Unknown),
+                    status = when (runCatching { DownloadQueueStatus.valueOf(backupItem.status) }.getOrDefault(DownloadQueueStatus.Idle)) {
+                        DownloadQueueStatus.Running,
+                        DownloadQueueStatus.Ready,
+                        DownloadQueueStatus.FetchingInfo,
+                        DownloadQueueStatus.Idle -> DownloadQueueStatus.Canceled // Treat interrupted runs as Canceled/Paused
+                        else -> runCatching { DownloadQueueStatus.valueOf(backupItem.status) }.getOrDefault(DownloadQueueStatus.Error)
+                    }
+                )
+            }
+            queueItems.addAll(restoredQueue)
+            
+            // Save state updates
+            snapshotFlow { queueItems.toList() }
+                .map { list -> list.filter { it.status != DownloadQueueStatus.Completed } }
+                .collectLatest { list ->
+                    val backups = list.mapNotNull { item ->
+                        val request = requestByItemId[item.id] ?: return@mapNotNull null
+                        DesktopQueueItemBackup(
+                            id = item.id,
+                            title = item.title,
+                            author = item.author,
+                            url = item.url,
+                            thumbnailUrl = item.thumbnailUrl,
+                            mediaType = item.mediaType.name,
+                            status = item.status.name,
+                            request = DesktopDownloadRequestBackup(
+                                url = request.url,
+                                type = request.type.name,
+                                preferences = request.preferences
+                            )
+                        )
+                    }
+                    queueStorage.save(DesktopQueueBackup(version = 1, items = backups))
+                }
         }
     }
 

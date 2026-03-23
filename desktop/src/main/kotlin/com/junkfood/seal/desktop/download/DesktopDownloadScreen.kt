@@ -81,6 +81,7 @@ import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.print_details
 import com.junkfood.seal.shared.generated.resources.restart
 import com.junkfood.seal.shared.generated.resources.status_canceled
+import com.junkfood.seal.shared.generated.resources.status_paused
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.status_error
@@ -180,7 +181,7 @@ fun DesktopDownloadScreen(
             emptyBody = stringResource(Res.string.download_hint),
             gridLabel = stringResource(Res.string.desktop_view_grid),
             listLabel = stringResource(Res.string.desktop_view_list),
-            statusCanceled = stringResource(Res.string.status_canceled),
+            statusCanceled = stringResource(Res.string.status_paused),
             resumeLabel = stringResource(Res.string.restart),
             cancelLabel = stringResource(Res.string.cancel),
             deleteLabel = stringResource(Res.string.delete),
@@ -423,7 +424,7 @@ fun DesktopDownloadScreen(
             when (item.status) {
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Running -> stringResource(Res.string.status_downloading)
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Completed -> stringResource(Res.string.status_completed)
-                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Canceled -> stringResource(Res.string.status_canceled)
+                com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Canceled -> stringResource(Res.string.status_paused)
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Error -> stringResource(Res.string.status_error)
                 else -> item.status.name
             }

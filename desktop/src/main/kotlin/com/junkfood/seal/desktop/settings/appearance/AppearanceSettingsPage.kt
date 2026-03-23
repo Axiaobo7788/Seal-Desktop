@@ -526,6 +526,7 @@ private fun DarkThemeSwitchCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            VerticalDivider(modifier = Modifier.height(24.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
     }

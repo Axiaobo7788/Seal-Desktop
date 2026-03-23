@@ -377,6 +377,10 @@
 - [ ] 不直接复用 Android 文件 I/O 路径（SAF/DocumentFile/Content Uri）。
 - [ ] Desktop 继续使用 JVM 文件系统 + 系统打开能力（Desktop/xdg-open/open/rundll32）做平台适配。
 
+### 13.4 跨端备份格式重构（历史记录导出/导入）
+- [ ] 重新设计 Android 与 Desktop 共用的历史备份 JSON 语义与格式。
+- [ ] 核心诉求：剥离带有强设备绑定属性的字段（如本地绝对路径 `videoPath`、单机数据库自增 `id`），改为纯粹的“云同步清单”（仅保留 URL、标题、作者、提取器、封面等），以彻底解决跨端设备互导时路径失效及主键超限崩溃的问题。
+
 ---
 
 ## 14. Desktop 端可做的独特适配方案（差异化能力）

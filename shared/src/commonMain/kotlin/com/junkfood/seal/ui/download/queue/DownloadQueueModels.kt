@@ -76,6 +76,7 @@ data class DownloadQueueStrings(
     val statusRunning: String = "Downloading",
     val statusCompleted: String = "Completed",
     val statusCanceled: String = "Canceled",
+    val statusPaused: String = "Paused",
     val statusError: String = "Error",
     val videoCountLabel: (Int) -> String = { count -> "Video: $count" },
     val audioCountLabel: (Int) -> String = { count -> "Audio: $count" },

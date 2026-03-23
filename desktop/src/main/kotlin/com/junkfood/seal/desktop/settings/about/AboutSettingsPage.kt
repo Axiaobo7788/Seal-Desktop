@@ -91,7 +91,7 @@ internal fun AboutSettingsPage(
             title = stringResource(Res.string.matrix_space),
             description = matrixUrl,
             icon = Icons.Rounded.Info,
-            onClick = { uriHandler.openUri(matrixUrl) },
+            onClick = { uriHandler.openUri(matrixUrl.replace("#seal-space", "%23seal-space")) },
         )
         SelectionCard(
             title = stringResource(Res.string.credits),

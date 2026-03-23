@@ -457,7 +457,7 @@ private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStr
             DownloadQueueStatus.Ready -> strings.statusReady
             DownloadQueueStatus.Running -> strings.statusRunning
             DownloadQueueStatus.Completed -> strings.statusCompleted
-            DownloadQueueStatus.Canceled -> strings.statusCanceled
+            DownloadQueueStatus.Canceled -> strings.statusPaused
             DownloadQueueStatus.Error -> strings.statusError
         }
     val progressPercent = item.progress?.let { " ${String.format("%.1f %%", it * 100f)}" } ?: ""
@@ -474,8 +474,6 @@ private fun ProgressText(item: DownloadQueueItemState, strings: DownloadQueueStr
 @Composable
 private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueueStrings) {
     val sizeModifier = Modifier.size(14.dp)
-    val runningProgressColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.76f)
-    val runningTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
     val statusColor =
         when (item.status) {
             DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.tertiary
@@ -483,38 +481,19 @@ private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueue
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        when (item.status) {
-            DownloadQueueStatus.Canceled -> {
-                Icon(Icons.Outlined.Cancel, contentDescription = null, tint = statusColor, modifier = sizeModifier)
+        val icon =
+            when (item.status) {
+                DownloadQueueStatus.Canceled -> Icons.Outlined.Cancel
+                DownloadQueueStatus.Completed -> Icons.Outlined.CheckCircle
+                DownloadQueueStatus.Error -> Icons.Outlined.Error
+                else -> null
             }
-            DownloadQueueStatus.Completed -> {
-                Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = statusColor, modifier = sizeModifier)
-            }
-            DownloadQueueStatus.Error -> {
-                Icon(Icons.Outlined.Error, contentDescription = null, tint = statusColor, modifier = sizeModifier)
-            }
-            DownloadQueueStatus.FetchingInfo,
-            DownloadQueueStatus.Ready,
-            DownloadQueueStatus.Idle -> {
-                CircularProgressIndicator(
-                    modifier = sizeModifier,
-                    strokeWidth = 2.5.dp,
-                    color = runningProgressColor,
-                    trackColor = runningTrackColor,
-                )
-            }
-            DownloadQueueStatus.Running -> {
-                val progress = item.progress ?: 0f
-                CircularProgressIndicator(
-                    progress = { progress },
-                    modifier = sizeModifier,
-                    strokeWidth = 2.5.dp,
-                    color = runningProgressColor,
-                    trackColor = runningTrackColor,
-                )
-            }
+        
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = statusColor, modifier = sizeModifier)
+            Spacer(Modifier.width(8.dp))
         }
-        Spacer(Modifier.width(8.dp))
+        
         val statusLabel =
             when (item.status) {
                 DownloadQueueStatus.Idle -> strings.statusIdle
@@ -522,7 +501,7 @@ private fun StatusRowShared(item: DownloadQueueItemState, strings: DownloadQueue
                 DownloadQueueStatus.Ready -> strings.statusReady
                 DownloadQueueStatus.Running -> strings.statusRunning
                 DownloadQueueStatus.Completed -> strings.statusCompleted
-                DownloadQueueStatus.Canceled -> strings.statusCanceled
+                DownloadQueueStatus.Canceled -> strings.statusPaused
                 DownloadQueueStatus.Error -> strings.statusError
             }
         val progressPercent = item.progress?.let { " ${String.format("%.1f %%", it * 100f)}" } ?: ""
@@ -543,7 +522,7 @@ private fun StatusPill(item: DownloadQueueItemState, strings: DownloadQueueStrin
         when (item.status) {
             DownloadQueueStatus.Completed -> strings.statusCompleted
             DownloadQueueStatus.Error -> strings.statusError
-            DownloadQueueStatus.Canceled -> strings.statusCanceled
+            DownloadQueueStatus.Canceled -> strings.statusPaused
             DownloadQueueStatus.Running -> strings.statusRunning
             DownloadQueueStatus.FetchingInfo -> strings.statusFetchingInfo
             DownloadQueueStatus.Ready -> strings.statusReady
@@ -576,27 +555,11 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
     val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(320), label = "downloadOverlayProgress")
     val ringColor =
         when (item.status) {
-            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
-            DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> MaterialTheme.colorScheme.error.copy(alpha = 0.74f)
-            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.primaryContainer
+            DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.primaryContainer
         }
     Box(modifier = modifier.size(64.dp), contentAlignment = Alignment.Center) {
-        if (item.progress != null) {
-            CircularProgressIndicator(
-                progress = { animatedProgress },
-                strokeWidth = 4.dp,
-                modifier = Modifier.fillMaxSize(),
-                color = ringColor,
-                trackColor = Color.Transparent,
-            )
-        } else {
-            CircularProgressIndicator(
-                strokeWidth = 4.dp,
-                modifier = Modifier.fillMaxSize(),
-                color = ringColor,
-                trackColor = Color.Transparent,
-            )
-        }
         val interaction = remember { MutableInteractionSource() }
         val action =
             when (item.status) {
@@ -631,6 +594,23 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
                     Icon(currentIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
                 }
             }
+        }
+        
+        if (item.progress != null) {
+            CircularProgressIndicator(
+                progress = { animatedProgress },
+                strokeWidth = 4.dp,
+                modifier = Modifier.fillMaxSize(),
+                color = ringColor,
+                trackColor = Color.Transparent,
+            )
+        } else {
+            CircularProgressIndicator(
+                strokeWidth = 4.dp,
+                modifier = Modifier.fillMaxSize(),
+                color = ringColor,
+                trackColor = Color.Transparent,
+            )
         }
     }
 }
