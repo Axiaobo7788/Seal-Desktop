@@ -3,15 +3,12 @@ package com.junkfood.seal.download
 import androidx.annotation.CheckResult
 import com.junkfood.seal.download.Task.DownloadState.Idle
 import com.junkfood.seal.download.Task.DownloadState.ReadyWithInfo
-import com.junkfood.seal.download.PlaylistSelectionMapper
-import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.VideoClip
 import com.junkfood.seal.util.VideoInfo
-import kotlin.math.roundToInt
+import com.junkfood.seal.util.createFromPreferences
 
 object TaskFactory {
     /**
@@ -83,8 +80,14 @@ object TaskFactory {
                         uploader = itemView.uploader,
                         thumbnailUrl = itemView.thumbnailUrl,
                     )
-                val task = Task(url = playlistUrl, preferences = preferences, type = Task.TypeInfo.Playlist(index))
-                val state = Task.State(downloadState = Idle, videoInfo = null, viewState = viewState)
+                val task =
+                    Task(
+                        url = playlistUrl,
+                        preferences = preferences,
+                        type = Task.TypeInfo.Playlist(index),
+                    )
+                val state =
+                    Task.State(downloadState = Idle, videoInfo = null, viewState = viewState)
                 TaskWithState(task, state)
             }
 

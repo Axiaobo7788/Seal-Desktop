@@ -18,9 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
-/**
- * Android 端桥接共享下载 UI：沿用现有 Downloader/HomePageViewModel 逻辑，仅复用 UI。
- */
+/** Android 端桥接共享下载 UI：沿用现有 Downloader/HomePageViewModel 逻辑，仅复用 UI。 */
 @Composable
 fun DownloadSharedPaneAndroid(
     modifier: Modifier = Modifier,
@@ -39,9 +37,7 @@ fun DownloadSharedPaneAndroid(
         if (logs.size > 200) logs.removeFirst()
     }
 
-    LaunchedEffect(downloaderState) {
-        appendLog("状态：$downloaderState")
-    }
+    LaunchedEffect(downloaderState) { appendLog("状态：$downloaderState") }
     LaunchedEffect(taskState.progressText, taskState.progress) {
         if (taskState.progressText.isNotBlank()) appendLog(taskState.progressText)
     }
@@ -55,7 +51,8 @@ fun DownloadSharedPaneAndroid(
                 if (errorState is ErrorState.None) "等待链接" else "错误：${errorState.title}"
             Downloader.State.FetchingInfo -> "获取信息..."
             Downloader.State.DownloadingVideo -> "下载中 ${taskState.progress.toInt()}%"
-            is Downloader.State.DownloadingPlaylist -> "下载列表 ${state.currentItem}/${state.itemCount}"
+            is Downloader.State.DownloadingPlaylist ->
+                "下载列表 ${state.currentItem}/${state.itemCount}"
             Downloader.State.Updating -> "更新中..."
         }
 

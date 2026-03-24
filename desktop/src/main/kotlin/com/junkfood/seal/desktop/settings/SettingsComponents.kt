@@ -165,7 +165,7 @@ internal fun ToggleCard(
 @Composable
 internal fun TextFieldCard(
     title: String,
-    description: String,
+    description: String? = null,
     icon: ImageVector,
     value: String,
     enabled: Boolean = true,
@@ -184,12 +184,14 @@ internal fun TextFieldCard(
                 Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = title, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (description != null) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             OutlinedTextField(

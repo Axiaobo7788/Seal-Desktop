@@ -68,17 +68,16 @@ import com.junkfood.seal.util.AUDIO_CONVERSION_FORMAT
 import com.junkfood.seal.util.AUDIO_CONVERT
 import com.junkfood.seal.util.AUDIO_FORMAT
 import com.junkfood.seal.util.AUDIO_QUALITY
+import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadType.Audio
 import com.junkfood.seal.util.DownloadType.Video
-import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.createFromPreferences
-import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.PreferenceUtil.updateBoolean
 import com.junkfood.seal.util.PreferenceUtil.updateInt
 import com.junkfood.seal.util.USE_CUSTOM_AUDIO_PRESET
 import com.junkfood.seal.util.VIDEO_FORMAT
 import com.junkfood.seal.util.VIDEO_QUALITY
+import com.junkfood.seal.util.createFromPreferences
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -89,9 +88,7 @@ fun PlaylistSelectionPage(
     downloader: DownloaderV2 = koinInject(),
     onDismissRequest: () -> Unit = {},
 ) {
-    var preferences by remember {
-        mutableStateOf(DownloadPreferences.createFromPreferences())
-    }
+    var preferences by remember { mutableStateOf(DownloadPreferences.createFromPreferences()) }
     var showVideoPresetDialog by remember { mutableStateOf(false) }
     var showAudioPresetDialog by remember { mutableStateOf(false) }
 

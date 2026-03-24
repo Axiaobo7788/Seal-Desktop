@@ -88,15 +88,14 @@ fun AnimatedAlertDialog(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = onDismissRequest
-                ),
+                )
+                .padding(32.dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(
                 modifier = modifier
                     .scale(scale)
                     .alpha(alphaAnim)
-                    .widthIn(min = 280.dp, max = 560.dp)
-                    .padding(32.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -107,14 +106,17 @@ fun AnimatedAlertDialog(
                 tonalElevation = AlertDialogDefaults.TonalElevation
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.Start
+                    modifier = Modifier
+                        .widthIn(min = 280.dp, max = 560.dp)
+                        .padding(24.dp)
                 ) {
                     if (icon != null) {
-                        Box(
-                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp)
-                        ) {
-                            CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
+                        CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(bottom = 16.dp)
+                                    .align(Alignment.CenterHorizontally)
+                            ) {
                                 icon()
                             }
                         }
@@ -122,7 +124,11 @@ fun AnimatedAlertDialog(
                     if (title != null) {
                         CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
                             ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
-                                Box(modifier = Modifier.padding(bottom = 16.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(bottom = 16.dp)
+                                        .align(if (icon != null) Alignment.CenterHorizontally else Alignment.Start)
+                                ) {
                                     title()
                                 }
                             }
@@ -131,7 +137,11 @@ fun AnimatedAlertDialog(
                     if (text != null) {
                         CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.textContentColor) {
                             ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-                                Box(modifier = Modifier.padding(bottom = 24.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .padding(bottom = 24.dp)
+                                ) {
                                     text()
                                 }
                             }

@@ -123,15 +123,13 @@ import com.junkfood.seal.util.AUDIO_QUALITY
 import com.junkfood.seal.util.COOKIES
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DatabaseUtil
+import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadType
 import com.junkfood.seal.util.DownloadType.Audio
 import com.junkfood.seal.util.DownloadType.Command
 import com.junkfood.seal.util.DownloadType.Playlist
 import com.junkfood.seal.util.DownloadType.Video
 import com.junkfood.seal.util.DownloadType.entries
-import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.createFromPreferences
-import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_SELECTION
 import com.junkfood.seal.util.PreferenceStrings
 import com.junkfood.seal.util.PreferenceUtil
@@ -145,6 +143,7 @@ import com.junkfood.seal.util.ToastUtil
 import com.junkfood.seal.util.USE_CUSTOM_AUDIO_PRESET
 import com.junkfood.seal.util.VIDEO_FORMAT
 import com.junkfood.seal.util.VIDEO_QUALITY
+import com.junkfood.seal.util.createFromPreferences
 import kotlinx.coroutines.launch
 
 @Composable
@@ -372,9 +371,7 @@ private fun DownloadDialogContent(
                                 preference = preferences,
                                 selectedType = config.downloadType,
                                 onPreferenceUpdate = {
-                                    onPreferencesUpdate(
-                                        DownloadPreferences.createFromPreferences()
-                                    )
+                                    onPreferencesUpdate(DownloadPreferences.createFromPreferences())
                                 },
                             )
                         },

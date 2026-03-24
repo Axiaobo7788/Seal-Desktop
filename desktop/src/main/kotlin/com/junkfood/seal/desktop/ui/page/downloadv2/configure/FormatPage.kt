@@ -114,6 +114,7 @@ internal fun CustomFormatSelectionSheet(
     controller: DesktopDownloadController,
     downloadType: DesktopDownloadType,
     basePreferences: DownloadPreferences,
+    isVideoClipEnabled: Boolean = false,
     onPreferencesUpdated: (DownloadPreferences) -> Unit,
     onBack: () -> Unit,
     onDownloadComplete: () -> Unit,
@@ -150,6 +151,7 @@ internal fun CustomFormatSelectionSheet(
             FormatPageImpl(
                 videoInfo = videoInfo!!,
                 basePreferences = basePreferences,
+                isVideoClipEnabled = isVideoClipEnabled,
                 allowMultiAudio = basePreferences.mergeAudioStream,
                 onNavigateBack = onBack,
                 onDownloadPressed = { config ->
@@ -157,6 +159,7 @@ internal fun CustomFormatSelectionSheet(
                         url = url,
                         type = downloadType,
                         basePreferences = basePreferences,
+
                         videoInfo = videoInfo!!,
                         formatList = config.formatList,
                         videoClips = config.videoClips,
@@ -255,6 +258,7 @@ private fun FormatPageImpl(
     allowMultiAudio: Boolean,
     onNavigateBack: () -> Unit,
     onDownloadPressed: (FormatConfig) -> Unit,
+    isVideoClipEnabled: Boolean = false,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val formats = videoInfo.formats.orEmpty()
@@ -388,6 +392,7 @@ private fun FormatPageImpl(
                     durationSeconds = durationSeconds,
                     chapterCount = chapterCount,
                     splitByChapter = splitByChapter,
+                    isVideoClipEnabled = isVideoClipEnabled,
                     onSplitByChapterChange = { checked ->
                         splitByChapter = checked
                         if (checked) {
@@ -678,6 +683,7 @@ private fun AdvancedOptionsCard(
     chapterCount: Int,
     splitByChapter: Boolean,
     onSplitByChapterChange: (Boolean) -> Unit,
+    isVideoClipEnabled: Boolean,
     clipVideo: Boolean,
     onClipVideoChange: (Boolean) -> Unit,
     clipStartText: String,
@@ -720,7 +726,7 @@ private fun AdvancedOptionsCard(
                 }
             }
 
-            if (durationSeconds > 0) {
+            if (durationSeconds > 0 && isVideoClipEnabled) {
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onClipVideoChange(!clipVideo) },
                     verticalAlignment = Alignment.CenterVertically,

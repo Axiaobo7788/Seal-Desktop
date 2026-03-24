@@ -55,10 +55,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
         data object Reset : Action
 
-        data class FetchPlaylist(
-            val url: String,
-            val preferences: DownloadPreferences,
-        ) : Action
+        data class FetchPlaylist(val url: String, val preferences: DownloadPreferences) : Action
 
         data class FetchFormats(
             val url: String,
@@ -175,10 +172,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
         mSheetStateFlow.update { SheetState.Loading(taskKey = "FetchFormat_$url", job = job) }
     }
 
-    private fun downloadWithPreset(
-        urlList: List<String>,
-        preferences: DownloadPreferences,
-    ) {
+    private fun downloadWithPreset(urlList: List<String>, preferences: DownloadPreferences) {
         urlList.forEach { downloader.enqueue(Task(url = it, preferences = preferences)) }
         hideDialog()
     }

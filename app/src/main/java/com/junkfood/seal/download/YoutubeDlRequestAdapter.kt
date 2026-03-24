@@ -29,20 +29,19 @@ object YoutubeDlRequestAdapter {
         videoInfo: VideoInfo,
         preferences: DownloadPreferences,
         playlistUrl: String,
-    ): Result<Pair<YoutubeDLRequest, String>> =
-        runCatching {
-            val url =
-                playlistUrl.ifEmpty {
-                    videoInfo.originalUrl
-                        ?: videoInfo.webpageUrl
-                        ?: throw Throwable(App.context.getString(R.string.fetch_info_error_msg))
-                }
+    ): Result<Pair<YoutubeDLRequest, String>> = runCatching {
+        val url =
+            playlistUrl.ifEmpty {
+                videoInfo.originalUrl
+                    ?: videoInfo.webpageUrl
+                    ?: throw Throwable(App.context.getString(R.string.fetch_info_error_msg))
+            }
 
-            val request = YoutubeDLRequest(url)
-            val downloadPath = configureDownloadPaths(request, preferences, videoInfo)
-            applyPlanToRequest(request, plan, preferences, videoInfo)
-            request to downloadPath
-        }
+        val request = YoutubeDLRequest(url)
+        val downloadPath = configureDownloadPaths(request, preferences, videoInfo)
+        applyPlanToRequest(request, plan, preferences, videoInfo)
+        request to downloadPath
+    }
 
     private fun configureDownloadPaths(
         request: YoutubeDLRequest,
@@ -154,4 +153,3 @@ private fun YoutubeDLRequest.enableCookies(userAgentString: String): YoutubeDLRe
 
 private fun YoutubeDLRequest.useDownloadArchive(): YoutubeDLRequest =
     this.addOption("--download-archive", App.context.getArchiveFile().absolutePath)
-

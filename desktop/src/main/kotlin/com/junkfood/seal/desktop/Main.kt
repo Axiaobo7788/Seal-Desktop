@@ -417,6 +417,7 @@ private fun ContentArea(
                     onMenuClick = onMenuClick,
                     isCompact = isCompact,
                     disablePreview = appSettingsState.settings.disablePreview,
+                    isVideoClipEnabled = appSettingsState.settings.isVideoClipEnabled,
                     preferences = settingsState.preferences,
                     onPreferencesChange = settingsState::set,
                     controller = downloadController,

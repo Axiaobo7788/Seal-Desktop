@@ -48,9 +48,6 @@ import com.junkfood.seal.util.AUDIO_CONVERT
 import com.junkfood.seal.util.CROP_ARTWORK
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.DownloadUtil
-import com.junkfood.seal.util.toFormatSorter
-import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.EMBED_METADATA
 import com.junkfood.seal.util.EMBED_SUBTITLE
 import com.junkfood.seal.util.EXTRACT_AUDIO
@@ -70,6 +67,8 @@ import com.junkfood.seal.util.SUBTITLE
 import com.junkfood.seal.util.VIDEO_CLIP
 import com.junkfood.seal.util.VIDEO_FORMAT
 import com.junkfood.seal.util.VIDEO_QUALITY
+import com.junkfood.seal.util.createFromPreferences
+import com.junkfood.seal.util.toFormatSorter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -368,8 +367,7 @@ fun DownloadFormatPreferences(onNavigateBack: () -> Unit, navigateToSubtitlePage
         FormatSortingDialog(
             fields = sortingFields,
             onImport = {
-                sortingFields =
-                    DownloadPreferences.createFromPreferences().toFormatSorter()
+                sortingFields = DownloadPreferences.createFromPreferences().toFormatSorter()
             },
             onDismissRequest = { showFormatSorterDialog = false },
             showSwitch = false,

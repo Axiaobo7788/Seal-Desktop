@@ -94,6 +94,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -553,11 +554,12 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
         else -> 0f
     }
     val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(320), label = "downloadOverlayProgress")
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val ringColor =
         when (item.status) {
-            DownloadQueueStatus.Completed -> MaterialTheme.colorScheme.primaryContainer
-            DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> MaterialTheme.colorScheme.errorContainer
-            else -> MaterialTheme.colorScheme.primaryContainer
+            DownloadQueueStatus.Completed -> if (isDark) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
+            DownloadQueueStatus.Canceled, DownloadQueueStatus.Error -> if (isDark) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.errorContainer
+            else -> if (isDark) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.secondaryContainer
         }
     Box(modifier = modifier.size(64.dp), contentAlignment = Alignment.Center) {
         val interaction = remember { MutableInteractionSource() }
@@ -591,7 +593,7 @@ private fun DownloadOverlay(item: DownloadQueueItemState, modifier: Modifier = M
                     targetState = icon,
                     animationSpec = tween(180),
                 ) { currentIcon ->
-                    Icon(currentIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                    Icon(currentIcon, contentDescription = null, tint = ringColor, modifier = Modifier.size(36.dp))
                 }
             }
         }

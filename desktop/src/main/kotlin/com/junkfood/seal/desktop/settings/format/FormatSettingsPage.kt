@@ -59,13 +59,26 @@ import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_format_preference
 import com.junkfood.seal.shared.generated.resources.video_quality
 import com.junkfood.seal.shared.generated.resources.video_quality_desc
+import com.junkfood.seal.shared.generated.resources.clip_video
+import com.junkfood.seal.shared.generated.resources.clip_video_desc
+import com.junkfood.seal.shared.generated.resources.clip_video_dialog_msg
+import com.junkfood.seal.shared.generated.resources.enable_experimental_feature
+import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.util.DownloadPreferences
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material.icons.rounded.ContentCut
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 
 @Composable
 internal fun FormatSettingsPage(
     preferences: DownloadPreferences,
     onUpdate: ((DownloadPreferences) -> DownloadPreferences) -> Unit,
+    isVideoClipEnabled: Boolean,
+    onUpdateVideoClipEnabled: (Boolean) -> Unit,
     onOpenSubtitle: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -75,6 +88,7 @@ internal fun FormatSettingsPage(
     var showConvertAudioDialog by remember { mutableStateOf(false) }
     var showVideoFormatDialog by remember { mutableStateOf(false) }
     var showVideoQualityDialog by remember { mutableStateOf(false) }
+    var showVideoClipDialog by remember { mutableStateOf(false) }
 
     val videoQualityLabel = videoResolutionLabel(preferences.videoResolution)
     val audioPresetLabel = audioPresetLabel(preferences.useCustomAudioPreset)
@@ -201,11 +215,24 @@ internal fun FormatSettingsPage(
 
         TextFieldCard(
             title = stringResource(Res.string.format_sorting),
-            description = stringResource(Res.string.format_selection_desc),
+            description = null,
             icon = Icons.Rounded.SettingsApplications,
             value = preferences.sortingFields,
             enabled = preferences.formatSorting,
         ) { newValue -> onUpdate { it.copy(sortingFields = newValue) } }
+
+        ToggleCard(
+            title = stringResource(Res.string.clip_video),
+            description = stringResource(Res.string.clip_video_desc),
+            icon = Icons.Rounded.ContentCut,
+            checked = isVideoClipEnabled,
+        ) { checked ->
+            if (checked) {
+                showVideoClipDialog = true
+            } else {
+                onUpdateVideoClipEnabled(false)
+            }
+        }
 
         ToggleCard(
             title = stringResource(Res.string.merge_audiostream),
@@ -266,6 +293,27 @@ internal fun FormatSettingsPage(
             selected = preferences.videoResolution,
             onSelect = { value -> onUpdate { it.copy(videoResolution = value) } },
             onDismiss = { showVideoQualityDialog = false },
+        )
+
+        AnimatedAlertDialog(
+            visible = showVideoClipDialog,
+            onDismissRequest = { showVideoClipDialog = false },
+            icon = { Icon(Icons.Outlined.WarningAmber, contentDescription = null) },
+            title = { Text(stringResource(Res.string.clip_video)) },
+            text = { Text(stringResource(Res.string.clip_video_dialog_msg)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showVideoClipDialog = false
+                    onUpdateVideoClipEnabled(true)
+                }) {
+                    Text(stringResource(Res.string.enable_experimental_feature))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showVideoClipDialog = false }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
         )
     }
 }

@@ -115,6 +115,8 @@ fun DesktopSettingsScreen(
                 FormatSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    isVideoClipEnabled = appSettingsState.settings.isVideoClipEnabled,
+                    onUpdateVideoClipEnabled = { appSettingsState.update { settings -> settings.copy(isVideoClipEnabled = it) } },
                     onOpenSubtitle = { currentPage = SettingsPage.Subtitle },
                     onBack = { currentPage = null },
                 )

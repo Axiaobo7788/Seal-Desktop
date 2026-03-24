@@ -47,6 +47,8 @@ data class DesktopAppSettings(
     val updateChannel: Int = UpdateChannelStable,
     val languageTag: String? = null,
     val autoProxyEnabled: Boolean = false,
+    val configureBeforeDownload: Boolean = true,
+    val isVideoClipEnabled: Boolean = false,
 )
 
 private fun appSettingsPath(): Path {

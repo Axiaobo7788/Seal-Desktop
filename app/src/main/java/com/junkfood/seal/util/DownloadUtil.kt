@@ -7,8 +7,8 @@ import android.os.Build
 import android.util.Log
 import android.webkit.CookieManager
 import androidx.annotation.CheckResult
-import com.junkfood.seal.App
 import com.junkfood.seal.App.Companion.context
+import com.junkfood.seal.BuildConfig
 import com.junkfood.seal.Downloader
 import com.junkfood.seal.Downloader.onProcessEnded
 import com.junkfood.seal.Downloader.onProcessStarted
@@ -17,15 +17,13 @@ import com.junkfood.seal.Downloader.onTaskError
 import com.junkfood.seal.Downloader.onTaskStarted
 import com.junkfood.seal.Downloader.toNotificationId
 import com.junkfood.seal.R
-import com.junkfood.seal.BuildConfig
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.database.objects.DownloadedVideoInfo
-import com.junkfood.seal.ui.page.settings.network.Cookie
-import com.junkfood.seal.download.CustomCommandPlan
 import com.junkfood.seal.download.DownloadPlan
 import com.junkfood.seal.download.YoutubeDlRequestAdapter
-import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.download.buildCustomCommandPlan
+import com.junkfood.seal.download.buildDownloadPlan
+import com.junkfood.seal.ui.page.settings.network.Cookie
 import com.junkfood.seal.util.FileUtil.getConfigFile
 import com.junkfood.seal.util.FileUtil.getCookiesFile
 import com.junkfood.seal.util.FileUtil.getFileName
@@ -36,22 +34,13 @@ import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import com.junkfood.seal.util.PreferenceUtil.getInt
 import com.junkfood.seal.util.PreferenceUtil.getString
 import com.junkfood.seal.util.PreferenceUtil.updateBoolean
-import com.junkfood.seal.util.PreferenceUtil.updateInt
-import com.junkfood.seal.util.PreferenceUtil.updateString
-import com.junkfood.seal.util.connectWithDelimiter
-import com.junkfood.seal.util.isNumberInRange
-import com.junkfood.seal.util.toHttpsUrl
-import com.junkfood.seal.util.toAudioFormatSorter
-import com.junkfood.seal.util.toFormatSorter
 import com.yausername.youtubedl_android.YoutubeDL
-import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import com.yausername.youtubedl_android.YoutubeDLResponse
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.File
 
 object DownloadUtil {
 
@@ -192,8 +181,6 @@ object DownloadUtil {
         }
     }
 
-    
-
     private fun YoutubeDLRequest.enableCookies(userAgentString: String): YoutubeDLRequest =
         this.addOption("--cookies", context.getCookiesFile().absolutePath).apply {
             if (userAgentString.isNotEmpty()) {
@@ -312,7 +299,8 @@ object DownloadUtil {
             plan.options.flatMap { opt ->
                 when (opt) {
                     is com.junkfood.seal.download.YtDlpOption.Flag -> listOf(opt.name)
-                    is com.junkfood.seal.download.YtDlpOption.KeyValue -> listOf(opt.name, opt.value)
+                    is com.junkfood.seal.download.YtDlpOption.KeyValue ->
+                        listOf(opt.name, opt.value)
                     is com.junkfood.seal.download.YtDlpOption.Multi -> listOf(opt.name) + opt.values
                 }
             }
@@ -325,12 +313,13 @@ object DownloadUtil {
     /** Write plan debug info to a file so devices without logcat/adb can still export it. */
     private fun appendPlanLog(lines: List<String>) {
         runCatching {
-            val logDir = context.getExternalFilesDir("logs") ?: return
-            logDir.mkdirs()
-            val logFile = File(logDir, "download-plan.txt")
-            val header = "==== ${System.currentTimeMillis()} ===="
-            logFile.appendText((listOf(header) + lines + "").joinToString(separator = "\n"))
-        }.onFailure { Log.w(TAG, "plan log write failed", it) }
+                val logDir = context.getExternalFilesDir("logs") ?: return
+                logDir.mkdirs()
+                val logFile = File(logDir, "download-plan.txt")
+                val header = "==== ${System.currentTimeMillis()} ===="
+                logFile.appendText((listOf(header) + lines + "").joinToString(separator = "\n"))
+            }
+            .onFailure { Log.w(TAG, "plan log write failed", it) }
     }
 
     @CheckResult
@@ -360,7 +349,9 @@ object DownloadUtil {
                     preferences = downloadPreferences,
                     playlistUrl = playlistUrl,
                 )
-                .getOrElse { return Result.failure(it) }
+                .getOrElse {
+                    return Result.failure(it)
+                }
 
         if (downloadPreferences.debug || BuildConfig.DEBUG) {
             // Log in debug builds even if the user toggle is off, to ease regression checks.
@@ -454,14 +445,15 @@ object DownloadUtil {
         val urlList = urlString.split(Regex("[\n ]")).filter { it.isNotBlank() }
 
         val plan = buildCustomCommandPlan(urlList, preferences, preferences.commandDirectory)
-        val request = YoutubeDLRequest(urlList).apply {
-            YoutubeDlRequestAdapter.applyCustomCommandPlan(this, plan, preferences)
-            addOption(
-                "--config-locations",
-                FileUtil.writeContentToFile(template.template, context.getConfigFile())
-                    .absolutePath,
-            )
-        }
+        val request =
+            YoutubeDLRequest(urlList).apply {
+                YoutubeDlRequestAdapter.applyCustomCommandPlan(this, plan, preferences)
+                addOption(
+                    "--config-locations",
+                    FileUtil.writeContentToFile(template.template, context.getConfigFile())
+                        .absolutePath,
+                )
+            }
 
         return runCatching {
             YoutubeDL.getInstance()
@@ -483,11 +475,7 @@ object DownloadUtil {
             val plan = buildCustomCommandPlan(urlList, downloadPreferences, commandDirectory)
             val request =
                 YoutubeDLRequest(urlList).apply {
-                    YoutubeDlRequestAdapter.applyCustomCommandPlan(
-                        this,
-                        plan,
-                        downloadPreferences,
-                    )
+                    YoutubeDlRequestAdapter.applyCustomCommandPlan(this, plan, downloadPreferences)
                     addOption(
                         "--config-locations",
                         FileUtil.writeContentToFile(template.template, context.getConfigFile())
@@ -597,7 +585,8 @@ fun DownloadPreferences.Companion.createFromPreferences(): DownloadPreferences {
         proxy = PROXY.getBoolean(),
         proxyUrl = PROXY_URL.getString(),
         newTitle = "",
-        userAgentString = USER_AGENT_STRING.run { if (USER_AGENT.getBoolean()) getString() else "" },
+        userAgentString =
+            USER_AGENT_STRING.run { if (USER_AGENT.getBoolean()) getString() else "" },
         outputTemplate = OUTPUT_TEMPLATE.getString(),
         useDownloadArchive = DOWNLOAD_ARCHIVE.getBoolean(),
         embedMetadata = EMBED_METADATA.getBoolean(),

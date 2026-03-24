@@ -3,9 +3,13 @@
 package com.junkfood.seal.desktop.download
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,8 +51,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelectionSheet
-import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadInputSheet
-import com.junkfood.seal.desktop.ui.page.downloadv2.configure.DownloadOptionsSheet
+import com.junkfood.seal.desktop.download.configure.DownloadInputSheet
+import com.junkfood.seal.desktop.download.configure.DownloadOptionsSheet
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
@@ -111,6 +116,7 @@ fun DesktopDownloadScreen(
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = true,
     disablePreview: Boolean = false,
+    isVideoClipEnabled: Boolean = false,
     preferences: DownloadPreferences,
     onPreferencesChange: (DownloadPreferences) -> Unit,
     controller: DesktopDownloadController,
@@ -288,15 +294,16 @@ fun DesktopDownloadScreen(
                             showMenuButton = isCompact,
                         )
 
-                        FloatingActionButton(
+                        ExtendedFloatingActionButton(
                             onClick = {
                                 sheetPage = DownloadSheetPage.Input
                                 showSheet = true
                             },
                             modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
-                        ) {
-                            Icon(Icons.Outlined.FileDownload, contentDescription = stringResource(Res.string.start_download))
-                        }
+                            expanded = !isCompact,
+                            icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                            text = { Text(stringResource(Res.string.start_download)) }
+                        )
                     }
                 }
 
@@ -306,6 +313,7 @@ fun DesktopDownloadScreen(
                         controller = controller,
                         downloadType = formatType,
                         basePreferences = formatPreferences,
+                        isVideoClipEnabled = isVideoClipEnabled,
                         onPreferencesUpdated = { updated ->
                             formatPreferences = updated
                             workingPreferences = updated
@@ -328,7 +336,15 @@ fun DesktopDownloadScreen(
             }
         }
 
-        if (mainPage == DownloadMainPage.Queue) {
+        val showLogState = remember { MutableTransitionState(false) }.apply {
+            targetState = mainPage == DownloadMainPage.Queue && preferences.debug && logLines.isNotEmpty()
+        }
+
+        AnimatedVisibility(
+            visibleState = showLogState,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
             logLines.lastOrNull()?.let { LatestLogRow(it) }
         }
     }

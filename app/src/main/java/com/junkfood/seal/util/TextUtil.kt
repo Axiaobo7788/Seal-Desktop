@@ -60,7 +60,6 @@ fun Int.toDurationText(): String =
         else "%02d:%02d".format(this / 60, this % 60)
     }
 
-
 private const val URL_REGEX_PATTERN =
     "(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?"
 

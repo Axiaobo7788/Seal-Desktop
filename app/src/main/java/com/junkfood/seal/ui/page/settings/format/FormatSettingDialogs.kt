@@ -84,7 +84,6 @@ import com.junkfood.seal.util.CONVERT_SUBTITLE
 import com.junkfood.seal.util.CONVERT_VTT
 import com.junkfood.seal.util.DEFAULT
 import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_COMPATIBILITY
 import com.junkfood.seal.util.FORMAT_QUALITY
 import com.junkfood.seal.util.M4A

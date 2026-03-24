@@ -85,8 +85,6 @@ import com.junkfood.seal.util.DOWNLOAD_TYPE_INITIALIZATION
 import com.junkfood.seal.util.DatabaseUtil
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
-import com.junkfood.seal.util.toFormatSorter
-import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.EXTRACT_AUDIO
 import com.junkfood.seal.util.FORMAT_SELECTION
 import com.junkfood.seal.util.FORMAT_SORTING
@@ -108,6 +106,8 @@ import com.junkfood.seal.util.THUMBNAIL
 import com.junkfood.seal.util.USE_PREVIOUS_SELECTION
 import com.junkfood.seal.util.VIDEO_FORMAT
 import com.junkfood.seal.util.VIDEO_QUALITY
+import com.junkfood.seal.util.createFromPreferences
+import com.junkfood.seal.util.toFormatSorter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -611,8 +611,7 @@ fun DownloadSettingDialog(
                 FORMAT_SORTING.updateBoolean(it)
             },
             onImport = {
-                sortingFields =
-                    DownloadPreferences.createFromPreferences().toFormatSorter()
+                sortingFields = DownloadPreferences.createFromPreferences().toFormatSorter()
             },
             onDismissRequest = { showFormatSortingDialog = false },
             onConfirm = {

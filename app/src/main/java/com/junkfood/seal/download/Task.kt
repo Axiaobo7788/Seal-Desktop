@@ -7,10 +7,10 @@ import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.VideoInfo
 import com.junkfood.seal.util.toHttpsUrl
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlin.math.roundToInt
 
 private val TypeInfo.id: String
     get() =

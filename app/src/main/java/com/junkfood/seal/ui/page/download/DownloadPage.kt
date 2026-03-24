@@ -7,10 +7,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -91,7 +87,6 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.junkfood.seal.App
-import com.junkfood.seal.BuildConfig
 import com.junkfood.seal.Downloader
 import com.junkfood.seal.R
 import com.junkfood.seal.download.DownloaderV2
@@ -102,15 +97,14 @@ import com.junkfood.seal.ui.component.ClearButton
 import com.junkfood.seal.ui.component.NavigationBarSpacer
 import com.junkfood.seal.ui.component.OutlinedButtonWithIcon
 import com.junkfood.seal.ui.component.VideoCard
-import com.junkfood.seal.ui.page.download.DownloadSharedPaneAndroid
+import com.junkfood.seal.ui.download.DownloadUnifiedContent
+import com.junkfood.seal.ui.download.DownloadUnifiedState
+import com.junkfood.seal.ui.download.DownloadUnifiedStrings
 import com.junkfood.seal.ui.page.downloadv2.configure.Config
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialog
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel.Action
 import com.junkfood.seal.ui.page.downloadv2.configure.FormatPage
-import com.junkfood.seal.ui.download.DownloadUnifiedContent
-import com.junkfood.seal.ui.download.DownloadUnifiedState
-import com.junkfood.seal.ui.download.DownloadUnifiedStrings
 import com.junkfood.seal.ui.theme.PreviewThemeLight
 import com.junkfood.seal.ui.theme.SealTheme
 import com.junkfood.seal.util.CELLULAR_DOWNLOAD
@@ -119,13 +113,12 @@ import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DEBUG
 import com.junkfood.seal.util.DISABLE_PREVIEW
 import com.junkfood.seal.util.DownloadPreferences
-import com.junkfood.seal.util.createFromPreferences
-import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.NOTIFICATION
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import com.junkfood.seal.util.PreferenceUtil.updateBoolean
 import com.junkfood.seal.util.ToastUtil
+import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.matchUrlFromClipboard
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -295,9 +288,7 @@ fun DownloadPage(
             }
         }
 
-        var preferences by remember {
-            mutableStateOf(DownloadPreferences.createFromPreferences())
-        }
+        var preferences by remember { mutableStateOf(DownloadPreferences.createFromPreferences()) }
         val sheetValue = dialogViewModel.sheetValueFlow.collectAsStateWithLifecycle().value
         val state = dialogViewModel.sheetStateFlow.collectAsStateWithLifecycle().value
 
@@ -410,8 +401,7 @@ fun DownloadPageImpl(
                     ) {
                         TooltipBox(
                             state = rememberTooltipState(),
-                            positionProvider =
-                                TooltipDefaults.rememberTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
                             tooltip = {
                                 PlainTooltip {
                                     Text(text = stringResource(id = R.string.running_tasks))
@@ -478,9 +468,14 @@ fun DownloadPageImpl(
                         title = stringResource(id = R.string.app_name),
                         showProgressIndicator = downloaderState is Downloader.State.FetchingInfo,
                         showDownloadText = showCancelButton,
-                        isDownloadingPlaylist = downloaderState is Downloader.State.DownloadingPlaylist,
-                        currentIndex = (downloaderState as? Downloader.State.DownloadingPlaylist)?.currentItem ?: 0,
-                        downloadItemCount = (downloaderState as? Downloader.State.DownloadingPlaylist)?.itemCount ?: 0,
+                        isDownloadingPlaylist =
+                            downloaderState is Downloader.State.DownloadingPlaylist,
+                        currentIndex =
+                            (downloaderState as? Downloader.State.DownloadingPlaylist)?.currentItem
+                                ?: 0,
+                        downloadItemCount =
+                            (downloaderState as? Downloader.State.DownloadingPlaylist)?.itemCount
+                                ?: 0,
                         badge = processCount,
                         showDownloadProgress = showDownloadProgress,
                         progress = taskState.progress,

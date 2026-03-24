@@ -36,7 +36,6 @@ import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel.Action
 import com.junkfood.seal.ui.page.downloadv2.configure.FormatPage
 import com.junkfood.seal.ui.page.downloadv2.configure.PlaylistSelectionPage
-import com.junkfood.seal.ui.page.downloadv2.configure.PreferencesMock
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.createFromPreferences
@@ -64,9 +63,10 @@ fun DownloadPageV2(
     var filter by remember { mutableStateOf(DownloadQueueFilter.All) }
     var viewMode by remember { mutableStateOf(DownloadQueueViewMode.Grid) }
 
-    val queueItems = remember(taskMap.size, filter, viewMode) {
-        taskMap.toList().map { (task, state) -> task.toQueueItemState(state) }
-    }
+    val queueItems =
+        remember(taskMap.size, filter, viewMode) {
+            taskMap.toList().map { (task, state) -> task.toQueueItemState(state) }
+        }
 
     val strings =
         DownloadQueueStrings(
@@ -98,8 +98,7 @@ fun DownloadPageV2(
                 DownloadQueueAction.Delete -> downloader.remove(task)
                 DownloadQueueAction.Resume -> downloader.restart(task)
                 DownloadQueueAction.OpenFile -> {
-                    val path =
-                        (taskState.downloadState as? Task.DownloadState.Completed)?.filePath
+                    val path = (taskState.downloadState as? Task.DownloadState.Completed)?.filePath
                     if (path != null) {
                         FileUtil.openFile(path = path) {
                             context.makeToast(R.string.file_unavailable)
@@ -109,8 +108,7 @@ fun DownloadPageV2(
                     }
                 }
                 DownloadQueueAction.ShareFile -> {
-                    val path =
-                        (taskState.downloadState as? Task.DownloadState.Completed)?.filePath
+                    val path = (taskState.downloadState as? Task.DownloadState.Completed)?.filePath
                     val shareTitle = context.getString(R.string.share)
                     FileUtil.createIntentForSharingFile(path)?.let {
                         context.startActivity(Intent.createChooser(it, shareTitle))

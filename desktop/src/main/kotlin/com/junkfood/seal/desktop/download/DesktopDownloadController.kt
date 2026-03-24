@@ -17,6 +17,7 @@ import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
 import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
@@ -463,6 +464,20 @@ class DesktopDownloadController(
                     }
                     historyStorage.save(historyEntries.toList())
                 }
+                
+                if (appSettings.downloadNotificationEnabled) {
+                    if (success) {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Completed",
+                            message = selection.videoInfo.title
+                        )
+                    } else {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Error",
+                            message = selection.videoInfo.title
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")
@@ -476,6 +491,12 @@ class DesktopDownloadController(
                             errorMessage = e.message,
                             progressText = e.message.orEmpty(),
                             exitCode = it.exitCode,
+                        )
+                    }
+                    if (appSettings.downloadNotificationEnabled) {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Error",
+                            message = selection.videoInfo.title
                         )
                     }
                 }
@@ -634,6 +655,20 @@ class DesktopDownloadController(
                     }
                     historyStorage.save(historyEntries.toList())
                 }
+                
+                if (appSettings.downloadNotificationEnabled) {
+                    if (success) {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Completed",
+                            message = videoInfo.title
+                        )
+                    } else {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Error",
+                            message = videoInfo.title
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")
@@ -647,6 +682,12 @@ class DesktopDownloadController(
                             errorMessage = e.message,
                             progressText = e.message.orEmpty(),
                             exitCode = it.exitCode,
+                        )
+                    }
+                    if (appSettings.downloadNotificationEnabled) {
+                        DesktopNotifier.sendNotification(
+                            title = "Download Error",
+                            message = videoInfo.title
                         )
                     }
                 }

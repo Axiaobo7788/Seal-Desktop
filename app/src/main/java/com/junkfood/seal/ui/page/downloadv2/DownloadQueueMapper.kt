@@ -9,11 +9,12 @@ import com.junkfood.seal.ui.download.queue.DownloadQueueStatus
 internal fun Task.toQueueItemState(state: Task.State): DownloadQueueItemState {
     val downloadState = state.downloadState
     val view = state.viewState
-    val mediaType = when {
-        view.videoFormats?.isNotEmpty() == true -> DownloadQueueMediaType.Video
-        view.audioOnlyFormats?.isNotEmpty() == true -> DownloadQueueMediaType.Audio
-        else -> DownloadQueueMediaType.Unknown
-    }
+    val mediaType =
+        when {
+            view.videoFormats?.isNotEmpty() == true -> DownloadQueueMediaType.Video
+            view.audioOnlyFormats?.isNotEmpty() == true -> DownloadQueueMediaType.Audio
+            else -> DownloadQueueMediaType.Unknown
+        }
     var status = DownloadQueueStatus.Idle
     var progress: Float? = null
     var progressText = ""
