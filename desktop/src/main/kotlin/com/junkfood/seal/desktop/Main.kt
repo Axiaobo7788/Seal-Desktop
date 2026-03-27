@@ -152,6 +152,17 @@ private fun installResourceEnvironmentProvider() {
 }
 
 fun main() = application {
+    try {
+        val taskbar = java.awt.Taskbar.getTaskbar()
+        // Taskbar (主要干预 macOS 的 Dock 栏) 喂给它高清原图，保证 .jar 在 Mac 等高分屏上表现清晰
+        val iconStream = Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")
+        if (iconStream != null) {
+            taskbar.iconImage = javax.imageio.ImageIO.read(iconStream)
+        }
+    } catch (e: Exception) {
+        // 如果系统不支持 Taskbar API（如部分 Linux 桌面环境），捕获异常直接忽略，不影响正常运行
+    }
+
     installResourceEnvironmentProvider()
     val appSettingsState = rememberDesktopAppSettingsState()
     val downloadController = remember { DesktopDownloadController(appSettingsProvider = { appSettingsState.settings }) }
@@ -170,6 +181,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = stringResource(Res.string.app_name),
+        icon = androidx.compose.ui.res.painterResource("icon.png"),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
     ) {
         DesktopSealTheme(themeState = themeState, window = window) {

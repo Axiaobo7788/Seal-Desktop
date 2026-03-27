@@ -79,6 +79,16 @@ compose.desktop {
             targetFormats(TargetFormat.Deb)
             packageName = "Seal"
             packageVersion = "0.0.0"
+            
+            macOS {
+                iconFile.set(project.file("src/main/resources/icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("src/main/resources/icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/main/resources/icon.png"))
+            }
         }
     }
 }
