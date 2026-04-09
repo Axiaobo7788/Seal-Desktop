@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import com.junkfood.seal.desktop.settings.about.AboutSettingsPage
 import com.junkfood.seal.desktop.settings.about.CreditsSettingsPage
+import com.junkfood.seal.desktop.settings.about.UpdateSettingsPage
 import com.junkfood.seal.desktop.settings.appearance.AppearanceSettingsPage
 import com.junkfood.seal.desktop.settings.appearance.DarkThemeSettingsPage
 import com.junkfood.seal.desktop.settings.appearance.LanguageSettingsPage
@@ -39,6 +40,7 @@ internal enum class SettingsPage {
     Format,
     Subtitle,
     Network,
+    Cookies,
     Commands,
     Appearance,
     DarkTheme,
@@ -46,6 +48,7 @@ internal enum class SettingsPage {
     Interaction,
     Troubleshooting,
     About,
+    Update,
     Credits,
 }
 
@@ -55,6 +58,8 @@ private fun SettingsPage?.depth(): Int =
         SettingsPage.DarkTheme,
         SettingsPage.Language,
         SettingsPage.Subtitle,
+        SettingsPage.Cookies,
+        SettingsPage.Update,
         SettingsPage.Credits -> 2
         else -> 1
     }
@@ -134,7 +139,15 @@ fun DesktopSettingsScreen(
                     onUpdate = settingsState::update,
                     appSettings = appSettingsState.settings,
                     onUpdateAppSettings = appSettingsState::update,
+                    onOpenCookies = { currentPage = SettingsPage.Cookies },
                     onBack = { currentPage = null },
+                )
+
+            SettingsPage.Cookies ->
+                com.junkfood.seal.desktop.settings.network.CookiesSettingsPage(
+                    preferences = settingsState.preferences,
+                    onUpdate = settingsState::update,
+                    onBack = { currentPage = SettingsPage.Network }
                 )
 
             SettingsPage.Commands ->
@@ -174,6 +187,8 @@ fun DesktopSettingsScreen(
 
             SettingsPage.Troubleshooting ->
                 TroubleshootingSettingsPage(
+                    appSettings = appSettingsState.settings,
+                    onUpdateAppSettings = appSettingsState::update,
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
                     onBack = { currentPage = null },
@@ -184,7 +199,15 @@ fun DesktopSettingsScreen(
                     settings = appSettingsState.settings,
                     onUpdate = appSettingsState::update,
                     onOpenCredits = { currentPage = SettingsPage.Credits },
+                    onOpenUpdate = { currentPage = SettingsPage.Update },
                     onBack = { currentPage = null },
+                )
+                
+            SettingsPage.Update ->
+                UpdateSettingsPage(
+                    settings = appSettingsState.settings,
+                    onUpdate = appSettingsState::update,
+                    onBack = { currentPage = SettingsPage.About },
                 )
 
             SettingsPage.Credits ->

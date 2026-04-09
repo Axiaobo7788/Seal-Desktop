@@ -37,10 +37,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.foundation.layout.width
 
 internal data class SettingsEntry(
     val title: String,
@@ -48,6 +56,8 @@ internal data class SettingsEntry(
     val icon: ImageVector,
     val onClick: (() -> Unit)? = null,
 )
+
+private const val DISABLED_CARD_ALPHA = 0.62f
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,12 +104,14 @@ internal fun SettingsPageScaffold(
 
 @Composable
 internal fun SettingRow(entry: SettingsEntry) {
+    val enabled = entry.onClick != null
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(enabled = enabled, onClick = { entry.onClick?.invoke() }),
         shape = MaterialTheme.shapes.extraLarge,
         tonalElevation = 1.dp,
-        onClick = { entry.onClick?.invoke() },
-        enabled = entry.onClick != null,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -134,11 +146,13 @@ internal fun ToggleCard(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .clip(MaterialTheme.shapes.large)
+            .clickable(enabled = enabled, onClick = { onCheckedChange(!checked) }),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.large,
-        onClick = { if (enabled) onCheckedChange(!checked) },
-        enabled = enabled,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -157,7 +171,11 @@ internal fun ToggleCard(
                     )
                 }
             }
-            Switch(checked = checked, onCheckedChange = { onCheckedChange(it) }, enabled = enabled)
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                enabled = enabled,
+            )
         }
     }
 }
@@ -211,23 +229,29 @@ internal fun TextFieldCard(
 internal fun SelectionCard(
     title: String,
     description: String,
-    icon: ImageVector,
+    icon: ImageVector? = null,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .clip(MaterialTheme.shapes.large)
+            .clickable(enabled = enabled, onClick = onClick),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.large,
-        onClick = onClick,
-        enabled = enabled,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            } else {
+                Spacer(Modifier.size(24.dp))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(2.dp))
@@ -253,6 +277,7 @@ internal fun <T> ChoiceDialog(
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismiss,
+        textContentPadding = PaddingValues(bottom = 24.dp),
         confirmButton = {},
         title = { Text(title) },
         text = {
@@ -337,11 +362,12 @@ internal fun ActionCard(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(enabled = enabled, onClick = onClick),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.extraLarge,
-        enabled = enabled,
-        onClick = onClick,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -366,6 +392,180 @@ internal fun ActionCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DialogSingleChoiceItemVariant(
+    modifier: Modifier = Modifier,
+    title: String,
+    desc: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f).padding(vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp),
+                    selected = selected,
+                    onClick = null,
+                )
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+            }
+            desc?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp, start = 48.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+    }
+}
+
+@Composable
+internal fun DialogSingleChoiceItem(
+    modifier: Modifier = Modifier,
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Spacer(modifier = Modifier.width(8.dp))
+        RadioButton(
+            modifier = Modifier.padding(12.dp),
+            selected = selected,
+            onClick = null,
+        )
+        Text(text = text, style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.width(16.dp))
+    }
+}
+
+@Composable
+internal fun SwitchWithDividerCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    description: String?,
+    icon: ImageVector,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .clip(MaterialTheme.shapes.large)
+            .clickable(enabled = enabled, onClick = onClick),
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(2.dp))
+                    if (!description.isNullOrBlank()) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            VerticalDivider(modifier = Modifier.height(32.dp).padding(horizontal = 8.dp))
+            Switch(
+                checked = checked,
+                onCheckedChange = if (enabled) onCheckedChange else null,
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ActionWithDividerCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    description: String?,
+    icon: ImageVector,
+    trailingIcon: ImageVector,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    onTrailingClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .clip(MaterialTheme.shapes.large)
+            .clickable(enabled = enabled, onClick = onClick),
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(2.dp))
+                    if (!description.isNullOrBlank()) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            VerticalDivider(modifier = Modifier.height(32.dp).padding(horizontal = 8.dp))
+            IconButton(onClick = onTrailingClick, enabled = enabled) {
+                Icon(trailingIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

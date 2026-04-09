@@ -5,13 +5,23 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.SignalWifi4Bar
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.SettingsEthernet
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.rounded.OfflineBolt
+import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
 import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
@@ -41,6 +51,7 @@ internal fun NetworkSettingsPage(
     onUpdate: ((DownloadPreferences) -> DownloadPreferences) -> Unit,
     appSettings: DesktopAppSettings,
     onUpdateAppSettings: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
+    onOpenCookies: () -> Unit,
     onBack: () -> Unit,
 ) {
     val cookiePath = DesktopYtDlpPaths.cookiesFile().toAbsolutePath().toString()
@@ -55,48 +66,53 @@ internal fun NetworkSettingsPage(
             else null
         }
 
+    var showRateLimitDialog by remember { mutableStateOf(false) }
+    var showProxyDialog by remember { mutableStateOf(false) }
+    var showConcurrentDialog by remember { mutableStateOf(false) }
+
     SettingsPageScaffold(title = stringResource(Res.string.network), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
 
-        ToggleCard(
+        SwitchWithDividerCard(
             title = stringResource(Res.string.rate_limit),
             description = stringResource(Res.string.rate_limit_desc),
             icon = Icons.Rounded.Speed,
             checked = preferences.rateLimit,
-        ) { checked -> onUpdate { it.copy(rateLimit = checked) } }
+            onClick = { showRateLimitDialog = true },
+            onCheckedChange = { checked -> onUpdate { it.copy(rateLimit = checked) } }
+        )
 
-        TextFieldCard(
-            title = stringResource(Res.string.rate_limit),
-            description = "KB/s",
-            icon = Icons.Rounded.Speed,
-            value = preferences.maxDownloadRate,
-            enabled = preferences.rateLimit,
-        ) { newValue -> onUpdate { it.copy(maxDownloadRate = newValue.filter { ch -> ch.isDigit() }) } }
+        RateLimitDialog(
+            visible = showRateLimitDialog,
+            initialRate = preferences.maxDownloadRate,
+            onDismissRequest = { showRateLimitDialog = false },
+            onConfirm = { rate -> onUpdate { it.copy(maxDownloadRate = rate) } }
+        )
 
-        TextFieldCard(
-            title = stringResource(Res.string.concurrent_download),
-            description = concurrentDesc,
-            icon = Icons.Rounded.Speed,
-            value = preferences.concurrentFragments.toString(),
-        ) { newValue ->
-            val value = newValue.filter { ch -> ch.isDigit() }.toIntOrNull() ?: 0
-            onUpdate { it.copy(concurrentFragments = value) }
-        }
+        PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
 
         ToggleCard(
+            title = stringResource(Res.string.aria2),
+            description = stringResource(Res.string.aria2_desc),
+            icon = Icons.Rounded.Bolt,
+            checked = preferences.aria2c,
+        ) { checked -> onUpdate { it.copy(aria2c = checked) } }
+
+        SwitchWithDividerCard(
             title = stringResource(Res.string.proxy),
             description = stringResource(Res.string.proxy_desc),
-            icon = Icons.Rounded.SignalWifi4Bar,
+            icon = Icons.Rounded.VpnKey,
             checked = preferences.proxy,
-        ) { checked -> onUpdate { it.copy(proxy = checked) } }
+            onClick = { showProxyDialog = true },
+            onCheckedChange = { checked -> onUpdate { it.copy(proxy = checked) } }
+        )
 
-        TextFieldCard(
-            title = stringResource(Res.string.proxy),
-            description = "http://127.0.0.1:7890",
-            icon = Icons.Rounded.SignalWifi4Bar,
-            value = preferences.proxyUrl,
-            enabled = preferences.proxy,
-        ) { newValue -> onUpdate { it.copy(proxyUrl = newValue) } }
+        ProxyConfigurationDialog(
+            visible = showProxyDialog,
+            initialProxy = preferences.proxyUrl,
+            onDismissRequest = { showProxyDialog = false },
+            onConfirm = { url -> onUpdate { it.copy(proxyUrl = url) } }
+        )
 
         ToggleCard(
             title = "自动检测本机代理（Xray）",
@@ -110,28 +126,34 @@ internal fun NetworkSettingsPage(
             PreferenceInfo(text = "当前检测结果：${detectedProxy ?: "未检测到可用 xray 代理"}")
         }
 
+        SelectionCard(
+            title = stringResource(Res.string.concurrent_download),
+            description = concurrentDesc,
+            icon = Icons.Rounded.OfflineBolt,
+            enabled = !preferences.aria2c,
+            onClick = { showConcurrentDialog = true }
+        )
+
+        ConcurrentDownloadDialog(
+            visible = showConcurrentDialog,
+            initialFragments = preferences.concurrentFragments,
+            onDismissRequest = { showConcurrentDialog = false },
+            onConfirm = { frags -> onUpdate { it.copy(concurrentFragments = frags) } }
+        )
+
         ToggleCard(
             title = stringResource(Res.string.force_ipv4),
             description = stringResource(Res.string.force_ipv4_desc),
-            icon = Icons.Rounded.Info,
+            icon = Icons.Rounded.SettingsEthernet,
             checked = preferences.forceIpv4,
         ) { checked -> onUpdate { it.copy(forceIpv4 = checked) } }
 
-        PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
-
-        ToggleCard(
-            title = stringResource(Res.string.aria2),
-            description = stringResource(Res.string.aria2_desc),
-            icon = Icons.Rounded.Info,
-            checked = preferences.aria2c,
-        ) { checked -> onUpdate { it.copy(aria2c = checked) } }
-
-        ToggleCard(
+        SelectionCard(
             title = stringResource(Res.string.cookies),
             description = stringResource(Res.string.cookies_desc),
-            icon = Icons.Rounded.Folder,
-            checked = preferences.cookies,
-        ) { checked -> onUpdate { it.copy(cookies = checked) } }
+            icon = Icons.Rounded.Cookie,
+            onClick = onOpenCookies,
+        )
 
         if (preferences.cookies) {
             PreferenceInfo(text = cookiePath)

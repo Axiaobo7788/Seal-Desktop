@@ -441,7 +441,7 @@ fun DesktopDownloadHistoryPage(
         )
     }
 
-    if (errorDialogHost != null) {
+    
         AnimatedAlertDialog(
             visible = errorDialog != null,
             onDismissRequest = { errorDialog = null },
@@ -451,7 +451,7 @@ fun DesktopDownloadHistoryPage(
             title = { Text("Error") },
             text = { Text(errorDialogHost.orEmpty()) },
         )
-    }
+
 }
 
 @Composable

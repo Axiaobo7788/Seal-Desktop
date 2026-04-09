@@ -30,7 +30,7 @@ private val settingsJson =
 /** Default preference set for desktop builds. */
 fun desktopDefaultPreferences(): DownloadPreferences =
     DownloadPreferences.EMPTY.copy(
-        formatSorting = true,
+        formatSorting = false,
         videoFormat = 2, // QUALITY
         videoResolution = 3, // 1080p
         embedMetadata = true,

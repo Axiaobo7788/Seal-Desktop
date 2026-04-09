@@ -49,6 +49,10 @@ data class DesktopAppSettings(
     val autoProxyEnabled: Boolean = false,
     val configureBeforeDownload: Boolean = true,
     val isVideoClipEnabled: Boolean = false,
+    val isFormatSelectionEnabled: Boolean = true,
+    val ytDlpUpdateChannel: Int = 0,
+    val ytDlpAutoUpdate: Boolean = true,
+    val ytDlpUpdateInterval: Long = 604800000L,
 )
 
 private fun appSettingsPath(): Path {

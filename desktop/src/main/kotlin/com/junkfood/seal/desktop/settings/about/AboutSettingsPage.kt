@@ -6,6 +6,7 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.Update
+import androidx.compose.material.icons.rounded.UpdateDisabled
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,12 +21,14 @@ import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
+import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.settings.UpdateChannelPreview
 import com.junkfood.seal.desktop.settings.UpdateChannelStable
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.about
 import com.junkfood.seal.shared.generated.resources.auto_update
+import com.junkfood.seal.shared.generated.resources.check_for_updates_desc
 import com.junkfood.seal.shared.generated.resources.credits
 import com.junkfood.seal.shared.generated.resources.credits_desc
 import com.junkfood.seal.shared.generated.resources.enable_auto_update
@@ -55,12 +58,12 @@ internal fun AboutSettingsPage(
     settings: DesktopAppSettings,
     onUpdate: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     onOpenCredits: () -> Unit,
+    onOpenUpdate: () -> Unit,
     onBack: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     val clipboardManager = LocalClipboardManager.current
     val appVersion = remember { System.getProperty("jpackage.app-version") ?: "dev" }
-    var showChannelDialog by remember { mutableStateOf(false) }
 
     SettingsPageScaffold(title = stringResource(Res.string.about), onBack = onBack) {
         SelectionCard(
@@ -100,21 +103,15 @@ internal fun AboutSettingsPage(
             onClick = onOpenCredits,
         )
 
-        PreferenceSubtitle(text = stringResource(Res.string.auto_update))
-
-        ToggleCard(
-            title = stringResource(Res.string.enable_auto_update),
-            description = stringResource(Res.string.update_channel_desc),
-            icon = Icons.Rounded.Update,
+        SwitchWithDividerCard(
+            title = stringResource(Res.string.auto_update),
+            description = stringResource(Res.string.check_for_updates_desc),
+            icon = if (settings.autoUpdateEnabled) Icons.Rounded.Update else Icons.Rounded.UpdateDisabled,
             checked = settings.autoUpdateEnabled,
-        ) { checked -> onUpdate { it.copy(autoUpdateEnabled = checked) } }
-
-        SelectionCard(
-            title = stringResource(Res.string.update_channel),
-            description = updateChannelLabel(settings.updateChannel),
-            icon = Icons.Rounded.Update,
-            onClick = { showChannelDialog = true },
-        )
+            onClick = onOpenUpdate
+        ) { checked ->
+            onUpdate { it.copy(autoUpdateEnabled = checked) }
+        }
 
         SelectionCard(
             title = stringResource(Res.string.version),
@@ -122,28 +119,12 @@ internal fun AboutSettingsPage(
             icon = Icons.Rounded.Info,
             onClick = { clipboardManager.setText(AnnotatedString(appVersion)) },
         )
-    }
 
-    ChoiceDialog(
-        visible = showChannelDialog,
-        title = stringResource(Res.string.update_channel),
-        options = updateChannelOptions(),
-        selected = settings.updateChannel,
-        onSelect = { value -> onUpdate { it.copy(updateChannel = value) } },
-        onDismiss = { showChannelDialog = false },
-    )
+        SelectionCard(
+            title = "Package name",
+            description = "com.junkfood.seal.desktop",
+            icon = null,
+            onClick = { clipboardManager.setText(AnnotatedString("com.junkfood.seal.desktop")) },
+        )
+    }
 }
-
-@Composable
-private fun updateChannelOptions(): List<Pair<String, Int>> =
-    listOf(
-        stringResource(Res.string.stable_channel) to UpdateChannelStable,
-        stringResource(Res.string.pre_release_channel) to UpdateChannelPreview,
-    )
-
-@Composable
-private fun updateChannelLabel(value: Int): String =
-    when (value) {
-        UpdateChannelPreview -> stringResource(Res.string.pre_release_channel)
-        else -> stringResource(Res.string.stable_channel)
-    }

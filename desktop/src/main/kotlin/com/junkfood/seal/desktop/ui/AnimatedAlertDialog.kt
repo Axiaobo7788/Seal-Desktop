@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,8 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -43,6 +43,7 @@ fun AnimatedAlertDialog(
     icon: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
     text: (@Composable () -> Unit)? = null,
+    textContentPadding: PaddingValues = PaddingValues(bottom = 24.dp, start = 24.dp, end = 24.dp),
     confirmButton: @Composable () -> Unit,
     dismissButton: (@Composable () -> Unit)? = null,
     containerColor: Color = AlertDialogDefaults.containerColor,
@@ -94,8 +95,11 @@ fun AnimatedAlertDialog(
         ) {
             Surface(
                 modifier = modifier
-                    .scale(scale)
-                    .alpha(alphaAnim)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alphaAnim
+                    }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -108,13 +112,13 @@ fun AnimatedAlertDialog(
                 Column(
                     modifier = Modifier
                         .widthIn(min = 280.dp, max = 560.dp)
-                        .padding(24.dp)
+                        .padding(vertical = 24.dp)
                 ) {
                     if (icon != null) {
                         CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
                             Box(
                                 modifier = Modifier
-                                    .padding(bottom = 16.dp)
+                                    .padding(bottom = 16.dp, start = 24.dp, end = 24.dp)
                                     .align(Alignment.CenterHorizontally)
                             ) {
                                 icon()
@@ -126,7 +130,7 @@ fun AnimatedAlertDialog(
                             ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
                                 Box(
                                     modifier = Modifier
-                                        .padding(bottom = 16.dp)
+                                        .padding(bottom = 16.dp, start = 24.dp, end = 24.dp)
                                         .align(if (icon != null) Alignment.CenterHorizontally else Alignment.Start)
                                 ) {
                                     title()
@@ -140,7 +144,7 @@ fun AnimatedAlertDialog(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f, fill = false)
-                                        .padding(bottom = 24.dp)
+                                        .padding(textContentPadding)
                                 ) {
                                     text()
                                 }
@@ -148,7 +152,9 @@ fun AnimatedAlertDialog(
                         }
                     }
                     Row(
-                        modifier = Modifier.align(Alignment.End),
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (dismissButton != null) {

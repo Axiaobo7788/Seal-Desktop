@@ -73,57 +73,12 @@ internal fun GeneralSettingsPage(
 ) {
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
     
-    val ytdlpUpdateText = stringResource(Res.string.ytdlp_update)
-    val ytdlpVersionLabel = stringResource(Res.string.ytdlp_version)
-    val ytdlpUpdateFailText = stringResource(Res.string.yt_dlp_update_fail)
-
-    val scope = rememberCoroutineScope()
-    val fetcher = remember { YtDlpFetcher() }
-    var isUpdatingYtDlp by remember { mutableStateOf(false) }
-    var ytDlpDesc by remember(ytdlpUpdateText) { mutableStateOf(ytdlpUpdateText) }
-
-    LaunchedEffect(Unit) {
-        val existing = fetcher.findExistingBinary()
-        if (existing != null) {
-            val version = readYtDlpVersion(existing)
-            ytDlpDesc =
-                if (!version.isNullOrBlank()) {
-                    "$ytdlpVersionLabel: $version"
-                } else {
-                    ytdlpUpdateText
-                }
-        }
-    }
-
     SettingsPageScaffold(title = stringResource(Res.string.general_settings), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
 
-        SelectionCard(
-            title = stringResource(Res.string.ytdlp_update_action),
-            description = ytDlpDesc,
-            icon = Icons.Outlined.Update,
-            enabled = !isUpdatingYtDlp,
-            onClick = {
-                scope.launch {
-                    isUpdatingYtDlp = true
-                    ytDlpDesc = ytdlpUpdateText
-                    val updated =
-                        withContext(Dispatchers.IO) {
-                            runCatching {
-                                fetcher.invalidateCachedBinary()
-                                val binary = fetcher.ensureBinary()
-                                readYtDlpVersion(binary)
-                            }
-                        }
-
-                    ytDlpDesc =
-                        updated.getOrNull()?.takeIf { it.isNotBlank() }?.let { v ->
-                            "$ytdlpVersionLabel: $v"
-                        } ?: ytdlpUpdateFailText
-
-                    isUpdatingYtDlp = false
-                }
-            },
+        com.junkfood.seal.desktop.settings.YtdlpUpdateCard(
+            appSettings = appSettings,
+            onUpdateAppSettings = { newSettings -> onUpdateAppSettings { newSettings } }
         )
 
         ToggleCard(
