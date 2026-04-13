@@ -6,9 +6,9 @@ on:
     branches: [ main ]
 
 env:
-  TOOLS_CACHE_VERSION: v1
+  TOOLS_CACHE_VERSION: v2
   YT_DLP_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
-  FFMPEG_URL: https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
+  FFMPEG_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
 
 jobs:
   build-windows-portable:

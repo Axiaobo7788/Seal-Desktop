@@ -6,9 +6,9 @@ on:
     branches: [ main ]
 
 env:
-  TOOLS_CACHE_VERSION: v1
+  TOOLS_CACHE_VERSION: v2
   YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
-  FFMPEG_LINUX_URL: https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz
+  FFMPEG_LINUX_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz
 
 jobs:
   build-linux-portable:
