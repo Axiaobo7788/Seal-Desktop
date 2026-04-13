@@ -28,8 +28,17 @@ import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.format_sorting
 import com.junkfood.seal.shared.generated.resources.format_sorting_desc
-import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.save
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.SettingsSuggest
+import androidx.compose.material3.ElevatedAssistChip
+import androidx.compose.ui.platform.LocalUriHandler
+import com.junkfood.seal.shared.generated.resources.import_from_preferences
+import com.junkfood.seal.shared.generated.resources.yt_dlp_docs
 import com.junkfood.seal.util.DownloadPreferences
 import org.jetbrains.compose.resources.stringResource
 
@@ -42,7 +51,8 @@ internal fun FormatSortingDialog(
     onConfirm: (String) -> Unit,
 ) {
     var sortingFields by remember(fields) { mutableStateOf(fields) }
-    
+    val uriHandler = LocalUriHandler.current
+
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismiss,
@@ -72,15 +82,22 @@ internal fun FormatSortingDialog(
                     leadingIcon = { Text(text = "-S", fontFamily = FontFamily.Monospace) },
                     singleLine = true,
                 )
-                Row {
-                    OutlinedButton(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ElevatedAssistChip(
                         onClick = onImport,
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Icon(Icons.Rounded.SettingsApplications, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Import")
-                    }
+                        label = { Text(stringResource(Res.string.import_from_preferences)) },
+                        leadingIcon = { Icon(Icons.Outlined.SettingsSuggest, null) }
+                    )
+                    ElevatedAssistChip(
+                        onClick = { uriHandler.openUri("https://github.com/yt-dlp/yt-dlp#sorting-formats") },
+                        label = { Text(stringResource(Res.string.yt_dlp_docs)) },
+                        leadingIcon = { Icon(Icons.Outlined.OpenInNew, null) }
+                    )
                 }
             }
         }

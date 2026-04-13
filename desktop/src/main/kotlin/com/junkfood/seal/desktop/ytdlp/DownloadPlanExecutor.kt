@@ -27,6 +27,12 @@ class DownloadPlanExecutor(
         val stderr: List<String>,
     )
 
+    data class CommandExecutionConfig(
+        val workingDirectory: Path? = null,
+        val extraEnv: Map<String, String> = emptyMap(),
+        val redirectError: Boolean = false,
+    )
+
     class RunningProcess internal constructor(
         private val process: Process,
         private val stdoutSink: MutableList<String>,
@@ -71,6 +77,24 @@ class DownloadPlanExecutor(
         onStderr: (String) -> Unit = {},
     ): ExecutionResult = start(plan, config, onStdout, onStderr).waitForResult()
 
+    fun startArgs(
+        args: List<String>,
+        config: CommandExecutionConfig,
+        onStdout: (String) -> Unit = {},
+        onStderr: (String) -> Unit = {},
+    ): RunningProcess {
+        val process = launchProcessForArgs(args, config)
+        val stdout = mutableListOf<String>()
+        val stderr = mutableListOf<String>()
+
+        val stdoutReader = streamLines(process.inputStream, stdout, onStdout)
+        val stderrReader =
+            if (config.redirectError) null
+            else streamLines(process.errorStream, stderr, onStderr)
+
+        return RunningProcess(process, stdout, stderr, stdoutReader, stderrReader)
+    }
+
     fun defaultConfigFor(
         plan: DownloadPlan,
         url: String,
@@ -86,6 +110,18 @@ class DownloadPlanExecutor(
     private fun launchProcess(plan: DownloadPlan, config: ExecutionConfig): Process {
         val binary = fetcher.ensureBinary()
         val command = buildCommand(binary, plan, config)
+        val builder = ProcessBuilder(command)
+        builder.redirectErrorStream(config.redirectError)
+        config.workingDirectory?.let { builder.directory(it.toFile()) }
+        if (config.extraEnv.isNotEmpty()) {
+            builder.environment().putAll(config.extraEnv)
+        }
+        return builder.start()
+    }
+
+    private fun launchProcessForArgs(args: List<String>, config: CommandExecutionConfig): Process {
+        val binary = fetcher.ensureBinary()
+        val command = buildRawCommand(binary, args)
         val builder = ProcessBuilder(command)
         builder.redirectErrorStream(config.redirectError)
         config.workingDirectory?.let { builder.directory(it.toFile()) }
@@ -118,6 +154,20 @@ class DownloadPlanExecutor(
         }
         args += config.url
         return args
+    }
+
+    private fun buildRawCommand(binary: Path, args: List<String>): List<String> {
+        val command = mutableListOf<String>()
+        val absBinary = binary.toAbsolutePath()
+        command += absBinary.toString()
+
+        val ffmpegLocation = findBundledFfmpegLocation(absBinary)
+        if (ffmpegLocation != null) {
+            command += listOf("--ffmpeg-location", ffmpegLocation.toString())
+        }
+
+        command += args
+        return command
     }
 
     private fun findBundledFfmpegLocation(ytDlpBinary: Path): Path? {

@@ -309,6 +309,10 @@
     <string name="edit_template">Рэдагаваць \"%1$s\"</string>
     <string name="proxy">Проксі</string>
     <string name="proxy_desc">Падключыцеся праз проксі</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="set_directory_desc">Націсніце, каб наладзіць каталог</string>
     <string name="custom_command_directory_desc">Укажыце выходны каталог пры выкарыстанні карыстальніцкіх каманд</string>
     <string name="prefer_quality_desc">Выберыце AV1, VP9 або H.265 для прагляду ў сумяшчальных праграмах</string>

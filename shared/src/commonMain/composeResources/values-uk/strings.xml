@@ -316,6 +316,10 @@
     <string name="prefer_compatibility_desc">Вибирати MP4 (H.264) для обміну у інших застосунках</string>
     <string name="prefer_quality_desc">Вибирати AV1, VP9 або H.265 для перегляду у сумісних застосунках</string>
     <string name="proxy_desc">Використовувати проксі для підключень до інтернету</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="ytdlp_update_action">Оновити yt-dlp</string>
     <string name="enable_notifications_desc">Додатку потрібен ваш дозвіл, щоб надсилати сповіщення про стан завантаження.</string>
     <string name="set_directory_desc">Натисніть, щоб налаштувати теку</string>

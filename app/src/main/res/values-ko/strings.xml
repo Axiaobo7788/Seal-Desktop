@@ -305,6 +305,10 @@
     <string name="copy_and_exit">복사 및 종료</string>
     <string name="proxy">프록시</string>
     <string name="proxy_desc">인터넷 연결에 프록시 사용</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="enable_notifications">알림을 활성화하나요\?</string>
     <string name="disable">비활성화</string>
     <string name="custom_command_directory">커스텀 명령어 디렉토리</string>

@@ -116,4 +116,8 @@
     <string name="desktop_download_detail_exit_code">ನಿರ್ಗಮನ ಕೋಡ್</string>
     <string name="desktop_download_detail_args">ಕಮಾಂಡ್ ಆರ್ಗ್ಯುಮೆಂಟ್‌ಗಳು</string>
     <string name="desktop_download_detail_error">ದೋಷ ವಿವರಗಳು</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
 </resources>

@@ -321,6 +321,10 @@
     <string name="prefer_compatibility_desc">ਹੋਰ ਐਪਾਂ ਨਾਲ ਸਾਂਝਾ ਕਰਨ ਲਈ MP4 (H.264) ਫਾਰਮੈਟਾਂ ਨੂੰ ਤਰਜੀਹ ਦਿਓ</string>
     <string name="prefer_quality_desc">ਅਨੁਕੂਲ ਐਪਾਂ ਵਿੱਚ ਦੇਖਣ ਲਈ AV1, VP9 ਜਾਂ H.265 ਫਾਰਮੈਟਾਂ ਨੂੰ ਤਰਜੀਹ ਦਿਓ</string>
     <string name="proxy_desc">ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨਾਂ ਲਈ ਪ੍ਰੌਕਸੀ ਦੀ ਵਰਤੋਂ ਕਰੋ</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="custom_command_directory_desc">ਕਸਟਮ ਕਮਾਂਡਾਂ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਸਮੇਂ ਆਉਟਪੁੱਟ ਡਾਇਰੈਕਟਰੀ ਨਿਰਧਾਰਤ ਕਰੋ</string>
     <string name="download_type">ਡਾਊਨਲੋਡ ਦੀ ਕਿਸਮ</string>
     <string name="custom">ਕਸਟਮ</string>

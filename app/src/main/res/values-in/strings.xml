@@ -310,6 +310,10 @@
     <string name="ytdlp_update_action">Perbarui yt-dlp</string>
     <string name="proxy">Proksi</string>
     <string name="proxy_desc">Gunakan proksi untuk sambungan internet</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="legacy">Lawas</string>
     <string name="disable">Matikan</string>
     <string name="folder_picker">Pemilih folder</string>

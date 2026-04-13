@@ -312,6 +312,10 @@
     <string name="set_directory_desc">Nhấn để thiết lập đường dẫn thư mục</string>
     <string name="prefer_quality_desc">Ưu tiên định dạng AV1, VP9 hoặc H.265 để xem trong các ứng dụng tương thích</string>
     <string name="proxy_desc">Sử dụng proxy cho các kết nối Internet</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="legacy">Truyền thống</string>
     <string name="quality">Chất lượng</string>
     <string name="enable_notifications">Bật thông báo\?</string>

@@ -334,6 +334,10 @@
     <string name="auto_update_disabled_msg">Automatické aktualizace nejsou dostupné pro sestavení ze služby %1$s. Pokud nemáte na zařízení nainstalovanou službu %1$s nebo pokud byste chtěli vidět nadcházející nové funkce v Sealu, zvažte prosím %2$s.</string>
     <string name="cookies_usage_msg">Stahování z některých stránek vyžaduje autentifikační informace z účtu. Klepněte na „Vygenerovat nové cookies“, zadejte adresu stránky a poté se přihlaste s vaším účtem v okně prohlížeče, aplikace se postará o vygenerování za vás.</string>
     <string name="proxy_desc">Použít proxy pro připojení k internetu</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="generate_new_cookies">Vygenerovat nové cookies</string>
     <string name="quality">Kvalita</string>
     <string name="refresh_cookies_desc">Klikněte pro otevření webové stránky pro generování nových cookies:</string>

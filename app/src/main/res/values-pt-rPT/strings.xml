@@ -298,6 +298,10 @@
     <string name="auto_update_disabled_msg">A atualização automática não está disponível para %1$s compilações. Se não tiver %1$s instalado no seu dispositivo, ou se pretender pré-visualizar as novas funcionalidades do Seal, considere %2$s.</string>
     <string name="cookies_usage_msg">O descarregamento de alguns sites requer informações de autenticação da conta. Clique em \"Gerar novos cookies\", introduza o URL do sítio Web e, em seguida, inicie sessão com a sua conta na página do browser; a aplicação irá gerá-los para si.</string>
     <string name="proxy_desc">Utilizar proxy para ligações à Internet</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="generate_new_cookies">Gerar novos cookies</string>
     <string name="quality">Qualidade</string>
     <string name="battery_settings_desc">Defina a utilização da bateria desta aplicação como \"Sem restrições\" nas definições do sistema para descarregar em segundo plano.</string>

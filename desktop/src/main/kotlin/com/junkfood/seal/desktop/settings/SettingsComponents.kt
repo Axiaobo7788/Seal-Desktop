@@ -43,6 +43,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
+import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.confirm
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
 import org.jetbrains.compose.resources.stringResource
@@ -181,6 +188,56 @@ internal fun ToggleCard(
 }
 
 @Composable
+internal fun PreferenceSwitchWithContainer(
+    title: String,
+    description: String?,
+    icon: ImageVector?,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(enabled = enabled, onClick = { onCheckedChange(!checked) }),
+        color = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                )
+                if (!description.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+@Composable
 internal fun TextFieldCard(
     title: String,
     description: String? = null,
@@ -274,29 +331,35 @@ internal fun <T> ChoiceDialog(
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var currentSelection by remember(selected, visible) { mutableStateOf(selected) }
+
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismiss,
-        textContentPadding = PaddingValues(bottom = 24.dp),
-        confirmButton = {},
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSelect(currentSelection)
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(com.junkfood.seal.shared.generated.resources.Res.string.confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(com.junkfood.seal.shared.generated.resources.Res.string.cancel))
+            }
+        },
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 options.forEach { (label, value) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            onSelect(value)
-                            onDismiss()
-                        }.padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Switch(checked = value == selected, onCheckedChange = {
-                            onSelect(value)
-                            onDismiss()
-                        })
-                        Text(label, style = MaterialTheme.typography.bodyMedium)
-                    }
+                    DialogSingleChoiceItem(
+                        text = label,
+                        selected = value == currentSelection,
+                        onClick = { currentSelection = value }
+                    )
                 }
             }
         },

@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelectionSheet
 import com.junkfood.seal.desktop.download.configure.DownloadInputSheet
 import com.junkfood.seal.desktop.download.configure.DownloadOptionsSheet
+import com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager
+import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
@@ -120,6 +122,8 @@ fun DesktopDownloadScreen(
     preferences: DownloadPreferences,
     onPreferencesChange: (DownloadPreferences) -> Unit,
     controller: DesktopDownloadController,
+    customCommandEnabled: Boolean = false,
+    customCommandTemplate: DesktopCommandTemplate? = null,
 ) {
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -413,7 +417,17 @@ fun DesktopDownloadScreen(
                             },
                             onDownload = {
                                 pendingUrl?.let { url ->
-                                    controller.startDownload(url, downloadType, workingPreferences)
+                                    if (customCommandEnabled && customCommandTemplate != null) {
+                                        DesktopCustomCommandTaskManager.start(
+                                            urlInput = url,
+                                            template = customCommandTemplate,
+                                            preferences = workingPreferences,
+                                        ).onFailure { error ->
+                                            actionErrorMessage = error.message ?: error.toString()
+                                        }
+                                    } else {
+                                        controller.startDownload(url, downloadType, workingPreferences)
+                                    }
                                 }
                                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                                     pendingUrl = null

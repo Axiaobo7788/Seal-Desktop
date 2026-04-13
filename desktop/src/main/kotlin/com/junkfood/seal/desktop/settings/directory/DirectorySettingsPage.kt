@@ -175,6 +175,33 @@ internal fun DirectorySettingsPage(
                 }
             }
         }
+        ActionCard(
+            title = stringResource(Res.string.custom_command_directory),
+            description = preferences.commandDirectory.ifBlank { defaultDownloadDir },
+            icon = Icons.Rounded.Folder,
+        ) {
+            scope.launch {
+                val newDir = chooseDirectory(title = "Select Custom Command Directory", currentDir = preferences.commandDirectory)
+                if (newDir != null) {
+                    onUpdate { it.copy(commandDirectory = newDir) }
+                }
+            }
+        }
+        ActionCard(
+            title = stringResource(Res.string.subdirectory),
+            description = stringResource(Res.string.subdirectory_desc),
+            icon = Icons.Outlined.SnippetFolder,
+        ) {
+            showSubdirectoryDialog = true
+        }
+        PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
+        ActionCard(
+            title = stringResource(Res.string.output_template),
+            description = preferences.outputTemplate.ifBlank { OUTPUT_TEMPLATE_DEFAULT },
+            icon = Icons.Outlined.FolderSpecial,
+        ) {
+            showOutputTemplateDialog = true
+        }
         ToggleCard(
             title = stringResource(Res.string.restrict_filenames),
             description = stringResource(Res.string.restrict_filenames_desc),
@@ -188,47 +215,8 @@ internal fun DirectorySettingsPage(
         ) {
             showClearTempDialog = true
         }
-        ActionCard(
-            title = stringResource(Res.string.output_template),
-            description = preferences.outputTemplate.ifBlank { OUTPUT_TEMPLATE_DEFAULT },
-            icon = Icons.Outlined.FolderSpecial,
-        ) {
-            showOutputTemplateDialog = true
-        }
-        ActionCard(
-            title = stringResource(Res.string.subdirectory),
-            description = stringResource(Res.string.subdirectory_desc),
-            icon = Icons.Outlined.SnippetFolder,
-        ) {
-            showSubdirectoryDialog = true
-        }
-        ActionCard(
-            title = stringResource(Res.string.custom_command_directory),
-            description = stringResource(Res.string.custom_command_directory_desc) + "\n" + preferences.commandDirectory.ifBlank { defaultStr },
-            icon = Icons.Rounded.Folder,
-        ) {
-            scope.launch {
-                val newDir = chooseDirectory(title = "Select Custom Command Directory", currentDir = preferences.commandDirectory)
-                if (newDir != null) {
-                    onUpdate { it.copy(commandDirectory = newDir) }
-                }
-            }
-        }
-        PreferenceSubtitle(text = stringResource(Res.string.privacy))
-        ToggleCard(
-            title = stringResource(Res.string.private_directory),
-            description = stringResource(Res.string.private_directory_desc),
-            icon = Icons.Outlined.Lock,
-            checked = preferences.privateDirectory,
-        ) { checked -> onUpdate { it.copy(privateDirectory = checked) } }
-        PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
-        ToggleCard(
-            title = stringResource(Res.string.download_archive),
-            description = archivePath,
-            icon = Icons.Rounded.Archive,
-            checked = preferences.useDownloadArchive,
-        ) { checked -> onUpdate { it.copy(useDownloadArchive = checked) } }
     }
+
     AnimatedAlertDialog(
         visible = showClearTempDialog,
         onDismissRequest = { showClearTempDialog = false },
@@ -288,78 +276,79 @@ private fun OutputTemplateDialog(
         )
     }
     var error by remember { mutableIntStateOf(0) }
+    
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismissRequest,
         icon = { Icon(Icons.Outlined.FolderSpecial, contentDescription = null) },
         title = { Text(stringResource(Res.string.output_template)) },
-        text = {
-            Column {
-                Text(
-                    text = stringResource(Res.string.output_template_desc),
-                    modifier = Modifier.padding(bottom = 12.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    DialogSingleChoiceItem(
-                        text = OUTPUT_TEMPLATE_DEFAULT,
-                        selected = selectedItem == 1,
-                        onClick = { selectedItem = 1 }
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(Res.string.output_template_desc),
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge,
                     )
-                    DialogSingleChoiceItem(
-                        text = OUTPUT_TEMPLATE_ID,
-                        selected = selectedItem == 2,
-                        onClick = { selectedItem = 2 }
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = selectedItem == 3,
-                            onClick = { selectedItem = 3 },
-                            modifier = Modifier.clearAndSetSemantics {}
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        DialogSingleChoiceItem(
+                            text = OUTPUT_TEMPLATE_DEFAULT,
+                            selected = selectedItem == 1,
+                            onClick = { selectedItem = 1 }
                         )
-                        OutlinedTextField(
-                            value = editingTemplate,
-                            onValueChange = {
-                                error = if (!it.contains(BASENAME)) 1 else if (!it.endsWith(EXTENSION)) 2 else 0
-                                editingTemplate = it
-                            },
-                            isError = error != 0,
-                            modifier = Modifier.weight(1f),
-                            label = { Text(stringResource(Res.string.custom)) },
-                            supportingText = {
-                                Text("Required: $BASENAME, $EXTENSION", fontFamily = FontFamily.Monospace)
-                            }
+                        DialogSingleChoiceItem(
+                            text = OUTPUT_TEMPLATE_ID,
+                            selected = selectedItem == 2,
+                            onClick = { selectedItem = 2 }
                         )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = selectedItem == 3,
+                                onClick = { selectedItem = 3 },
+                                modifier = Modifier.clearAndSetSemantics {}
+                            )
+                            OutlinedTextField(
+                                value = editingTemplate,
+                                onValueChange = {
+                                    error = if (!it.contains(BASENAME)) 1 else if (!it.endsWith(EXTENSION)) 2 else 0
+                                    editingTemplate = it
+                                },
+                                isError = error != 0,
+                                modifier = Modifier.weight(1f),
+                                label = { Text(stringResource(Res.string.custom)) },
+                                supportingText = {
+                                    Text("Required: $BASENAME, $EXTENSION", fontFamily = FontFamily.Monospace)
+                                }
+                            )
+                        }
                     }
                 }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val result = when (selectedItem) {
+                            1 -> OUTPUT_TEMPLATE_DEFAULT
+                            2 -> OUTPUT_TEMPLATE_ID
+                            else -> editingTemplate
+                        }
+                        onConfirm(result)
+                    },
+                    enabled = error == 0 || selectedItem != 3
+                ) {
+                    Text(stringResource(Res.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRequest) {
+                    Text(stringResource(Res.string.cancel))
+                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val result = when (selectedItem) {
-                        1 -> OUTPUT_TEMPLATE_DEFAULT
-                        2 -> OUTPUT_TEMPLATE_ID
-                        else -> editingTemplate
-                    }
-                    onConfirm(result)
-                },
-                enabled = error == 0 || selectedItem != 3
-            ) {
-                Text(stringResource(Res.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text(stringResource(Res.string.cancel))
-            }
-        }
-    )
+        )
 }
 @Composable
 private fun DirectoryPreferenceDialog(
@@ -371,55 +360,56 @@ private fun DirectoryPreferenceDialog(
 ) {
     var website by remember { mutableStateOf(isWebsiteSelected) }
     var playlist by remember { mutableStateOf(isPlaylistTitleSelected) }
+    
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismissRequest,
         icon = { Icon(Icons.Outlined.SnippetFolder, contentDescription = null) },
         title = { Text(stringResource(Res.string.subdirectory)) },
-        text = {
-            Column {
-                Text(
-                    text = stringResource(Res.string.subdirectory_desc),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                
-                DialogCheckBoxItem(
-                    text = stringResource(Res.string.website),
-                    checked = website,
-                    onCheckedChange = { website = it }
-                )
-                DialogCheckBoxItem(
-                    text = stringResource(Res.string.playlist_title),
-                    checked = playlist,
-                    onCheckedChange = { playlist = it }
-                )
-                
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                Spacer(modifier = Modifier.height(4.dp))
-                val dirStr = StringBuilder(".../").run {
-                    if (website) append("website/")
-                    if (playlist) append("playlist_title/")
-                    append("file_name")
-                }.toString()
-                Text(
-                    text = stringResource(Res.string.subdirectory_hint) + "\n" + dirStr,
-                    style = MaterialTheme.typography.labelMedium,
-                )
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(Res.string.subdirectory_desc),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    
+                    DialogCheckBoxItem(
+                        text = stringResource(Res.string.website),
+                        checked = website,
+                        onCheckedChange = { website = it }
+                    )
+                    DialogCheckBoxItem(
+                        text = stringResource(Res.string.playlist_title),
+                        checked = playlist,
+                        onCheckedChange = { playlist = it }
+                    )
+                    
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val dirStr = StringBuilder(".../").run {
+                        if (website) append("website/")
+                        if (playlist) append("playlist_title/")
+                        append("file_name")
+                    }.toString()
+                    Text(
+                        text = stringResource(Res.string.subdirectory_hint) + "\n" + dirStr,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onConfirm(website, playlist) }) {
+                    Text(stringResource(Res.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRequest) {
+                    Text(stringResource(Res.string.cancel))
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(website, playlist) }) {
-                Text(stringResource(Res.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text(stringResource(Res.string.cancel))
-            }
-        }
-    )
+        )
 }
 @Composable
 private fun DialogSingleChoiceItem(

@@ -323,6 +323,10 @@
     <string name="new_task">เพิ่มงานดาวน์โหลด</string>
     <string name="keep_subtitle_files">เก็บไฟล์ซับไทเทิล</string>
     <string name="proxy_desc">ใช้พร็อกซีสำหรับการเชื่อมต่ออินเทอร์เน็ต</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="split_video_msg">วีดีโอจะถูกแยกเป็น %1$d ตอน</string>
     <string name="unknown_error_title">อุ้ย! มีบางอย่างผิดพลาด</string>
     <string name="legacy">เข้ากันได้</string>

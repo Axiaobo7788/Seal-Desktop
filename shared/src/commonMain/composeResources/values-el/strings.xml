@@ -340,6 +340,10 @@
     <string name="split_video">Διαχωρισμένο βίντεο</string>
     <string name="edit_template">Επεξεργασία \"%1$s\"</string>
     <string name="proxy_desc">Χρήση διακομιστή μεσολάβησης για συνδέσεις στο διαδίκτυο</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="quality">Ποιότητα</string>
     <string name="enable_notifications">Ενεργοποίηση ειδοποιήσεων;</string>
     <string name="enable_notifications_desc">Η εφαρμογή χρειάζεται την άδειά σας για να δημοσιεύει ειδοποιήσεις σχετικά με την κατάσταση και την πρόοδο της λήψης.</string>

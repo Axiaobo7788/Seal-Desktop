@@ -344,6 +344,10 @@
     <string name="edit_template">编辑命令模板 \"%1$s\"</string>
     <string name="proxy">代理设置</string>
     <string name="proxy_desc">使用代理进行网络连接</string>
+    <string name="desktop_auto_proxy_detect_title">自动检测本地代理（Xray）</string>
+    <string name="desktop_auto_proxy_detect_desc">启用后会自动检测本地 Xray 端口并覆盖上方代理地址</string>
+    <string name="desktop_auto_proxy_detect_result">当前检测结果：%1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">未检测到可用的 Xray 代理</string>
     <string name="legacy">兼容优先</string>
     <string name="quality">质量优先</string>
     <string name="enable_notifications">启用通知？</string>

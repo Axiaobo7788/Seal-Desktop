@@ -316,6 +316,10 @@
     <string name="custom_command_directory_desc">Navedite izlazni direktorij kada koristite prilagođene naredbe</string>
     <string name="format_preference">Postavke formata</string>
     <string name="proxy_desc">Koristite proksi za internetske veze</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="legacy">Zastario</string>
     <string name="quality">Kvaliteta</string>
     <string name="enable_notifications">Omogućiti obavijesti\?</string>

@@ -76,6 +76,11 @@ fun AnimatedAlertDialog(
         animationSpec = tween(if (animationVisible) 230 else 130),
         label = "dialogScale",
     )
+    val translationY by animateFloatAsState(
+        targetValue = if (animationVisible) 0f else if (shouldRender && !visible) -50f else 50f,
+        animationSpec = tween(if (animationVisible) 230 else 130),
+        label = "dialogTranslationY",
+    )
 
     Popup(
         onDismissRequest = onDismissRequest,
@@ -99,6 +104,7 @@ fun AnimatedAlertDialog(
                         scaleX = scale
                         scaleY = scale
                         this.alpha = alphaAnim
+                        this.translationY = translationY
                     }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },

@@ -374,6 +374,10 @@
     <string name="copy_and_exit">Kopyahin at lumabas</string>
     <string name="start">Simulan</string>
     <string name="proxy_desc">Gumamit ng proxy para sa mga koneksyon sa internet</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="prefer_quality_desc">Laging gamitin ang AV1, VP9 o H.265 na mga format para sa panonood sa mga compatible na app</string>
     <string name="format_preference">Kagustuhan sa format</string>
     <string name="learn_more">Matuto pa</string>

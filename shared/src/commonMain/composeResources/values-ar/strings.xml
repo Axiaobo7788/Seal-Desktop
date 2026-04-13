@@ -313,6 +313,10 @@
     <string name="quality">جودة</string>
     <string name="enable_notifications">هل ترغب في تفعيل الإشعارات؟</string>
     <string name="proxy_desc">استخدم بروكسي لاتصالات الإنترنت</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="enable_notifications_desc">التطبيق يحتاج إلى إذنك لنشر إشعارات حول حالة التنزيل والتقدم.</string>
     <string name="refresh_cookies_desc">اضغط لفتح صفحة الويب لتوليد ملفات تعريف الارتباط الجديدة:</string>
     <string name="folder_picker">محدد المجلدات</string>

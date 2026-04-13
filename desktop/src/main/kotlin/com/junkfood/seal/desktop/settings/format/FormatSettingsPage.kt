@@ -20,6 +20,8 @@ import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ToggleCard
+import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
+import com.junkfood.seal.desktop.settings.format.FormatSortingDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
 import com.junkfood.seal.shared.generated.resources.audio
@@ -40,6 +42,7 @@ import com.junkfood.seal.shared.generated.resources.embed_thumbnail_desc
 import com.junkfood.seal.shared.generated.resources.extract_audio
 import com.junkfood.seal.shared.generated.resources.extract_audio_summary
 import com.junkfood.seal.shared.generated.resources.format
+import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
 import com.junkfood.seal.shared.generated.resources.format_sorting
 import com.junkfood.seal.shared.generated.resources.format_sorting_desc
@@ -66,6 +69,9 @@ import com.junkfood.seal.shared.generated.resources.enable_experimental_feature
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.util.DownloadPreferences
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Subtitles
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.ContentCut
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -79,6 +85,8 @@ internal fun FormatSettingsPage(
     onUpdate: ((DownloadPreferences) -> DownloadPreferences) -> Unit,
     isVideoClipEnabled: Boolean,
     onUpdateVideoClipEnabled: (Boolean) -> Unit,
+    isFormatSelectionEnabled: Boolean,
+    onUpdateFormatSelectionEnabled: (Boolean) -> Unit,
     onOpenSubtitle: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -89,11 +97,10 @@ internal fun FormatSettingsPage(
     var showVideoFormatDialog by remember { mutableStateOf(false) }
     var showVideoQualityDialog by remember { mutableStateOf(false) }
     var showVideoClipDialog by remember { mutableStateOf(false) }
+    var showFormatSortingDialog by remember { mutableStateOf(false) }
 
     val videoQualityLabel = videoResolutionLabel(preferences.videoResolution)
     val audioPresetLabel = audioPresetLabel(preferences.useCustomAudioPreset)
-    val audioFormatLabel = audioFormatLabel(preferences.audioFormat)
-    val audioQualityLabel = audioQualityLabel(preferences.audioQuality)
     val audioConvertLabel = audioConvertFormatLabel(preferences.audioConvertFormat)
     val videoFormatDesc = videoFormatDescription(preferences.videoFormat)
 
@@ -107,44 +114,14 @@ internal fun FormatSettingsPage(
             checked = preferences.extractAudio,
         ) { checked -> onUpdate { it.copy(extractAudio = checked) } }
 
-        SelectionCard(
-            title = stringResource(Res.string.presets),
-            description = audioPresetLabel,
-            icon = Icons.Rounded.ViewComfy,
-            enabled = preferences.extractAudio,
-            onClick = { showAudioPresetDialog = true },
-        )
-
-        SelectionCard(
-            title = stringResource(Res.string.audio_format_preference),
-            description = audioFormatLabel,
-            icon = Icons.Rounded.ViewComfy,
-            enabled = preferences.extractAudio && preferences.useCustomAudioPreset,
-            onClick = { showAudioFormatDialog = true },
-        )
-
-        SelectionCard(
-            title = stringResource(Res.string.audio_quality),
-            description = audioQualityLabel,
-            icon = Icons.Rounded.ViewComfy,
-            enabled = preferences.extractAudio && preferences.useCustomAudioPreset,
-            onClick = { showAudioQualityDialog = true },
-        )
-
-        ToggleCard(
-            title = stringResource(Res.string.convert_audio),
-            description = stringResource(Res.string.convert_audio_format_desc),
+        SwitchWithDividerCard(
+            title = stringResource(Res.string.convert_audio_format),
+            description = audioConvertLabel,
             icon = Icons.Rounded.Sync,
             checked = preferences.convertAudio,
             enabled = preferences.extractAudio,
-        ) { checked -> onUpdate { it.copy(convertAudio = checked) } }
-
-        SelectionCard(
-            title = stringResource(Res.string.convert_audio_format),
-            description = audioConvertLabel,
-            icon = Icons.Rounded.ViewComfy,
+            onCheckedChange = { checked -> onUpdate { it.copy(convertAudio = checked) } },
             onClick = { showConvertAudioDialog = true },
-            enabled = preferences.extractAudio && preferences.convertAudio,
         )
 
         ToggleCard(
@@ -182,14 +159,6 @@ internal fun FormatSettingsPage(
         )
 
         ToggleCard(
-            title = stringResource(Res.string.embed_thumbnail),
-            description = stringResource(Res.string.embed_thumbnail_desc),
-            icon = Icons.Rounded.Image,
-            checked = preferences.embedThumbnail,
-            enabled = !preferences.extractAudio,
-        ) { checked -> onUpdate { it.copy(embedThumbnail = checked) } }
-
-        ToggleCard(
             title = stringResource(Res.string.remux_container_mkv),
             description = stringResource(Res.string.remux_container_mkv_desc),
             icon = Icons.Rounded.VideoFile,
@@ -202,30 +171,34 @@ internal fun FormatSettingsPage(
         SelectionCard(
             title = stringResource(Res.string.subtitle),
             description = stringResource(Res.string.subtitle_desc),
-            icon = Icons.Rounded.VideoFile,
+            icon = Icons.Rounded.Subtitles,
             onClick = onOpenSubtitle,
         )
 
-        ToggleCard(
+        SwitchWithDividerCard(
             title = stringResource(Res.string.format_sorting),
             description = stringResource(Res.string.format_sorting_desc),
-            icon = Icons.Rounded.SettingsApplications,
+            icon = Icons.AutoMirrored.Rounded.Sort,
             checked = preferences.formatSorting,
-        ) { checked -> onUpdate { it.copy(formatSorting = checked) } }
+            onCheckedChange = { checked -> onUpdate { it.copy(formatSorting = checked) } },
+            onClick = { showFormatSortingDialog = true },
+            enabled = !preferences.extractAudio,
+        )
 
-        TextFieldCard(
-            title = stringResource(Res.string.format_sorting),
-            description = null,
+        ToggleCard(
+            title = stringResource(Res.string.format_selection),
+            description = stringResource(Res.string.format_selection_desc),
             icon = Icons.Rounded.SettingsApplications,
-            value = preferences.sortingFields,
-            enabled = preferences.formatSorting,
-        ) { newValue -> onUpdate { it.copy(sortingFields = newValue) } }
+            checked = isFormatSelectionEnabled,
+            enabled = !preferences.extractAudio,
+        ) { checked -> onUpdateFormatSelectionEnabled(checked) }
 
         ToggleCard(
             title = stringResource(Res.string.clip_video),
             description = stringResource(Res.string.clip_video_desc),
             icon = Icons.Rounded.ContentCut,
             checked = isVideoClipEnabled,
+            enabled = !preferences.extractAudio && isFormatSelectionEnabled,
         ) { checked ->
             if (checked) {
                 showVideoClipDialog = true
@@ -237,35 +210,20 @@ internal fun FormatSettingsPage(
         ToggleCard(
             title = stringResource(Res.string.merge_audiostream),
             description = stringResource(Res.string.merge_audiostream_desc),
-            icon = Icons.Rounded.Terminal,
+            icon = Icons.Rounded.GraphicEq,
             checked = preferences.mergeAudioStream,
+            enabled = !preferences.extractAudio && isFormatSelectionEnabled,
         ) { checked -> onUpdate { it.copy(mergeAudioStream = checked) } }
 
-        ChoiceDialog(
-            visible = showAudioPresetDialog,
-            title = stringResource(Res.string.presets),
-            options = audioPresetOptions(),
-            selected = preferences.useCustomAudioPreset,
-            onSelect = { value -> onUpdate { it.copy(useCustomAudioPreset = value) } },
-            onDismiss = { showAudioPresetDialog = false },
-        )
-
-        ChoiceDialog(
-            visible = showAudioFormatDialog,
-            title = stringResource(Res.string.audio_format_preference),
-            options = audioFormatOptions(),
-            selected = preferences.audioFormat,
-            onSelect = { value -> onUpdate { it.copy(audioFormat = value) } },
-            onDismiss = { showAudioFormatDialog = false },
-        )
-
-        ChoiceDialog(
-            visible = showAudioQualityDialog,
-            title = stringResource(Res.string.audio_quality),
-            options = audioQualityOptions(),
-            selected = preferences.audioQuality,
-            onSelect = { value -> onUpdate { it.copy(audioQuality = value) } },
-            onDismiss = { showAudioQualityDialog = false },
+        FormatSortingDialog(
+            visible = showFormatSortingDialog,
+            fields = preferences.sortingFields,
+            onDismiss = { showFormatSortingDialog = false },
+            onImport = { /* No-op on desktop for now */ },
+            onConfirm = { value -> 
+                onUpdate { it.copy(sortingFields = value) }
+                showFormatSortingDialog = false
+            }
         )
 
         ChoiceDialog(
@@ -344,32 +302,6 @@ private fun videoResolutionLabel(code: Int): String =
         7 -> stringResource(Res.string.lowest_quality)
         else -> stringResource(Res.string.auto)
     }
-
-@Composable
-private fun audioFormatOptions(): List<Pair<String, Int>> =
-    listOf(
-        stringResource(Res.string.auto) to 0,
-        "Opus" to 1,
-        "M4A" to 2,
-    )
-
-@Composable
-private fun audioFormatLabel(code: Int): String =
-    audioFormatOptions().firstOrNull { it.second == code }?.first ?: stringResource(Res.string.auto)
-
-@Composable
-private fun audioQualityOptions(): List<Pair<String, Int>> =
-    listOf(
-        stringResource(Res.string.auto) to 0,
-        "High (192 kbps)" to 1,
-        "Medium (128 kbps)" to 2,
-        "Low (64 kbps)" to 3,
-        stringResource(Res.string.lowest_bitrate) to 4,
-    )
-
-@Composable
-private fun audioQualityLabel(code: Int): String =
-    audioQualityOptions().firstOrNull { it.second == code }?.first ?: stringResource(Res.string.auto)
 
 @Composable
 private fun audioConvertFormatOptions(): List<Pair<String, Int>> =

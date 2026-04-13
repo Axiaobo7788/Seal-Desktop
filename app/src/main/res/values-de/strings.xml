@@ -310,6 +310,10 @@
     <string name="ytdlp_update_action">yt-dlp aktualisieren</string>
     <string name="proxy">Proxy</string>
     <string name="proxy_desc">Proxy für Internetverbindungen verwenden</string>
+    <string name="desktop_auto_proxy_detect_title">Auto detect local proxy (Xray)</string>
+    <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
+    <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
     <string name="disabled">Deaktiviert</string>
     <string name="prefer_compatibility_desc">MP4(H.264)-Formate für die Weitergabe an andere Apps bevorzugen</string>
     <string name="enable_notifications">Benachrichtigungen aktivieren\?</string>

@@ -25,7 +25,9 @@ import com.junkfood.seal.desktop.settings.command.CommandSettingsPage
 import com.junkfood.seal.desktop.settings.directory.DirectorySettingsPage
 import com.junkfood.seal.desktop.settings.format.FormatSettingsPage
 import com.junkfood.seal.desktop.settings.general.GeneralSettingsPage
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import com.junkfood.seal.desktop.settings.network.NetworkSettingsPage
 import com.junkfood.seal.desktop.settings.subtitle.SubtitleSettingsPage
 import com.junkfood.seal.desktop.settings.troubleshooting.TroubleshootingSettingsPage
@@ -74,6 +76,7 @@ fun DesktopSettingsScreen(
     themeState: DesktopThemeState,
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
+    val saveableStateHolder = rememberSaveableStateHolder()
 
     AnimatedContent(
         targetState = currentPage,
@@ -91,14 +94,22 @@ fun DesktopSettingsScreen(
         modifier = modifier,
         label = "settings-pages",
     ) { page ->
-        when (page) {
-            null ->
-                SettingsHome(
-                    modifier = Modifier,
-                    isCompact = isCompact,
-                    onMenuClick = onMenuClick,
-                    onOpenPage = { target -> currentPage = target },
-                )
+        saveableStateHolder.SaveableStateProvider(page ?: "home") {
+            DisposableEffect(page) {
+                onDispose {
+                    if (currentPage.depth() <= page.depth()) {
+                        saveableStateHolder.removeState(page ?: "home")
+                    }
+                }
+            }
+            when (page) {
+                null ->
+                    SettingsHome(
+                        modifier = Modifier,
+                        isCompact = isCompact,
+                        onMenuClick = onMenuClick,
+                        onOpenPage = { target -> currentPage = target },
+                    )
 
             SettingsPage.General ->
                 GeneralSettingsPage(
@@ -121,7 +132,9 @@ fun DesktopSettingsScreen(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
                     isVideoClipEnabled = appSettingsState.settings.isVideoClipEnabled,
-                    onUpdateVideoClipEnabled = { appSettingsState.update { settings -> settings.copy(isVideoClipEnabled = it) } },
+                    onUpdateVideoClipEnabled = { value -> appSettingsState.update { settings -> settings.copy(isVideoClipEnabled = value) } },
+                    isFormatSelectionEnabled = appSettingsState.settings.isFormatSelectionEnabled,
+                    onUpdateFormatSelectionEnabled = { value -> appSettingsState.update { settings -> settings.copy(isFormatSelectionEnabled = value) } },
                     onOpenSubtitle = { currentPage = SettingsPage.Subtitle },
                     onBack = { currentPage = null },
                 )
@@ -214,6 +227,7 @@ fun DesktopSettingsScreen(
                 CreditsSettingsPage(
                     onBack = { currentPage = SettingsPage.About },
                 )
+            }
         }
     }
 }

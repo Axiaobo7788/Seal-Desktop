@@ -351,6 +351,10 @@
     <string name="custom_command_directory_desc">當使用自訂命令時指定輸出目錄</string>
     <string name="prefer_compatibility_desc">當分享至其他應用程式時偏好 MP4(H.264) 格式</string>
     <string name="proxy_desc">使用 Proxy 連線至網際網路</string>
+    <string name="desktop_auto_proxy_detect_title">自動偵測本機代理（Xray）</string>
+    <string name="desktop_auto_proxy_detect_desc">啟用後自動偵測本機 Xray 連接埠並覆蓋上方代理位址</string>
+    <string name="desktop_auto_proxy_detect_result">目前偵測結果：%1$s</string>
+    <string name="desktop_auto_proxy_detect_not_found">未偵測到可用的 Xray 代理</string>
     <string name="enable_notifications_desc">請授予應用程式權限以推播下載狀態和進度的通知。</string>
     <string name="disabled">停用</string>
     <string name="prefer_quality_desc">在相容的應用程式裡進行觀賞時偏好 AV1, VP9 或 H.265 格式</string>
