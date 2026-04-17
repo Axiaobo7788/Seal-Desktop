@@ -2,6 +2,9 @@
 
 package com.junkfood.seal.desktop
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -207,7 +210,11 @@ private fun DesktopApp(
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    androidx.compose.runtime.LaunchedEffect(appSettingsState, settingsState) {
+        com.junkfood.seal.desktop.network.DesktopGlobalProxy.initialize(appSettingsState, settingsState, this)
+    }
+
+    val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val navType = when {
@@ -411,14 +418,35 @@ private fun ContentArea(
         targetState = current,
         transitionSpec = {
             val forward = order.indexOf(targetState) > order.indexOf(initialState)
-            val inOffset: (Int) -> Int = { full -> (full / 4) * if (forward) 1 else -1 }
-            val outOffset: (Int) -> Int = { full -> (full / 4) * if (forward) -1 else 1 }
+            val durationMillis = 300
+            val initialOffset = 0.15f
+            
+            val inOffset: (Int) -> Int = { full -> (full * initialOffset).toInt() * if (forward) 1 else -1 }
+            val outOffset: (Int) -> Int = { full -> (full * initialOffset).toInt() * if (forward) -1 else 1 }
 
-            (slideInHorizontally(animationSpec = tween(240), initialOffsetX = inOffset) +
-                fadeIn(animationSpec = tween(180))).togetherWith(
-                slideOutHorizontally(animationSpec = tween(200), targetOffsetX = outOffset) +
-                    fadeOut(animationSpec = tween(140))
+            val enter = slideInHorizontally(
+                animationSpec = tween(durationMillis, easing = FastOutSlowInEasing),
+                initialOffsetX = inOffset
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = (durationMillis * 0.7f).toInt(),
+                    delayMillis = (durationMillis * 0.3f).toInt(),
+                    easing = LinearOutSlowInEasing
+                )
             )
+
+            val exit = slideOutHorizontally(
+                animationSpec = tween(durationMillis, easing = FastOutSlowInEasing),
+                targetOffsetX = outOffset
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = (durationMillis * 0.3f).toInt(),
+                    delayMillis = 0,
+                    easing = FastOutLinearInEasing
+                )
+            )
+            
+            enter.togetherWith(exit)
         },
         label = "mainNavigation",
     ) { destination ->

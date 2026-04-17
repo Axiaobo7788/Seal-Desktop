@@ -104,8 +104,9 @@ internal fun FormatSettingsPage(
     val audioConvertLabel = audioConvertFormatLabel(preferences.audioConvertFormat)
     val videoFormatDesc = videoFormatDescription(preferences.videoFormat)
 
-    SettingsPageScaffold(title = stringResource(Res.string.format), onBack = onBack) {
-        PreferenceSubtitle(text = stringResource(Res.string.audio))
+    androidx.compose.foundation.layout.Box {
+        SettingsPageScaffold(title = stringResource(Res.string.format), onBack = onBack) {
+            PreferenceSubtitle(text = stringResource(Res.string.audio))
 
         ToggleCard(
             title = stringResource(Res.string.extract_audio),
@@ -214,6 +215,7 @@ internal fun FormatSettingsPage(
             checked = preferences.mergeAudioStream,
             enabled = !preferences.extractAudio && isFormatSelectionEnabled,
         ) { checked -> onUpdate { it.copy(mergeAudioStream = checked) } }
+        }
 
         FormatSortingDialog(
             visible = showFormatSortingDialog,

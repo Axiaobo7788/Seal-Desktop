@@ -1,37 +1,58 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.junkfood.seal.desktop.customcommand
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.rounded.Code
-import androidx.compose.material.icons.rounded.Terminal
-import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,7 +60,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,111 +67,56 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
-import com.junkfood.seal.desktop.settings.PreferenceInfo
-import com.junkfood.seal.desktop.settings.PreferenceSubtitle
-import com.junkfood.seal.desktop.settings.SelectionCard
-import com.junkfood.seal.desktop.settings.ToggleCard
+import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.shared.generated.resources.Res
-import com.junkfood.seal.shared.generated.resources.custom_command
+import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.confirm
+import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_desc
-import com.junkfood.seal.shared.generated.resources.custom_command_enabled_hint
 import com.junkfood.seal.shared.generated.resources.custom_command_template
-import com.junkfood.seal.shared.generated.resources.custom_command_template_desc
-import com.junkfood.seal.shared.generated.resources.dismiss
 import com.junkfood.seal.shared.generated.resources.edit
+import com.junkfood.seal.shared.generated.resources.edit_template
 import com.junkfood.seal.shared.generated.resources.edit_template_desc
-import com.junkfood.seal.shared.generated.resources.how_does_it_work
+import com.junkfood.seal.shared.generated.resources.new_task
 import com.junkfood.seal.shared.generated.resources.new_template
-import com.junkfood.seal.shared.generated.resources.remove
-import com.junkfood.seal.shared.generated.resources.remove_template
-import com.junkfood.seal.shared.generated.resources.remove_template_desc
+import com.junkfood.seal.shared.generated.resources.proceed
+import com.junkfood.seal.shared.generated.resources.paste_msg
+import com.junkfood.seal.shared.generated.resources.running_tasks
+import com.junkfood.seal.shared.generated.resources.start
+import com.junkfood.seal.shared.generated.resources.status_canceled
+import com.junkfood.seal.shared.generated.resources.status_completed
+import com.junkfood.seal.shared.generated.resources.status_downloading
+import com.junkfood.seal.shared.generated.resources.status_error
 import com.junkfood.seal.shared.generated.resources.template_label
 import com.junkfood.seal.shared.generated.resources.template_selection
-import com.junkfood.seal.shared.generated.resources.use_custom_command
+import com.junkfood.seal.shared.generated.resources.video_url
+import com.junkfood.seal.shared.generated.resources.yt_dlp_docs
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DesktopCustomCommandScreen(
     modifier: Modifier = Modifier,
-    onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
+    onMenuClick: () -> Unit = {},
     appSettingsState: DesktopAppSettingsState,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(state = rememberTopAppBarState())
-    val settings = appSettingsState.settings
-    val templates = settings.customCommandTemplates
-    var showHelpDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var editingTemplateId by remember { mutableStateOf<Int?>(null) }
-    var editingLabel by remember { mutableStateOf("") }
-    var editingTemplate by remember { mutableStateOf("") }
-    var labelError by remember { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val settingsState = rememberDesktopSettingsState()
+    val tasks = DesktopCustomCommandTaskManager.tasks
 
-    LaunchedEffect(
-        templates,
-        settings.customCommandLabel,
-        settings.customCommandTemplate,
-        settings.customCommandTemplateId,
-    ) {
-        if (
-            templates.isEmpty() &&
-                (settings.customCommandLabel.isNotBlank() || settings.customCommandTemplate.isNotBlank())
-        ) {
-            appSettingsState.update {
-                it.copy(
-                    customCommandTemplates =
-                        listOf(
-                            DesktopCommandTemplate(
-                                id = 1,
-                                label = settings.customCommandLabel,
-                                template = settings.customCommandTemplate,
-                            )
-                        ),
-                    customCommandTemplateId = 1,
-                )
-            }
-        } else if (templates.isNotEmpty() && templates.none { it.id == settings.customCommandTemplateId }) {
-            val first = templates.first()
-            appSettingsState.update {
-                it.copy(
-                    customCommandTemplateId = first.id,
-                    customCommandLabel = first.label,
-                    customCommandTemplate = first.template,
-                )
-            }
-        }
-    }
-
-    fun openEditDialog(template: DesktopCommandTemplate?) {
-        editingTemplateId = template?.id
-        editingLabel = template?.label.orEmpty()
-        editingTemplate = template?.template.orEmpty()
-        labelError = false
-        showEditDialog = true
-    }
-
-    fun selectTemplate(template: DesktopCommandTemplate) {
-        appSettingsState.update {
-            it.copy(
-                customCommandTemplateId = template.id,
-                customCommandLabel = template.label,
-                customCommandTemplate = template.template,
-            )
-        }
-    }
+    var showNewTaskDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text(text = stringResource(Res.string.custom_command)) },
+                title = { Text(text = stringResource(Res.string.running_tasks)) },
                 navigationIcon = {
                     if (isCompact) {
                         IconButton(onClick = onMenuClick) {
@@ -162,287 +127,406 @@ fun DesktopCustomCommandScreen(
                         }
                     }
                 },
-                actions = {
-                    IconButton(onClick = { showHelpDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Outlined.HelpOutline,
-                            contentDescription = stringResource(Res.string.how_does_it_work),
-                        )
-                    }
-                },
                 scrollBehavior = scrollBehavior,
             )
         },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 4.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 12.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            PreferenceInfo(text = stringResource(Res.string.custom_command_desc))
-
-            ToggleCard(
-                title = stringResource(Res.string.use_custom_command),
-                description = stringResource(Res.string.custom_command_enabled_hint),
-                icon = Icons.Rounded.Terminal,
-                checked = settings.customCommandEnabled,
-            ) { checked -> appSettingsState.update { it.copy(customCommandEnabled = checked) } }
-
-            PreferenceSubtitle(text = stringResource(Res.string.template_selection))
-            PreferenceInfo(text = stringResource(Res.string.custom_command_template_desc))
-
-            if (templates.isNotEmpty()) {
-                templates.forEach { template ->
-                    DesktopTemplateItem(
-                        template = template,
-                        selected = template.id == settings.customCommandTemplateId,
-                        onSelect = { selectTemplate(template) },
-                        onEdit = { openEditDialog(template) },
-                        onDelete = {
-                            editingTemplateId = template.id
-                            showDeleteDialog = true
-                        },
-                    )
-                }
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showNewTaskDialog = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = stringResource(Res.string.new_task))
             }
-
-            SelectionCard(
-                title = stringResource(Res.string.new_template),
-                description = stringResource(Res.string.custom_command_template_desc),
-                icon = Icons.Outlined.Add,
-                onClick = { openEditDialog(null) },
-            )
-            Spacer(Modifier.height(12.dp))
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(tasks, key = { it.id }) { task ->
+                DesktopCustomCommandTaskItem(
+                    task = task,
+                    onCancel = { DesktopCustomCommandTaskManager.cancel(task.id) }
+                )
+            }
         }
     }
 
-    AnimatedAlertDialog(
-        visible = showHelpDialog,
-        onDismissRequest = { showHelpDialog = false },
-        icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = null) },
-        title = { Text(stringResource(Res.string.custom_command)) },
-        text = { Text(stringResource(Res.string.custom_command_desc)) },
-        confirmButton = {
-            TextButton(onClick = { showHelpDialog = false }) {
-                Text(stringResource(Res.string.dismiss))
+    if (showNewTaskDialog) {
+        NewDownloadTaskDialog(
+            visible = showNewTaskDialog,
+            onDismiss = { showNewTaskDialog = false },
+            appSettingsState = appSettingsState,
+            onStart = { url, template ->
+                DesktopCustomCommandTaskManager.start(
+                    urlInput = url,
+                    template = template,
+                    preferences = settingsState.preferences
+                )
             }
-        },
-    )
+        )
+    }
+}
 
-    val isNewTemplate = editingTemplateId == null
-    AnimatedAlertDialog(
-        visible = showEditDialog,
-        onDismissRequest = { showEditDialog = false },
-        icon = {
-            Icon(
-                imageVector = if (isNewTemplate) Icons.Outlined.Add else Icons.Outlined.Edit,
-                contentDescription = null,
+@Composable
+private fun DesktopCustomCommandTaskItem(
+    task: DesktopCustomCommandTask,
+    onCancel: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = task.templateLabel,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
-        },
-        title = { Text(stringResource(if (isNewTemplate) Res.string.new_template else Res.string.edit)) },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (editingLabel.isBlank()) {
-                        labelError = true
-                        return@Button
-                    }
-                    appSettingsState.update { current ->
-                        val currentTemplates = current.customCommandTemplates
-                        val existingId = editingTemplateId
-                        val updatedTemplates =
-                            if (existingId == null) {
-                                val newId = (currentTemplates.maxOfOrNull { it.id } ?: 0) + 1
-                                currentTemplates +
-                                    DesktopCommandTemplate(
-                                        id = newId,
-                                        label = editingLabel.trim(),
-                                        template = editingTemplate,
-                                    )
-                            } else {
-                                currentTemplates.map {
-                                    if (it.id == existingId)
-                                        it.copy(label = editingLabel.trim(), template = editingTemplate)
-                                    else it
-                                }
-                            }
-                        val shouldSelectNew = existingId == null && current.customCommandTemplateId == 0
-                        val resolvedSelectedId =
-                            when {
-                                shouldSelectNew -> updatedTemplates.last().id
-                                existingId != null && current.customCommandTemplateId == existingId -> existingId
-                                updatedTemplates.any { it.id == current.customCommandTemplateId } ->
-                                    current.customCommandTemplateId
-                                else -> updatedTemplates.firstOrNull()?.id ?: 0
-                            }
-                        val resolvedTemplate =
-                            updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
-                        current.copy(
-                            customCommandTemplates = updatedTemplates,
-                            customCommandTemplateId = resolvedSelectedId,
-                            customCommandLabel = resolvedTemplate?.label.orEmpty(),
-                            customCommandTemplate = resolvedTemplate?.template.orEmpty(),
+            Text(
+                text = task.urlInput,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val statusTextStr = when (task.status) {
+                    DesktopCustomCommandTaskStatus.Running -> stringResource(Res.string.status_downloading)
+                    DesktopCustomCommandTaskStatus.Completed -> stringResource(Res.string.status_completed)
+                    DesktopCustomCommandTaskStatus.Canceled -> stringResource(Res.string.status_canceled)
+                    DesktopCustomCommandTaskStatus.Error -> stringResource(Res.string.status_error)
+                }
+
+                if (task.status == DesktopCustomCommandTaskStatus.Running) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+
+                Text(
+                    text = buildString {
+                        append(statusTextStr)
+                        if (task.progress != null && task.status == DesktopCustomCommandTaskStatus.Running) {
+                            append(" (").append(task.progress).append("%)")
+                        }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                if (task.status == DesktopCustomCommandTaskStatus.Running) {
+                    IconButton(onClick = onCancel, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Outlined.Cancel,
+                            contentDescription = stringResource(Res.string.cancel),
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
-                    showEditDialog = false
-                },
-            ) {
-                Text(stringResource(Res.string.confirm))
+                }
             }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = { showEditDialog = false }) {
-                Text(stringResource(Res.string.dismiss))
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = stringResource(Res.string.edit_template_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                OutlinedTextField(
-                    value = editingLabel,
-                    onValueChange = {
-                        editingLabel = it
-                        labelError = false
-                    },
-                    isError = labelError,
-                    label = { Text(stringResource(Res.string.template_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 1,
-                    keyboardOptions = KeyboardOptions.Default,
-                )
-                OutlinedTextField(
-                    value = editingTemplate,
-                    onValueChange = { editingTemplate = it },
-                    label = { Text(stringResource(Res.string.custom_command_template)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 12,
-                    textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
-                )
-            }
-        },
-    )
+        }
+    }
+}
 
-    val template = templates.firstOrNull { it.id == editingTemplateId }
-    AnimatedAlertDialog(
-        visible = showDeleteDialog,
-        onDismissRequest = { showDeleteDialog = false },
-        icon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
-        title = { Text(stringResource(Res.string.remove_template)) },
-        text = {
-            Text(
-                stringResource(Res.string.remove_template_desc).format(template?.label.orEmpty())
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    template?.let { toDelete ->
-                        appSettingsState.update { current ->
-                            val updatedTemplates =
-                                current.customCommandTemplates.filterNot { it.id == toDelete.id }
-                            val resolvedSelectedId =
-                                if (current.customCommandTemplateId == toDelete.id)
-                                    updatedTemplates.firstOrNull()?.id ?: 0
-                                else current.customCommandTemplateId
-                            val resolvedTemplate =
-                                updatedTemplates.firstOrNull { it.id == resolvedSelectedId }
-                            current.copy(
-                                customCommandTemplates = updatedTemplates,
-                                customCommandTemplateId = resolvedSelectedId,
-                                customCommandLabel = resolvedTemplate?.label.orEmpty(),
-                                customCommandTemplate = resolvedTemplate?.template.orEmpty(),
-                                customCommandEnabled =
-                                    if (updatedTemplates.isEmpty()) false else current.customCommandEnabled,
-                            )
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun NewDownloadTaskDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    appSettingsState: DesktopAppSettingsState,
+    onStart: (String, DesktopCommandTemplate) -> Unit
+) {
+    val templates = appSettingsState.settings.customCommandTemplates
+    var selectedTemplateId by remember(visible, appSettingsState.settings.customCommandTemplateId) {
+        mutableStateOf(appSettingsState.settings.customCommandTemplateId)
+    }
+    
+    val selectedTemplate = templates.find { it.id == selectedTemplateId } ?: templates.firstOrNull()
+
+    var url by remember(visible) { mutableStateOf("") }
+    val clipboardManager = LocalClipboardManager.current
+
+    var showSelectionDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showNewTemplateDialog by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (visible) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Text(
+                    stringResource(Res.string.new_task),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = stringResource(Res.string.custom_command_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(Res.string.video_url)) },
+                    singleLine = true,
+                    trailingIcon = {
+                        androidx.compose.material3.IconButton(onClick = {
+                            clipboardManager?.getText()?.text?.let { url = it }
+                        }) {
+                            Icon(Icons.Outlined.ContentPasteGo, null)
                         }
                     }
-                    showDeleteDialog = false
-                },
-            ) {
-                Text(stringResource(Res.string.remove))
+                )
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ElevatedAssistChip(
+                        onClick = { showSelectionDialog = true },
+                        label = { Text(stringResource(Res.string.custom_command_template)) },
+                        leadingIcon = { Icon(Icons.Rounded.Code, null, modifier = Modifier.size(18.dp)) }
+                    )
+
+                    if (selectedTemplate != null) {
+                        ElevatedAssistChip(
+                            onClick = { showEditDialog = true },
+                            label = { Text(stringResource(Res.string.edit_template, selectedTemplate.label)) },
+                            leadingIcon = { Icon(Icons.Outlined.Edit, null, modifier = Modifier.size(18.dp)) }
+                        )
+                    }
+
+                    ElevatedAssistChip(
+                        onClick = { showNewTemplateDialog = true },
+                        label = { Text(stringResource(Res.string.new_template)) },
+                        leadingIcon = { Icon(Icons.Outlined.BookmarkAdd, null, modifier = Modifier.size(18.dp)) }
+                    )
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        androidx.compose.material3.OutlinedButton(onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } }) {
+                            Icon(Icons.Outlined.Close, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(Res.string.cancel))
+                        }
+                        Button(
+                            onClick = {
+                                if (url.isNotBlank() && selectedTemplate != null) {
+                                    onStart(url, selectedTemplate)
+                                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                                }
+                            }, 
+                            enabled = url.isNotBlank() && selectedTemplate != null
+                        ) {
+                            Icon(Icons.Outlined.Check, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(Res.string.start))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = { showDeleteDialog = false }) {
-                Text(stringResource(Res.string.dismiss))
+        }
+    }
+
+    TemplateSelectionDialog(
+        visible = showSelectionDialog,
+        onDismiss = { showSelectionDialog = false },
+        templates = templates,
+        selectedId = selectedTemplate?.id ?: -1,
+        onSelect = { id ->
+            appSettingsState.update { it.copy(customCommandTemplateId = id) }
+            selectedTemplateId = id
+        }
+    )
+
+    TemplateEditDialog(
+        visible = showEditDialog && selectedTemplate != null,
+        onDismiss = { showEditDialog = false },
+        initialTemplate = selectedTemplate,
+        onSave = { label, templateText ->
+            if (selectedTemplate != null) {
+                val newTemplates = templates.map {
+                    if (it.id == selectedTemplate.id) it.copy(label = label, template = templateText) else it
+                }
+                appSettingsState.update { it.copy(customCommandTemplates = newTemplates) }
             }
-        },
+        }
+    )
+
+    TemplateEditDialog(
+        visible = showNewTemplateDialog,
+        onDismiss = { showNewTemplateDialog = false },
+        initialTemplate = null,
+        onSave = { label, templateText ->
+            val newId = (templates.maxOfOrNull { it.id } ?: 0) + 1
+            val newTemplate = DesktopCommandTemplate(newId, label, templateText)
+            val newTemplates = templates + newTemplate
+            appSettingsState.update {
+                it.copy(
+                    customCommandTemplates = newTemplates,
+                    customCommandTemplateId = newId
+                )
+            }
+            selectedTemplateId = newId
+        }
     )
 }
 
 @Composable
-private fun DesktopTemplateItem(
-    template: DesktopCommandTemplate,
-    selected: Boolean,
-    onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+private fun TemplateSelectionDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    templates: List<DesktopCommandTemplate>,
+    selectedId: Int,
+    onSelect: (Int) -> Unit
 ) {
-    val containerColor =
-        if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
-    val contentColor =
-        if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = containerColor,
-        tonalElevation = 1.dp,
-        onClick = onSelect,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Code,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = template.label, style = MaterialTheme.typography.titleMedium, color = contentColor)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = template.template,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    AnimatedAlertDialog(
+        visible = visible,
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.Code, null) },
+        title = { Text(stringResource(Res.string.template_selection)) },
+        text = {
+            LazyColumn(modifier = Modifier.height(300.dp)) {
+                items(templates, key = { it.id }) { template ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = template.id == selectedId,
+                                onClick = {
+                                    onSelect(template.id)
+                                    onDismiss()
+                                }
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = template.id == selectedId,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column {
+                            Text(template.label, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                template.template,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    tint = contentColor,
-                )
-            }
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = stringResource(Res.string.edit),
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = stringResource(Res.string.remove),
-                )
+        },
+        dismissButton = {},
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
             }
         }
-    }
+    )
+}
+
+@Composable
+private fun TemplateEditDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    initialTemplate: DesktopCommandTemplate?,
+    onSave: (label: String, template: String) -> Unit
+) {
+    var label by remember(visible) { mutableStateOf(initialTemplate?.label ?: "") }
+    var templateText by remember(visible) { mutableStateOf(initialTemplate?.template ?: "") }
+    val uriHandler = LocalUriHandler.current
+
+    AnimatedAlertDialog(
+        visible = visible,
+        onDismissRequest = onDismiss,
+        icon = { Icon(if (initialTemplate != null) Icons.Outlined.Edit else Icons.Outlined.BookmarkAdd, null) },
+        title = {
+            Text(stringResource(if (initialTemplate != null) Res.string.edit else Res.string.new_template))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    stringResource(Res.string.edit_template_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it },
+                    label = { Text(stringResource(Res.string.template_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = templateText,
+                    onValueChange = { templateText = it },
+                    label = { Text(stringResource(Res.string.custom_command_template)) },
+                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                    trailingIcon = {
+                        if (templateText.isNotEmpty()) {
+                            IconButton(onClick = { templateText = "" }) {
+                                Icon(Icons.Outlined.Cancel, null)
+                            }
+                        }
+                    }
+                )
+
+                TextButton(onClick = { uriHandler.openUri("https://github.com/yt-dlp/yt-dlp") }) {
+                    Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.yt_dlp_docs))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (label.isNotBlank() && templateText.isNotBlank()) {
+                        onSave(label, templateText)
+                        onDismiss()
+                    }
+                },
+                enabled = label.isNotBlank() && templateText.isNotBlank()
+            ) {
+                Text(stringResource(Res.string.confirm))
+            }
+        }
+    )
 }

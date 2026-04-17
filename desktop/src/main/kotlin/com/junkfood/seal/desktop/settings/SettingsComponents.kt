@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,6 +72,7 @@ private const val DISABLED_CARD_ALPHA = 0.62f
 internal fun SettingsPageScaffold(
     title: String,
     onBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val scrollBehavior =
@@ -88,6 +90,7 @@ internal fun SettingsPageScaffold(
                         Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
+                actions = actions,
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -95,12 +98,13 @@ internal fun SettingsPageScaffold(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState())
                 .padding(
                     start = 16.dp,
                     end = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 4.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 12.dp,
+                    top = 4.dp,
+                    bottom = 12.dp,
                 ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

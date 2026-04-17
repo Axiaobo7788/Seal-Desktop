@@ -40,6 +40,7 @@ data class DesktopAppSettings(
     val customCommandTemplate: String = "",
     val customCommandTemplateId: Int = 0,
     val customCommandTemplates: List<DesktopCommandTemplate> = emptyList(),
+    val customCommandShortcuts: List<String> = emptyList(),
     val downloadTypeInitialization: Int = DownloadTypeNone,
     val downloadNotificationEnabled: Boolean = false,
     val disablePreview: Boolean = false,

@@ -5,6 +5,9 @@
 
 package com.junkfood.seal.desktop.settings
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,6 +25,7 @@ import com.junkfood.seal.desktop.settings.appearance.AppearanceSettingsPage
 import com.junkfood.seal.desktop.settings.appearance.DarkThemeSettingsPage
 import com.junkfood.seal.desktop.settings.appearance.LanguageSettingsPage
 import com.junkfood.seal.desktop.settings.command.CommandSettingsPage
+import com.junkfood.seal.desktop.settings.command.TemplateEditPage
 import com.junkfood.seal.desktop.settings.directory.DirectorySettingsPage
 import com.junkfood.seal.desktop.settings.format.FormatSettingsPage
 import com.junkfood.seal.desktop.settings.general.GeneralSettingsPage
@@ -52,6 +56,7 @@ internal enum class SettingsPage {
     About,
     Update,
     Credits,
+    TemplateEdit,
 }
 
 private fun SettingsPage?.depth(): Int =
@@ -62,6 +67,7 @@ private fun SettingsPage?.depth(): Int =
         SettingsPage.Subtitle,
         SettingsPage.Cookies,
         SettingsPage.Update,
+        SettingsPage.TemplateEdit,
         SettingsPage.Credits -> 2
         else -> 1
     }
@@ -76,20 +82,42 @@ fun DesktopSettingsScreen(
     themeState: DesktopThemeState,
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
+    var templateEditId by remember { mutableStateOf<Int?>(null) }
     val saveableStateHolder = rememberSaveableStateHolder()
 
     AnimatedContent(
         targetState = currentPage,
         transitionSpec = {
             val forward = targetState.depth() > initialState.depth()
-            val incomingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) 1 else -1 }
-            val outgoingOffset: (Int) -> Int = { full -> (full / 3) * if (forward) -1 else 1 }
+            val durationMillis = 300
+            val initialOffset = 0.15f
+            
+            val incomingOffset: (Int) -> Int = { full -> (full * initialOffset).toInt() * if (forward) 1 else -1 }
+            val outgoingOffset: (Int) -> Int = { full -> (full * initialOffset).toInt() * if (forward) -1 else 1 }
 
-            (slideInHorizontally(animationSpec = tween(220), initialOffsetX = incomingOffset) +
-                fadeIn()).togetherWith(
-                slideOutHorizontally(animationSpec = tween(220), targetOffsetX = outgoingOffset) +
-                    fadeOut(),
+            val enter = slideInHorizontally(
+                animationSpec = tween(durationMillis, easing = FastOutSlowInEasing),
+                initialOffsetX = incomingOffset
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = (durationMillis * 0.7f).toInt(),
+                    delayMillis = (durationMillis * 0.3f).toInt(),
+                    easing = LinearOutSlowInEasing
+                )
             )
+
+            val exit = slideOutHorizontally(
+                animationSpec = tween(durationMillis, easing = FastOutSlowInEasing),
+                targetOffsetX = outgoingOffset
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = (durationMillis * 0.3f).toInt(),
+                    delayMillis = 0,
+                    easing = FastOutLinearInEasing
+                )
+            )
+
+            enter.togetherWith(exit)
         },
         modifier = modifier,
         label = "settings-pages",
@@ -168,6 +196,18 @@ fun DesktopSettingsScreen(
                     settings = appSettingsState.settings,
                     onUpdate = appSettingsState::update,
                     onBack = { currentPage = null },
+                    onNavigateToEdit = { id ->
+                        templateEditId = id
+                        currentPage = SettingsPage.TemplateEdit
+                    }
+                )
+
+            SettingsPage.TemplateEdit ->
+                TemplateEditPage(
+                    templateId = templateEditId,
+                    settings = appSettingsState.settings,
+                    onUpdate = appSettingsState::update,
+                    onBack = { currentPage = SettingsPage.Commands }
                 )
 
             SettingsPage.Appearance ->

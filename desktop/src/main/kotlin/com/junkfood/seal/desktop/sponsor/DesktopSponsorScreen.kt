@@ -72,12 +72,13 @@ fun DesktopSponsorScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState())
                 .padding(
                     start = 16.dp,
                     end = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 4.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 12.dp,
+                    top = 4.dp,
+                    bottom = 12.dp,
                 ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
