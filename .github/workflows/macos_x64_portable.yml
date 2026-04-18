@@ -107,6 +107,24 @@ jobs:
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
 
+      - name: Print jpackage logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          log_dir="desktop/build/compose/logs/createReleaseDistributable"
+          if [ -d "$log_dir" ]; then
+            echo "=== jpackage logs under $log_dir ==="
+            ls -lah "$log_dir"
+            for f in "$log_dir"/*.txt; do
+              [ -e "$f" ] || continue
+              echo "----- $f (tail -n 200) -----"
+              tail -n 200 "$f"
+            done
+          else
+            echo "No jpackage log directory found: $log_dir"
+          fi
+
       - name: Inject tools into .app bundle
         shell: bash
         run: |

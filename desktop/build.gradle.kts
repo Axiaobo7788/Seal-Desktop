@@ -76,7 +76,14 @@ compose.desktop {
         }
 
         nativeDistributions {
-            targetFormats(TargetFormat.Deb)
+            val osName = System.getProperty("os.name").lowercase()
+            val currentTargetFormats = when {
+                osName.contains("mac") -> arrayOf(TargetFormat.Dmg)
+                osName.contains("win") -> arrayOf(TargetFormat.Msi)
+                else -> arrayOf(TargetFormat.Deb)
+            }
+
+            targetFormats(*currentTargetFormats)
             packageName = "Seal"
             packageVersion = "0.0.0"
             
