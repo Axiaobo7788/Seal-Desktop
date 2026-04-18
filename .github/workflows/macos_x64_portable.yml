@@ -7,9 +7,12 @@ on:
 
 env:
   TOOLS_CACHE_VERSION: v2
+  ENABLE_PROXYCHAINS: "false"
+  PROXYCHAINS_SOCKS5: 127.0.0.1 7890
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
   FFMPEG_MACOS_URL: https://evermeet.cx/ffmpeg/getrelease/zip
   FFPROBE_MACOS_URL: https://evermeet.cx/ffprobe/getrelease/zip
+  FFPROBE_MACOS_FALLBACK_URL: https://www.osxexperts.net/ffprobe711arm.zip
 
 jobs:
   build-macos-portable:
@@ -31,6 +34,25 @@ jobs:
           path: dist-bin
           key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
 
+      - name: Set up proxychains (optional)
+        if: env.ENABLE_PROXYCHAINS == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v proxychains4 >/dev/null 2>&1; then
+            brew install proxychains-ng
+          fi
+
+          mkdir -p "$HOME/.proxychains"
+          cat > "$HOME/.proxychains/proxychains.conf" <<EOF
+          strict_chain
+          proxy_dns
+          tcp_read_time_out 15000
+          tcp_connect_time_out 8000
+          [ProxyList]
+          socks5 ${PROXYCHAINS_SOCKS5}
+          EOF
+
       - name: Download yt-dlp (macOS universal)
         shell: bash
         run: |
@@ -39,8 +61,27 @@ jobs:
             echo "yt-dlp cache hit"
             exit 0
           fi
+
+          download_with_fallback() {
+            local url="$1"
+            local output="$2"
+
+            if curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"; then
+              return 0
+            fi
+
+            if [ "${ENABLE_PROXYCHAINS}" = "true" ] && command -v proxychains4 >/dev/null 2>&1; then
+              echo "Direct download failed, retrying via proxychains: $url"
+              proxychains4 -q curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"
+              return 0
+            fi
+
+            echo "Download failed: $url"
+            return 1
+          }
+
           mkdir -p dist-bin
-          curl -L "$YT_DLP_MACOS_URL" -o dist-bin/yt-dlp_macos
+          download_with_fallback "$YT_DLP_MACOS_URL" dist-bin/yt-dlp_macos
           chmod +x dist-bin/yt-dlp_macos
 
       - name: Download FFmpeg & FFprobe (macOS x64 static)
@@ -51,13 +92,58 @@ jobs:
             echo "ffmpeg cache hit"
             exit 0
           fi
+
+          download_with_fallback() {
+            local url="$1"
+            local output="$2"
+
+            if curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"; then
+              return 0
+            fi
+
+            if [ "${ENABLE_PROXYCHAINS}" = "true" ] && command -v proxychains4 >/dev/null 2>&1; then
+              echo "Direct download failed, retrying via proxychains: $url"
+              proxychains4 -q curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"
+              return 0
+            fi
+
+            echo "Download failed: $url"
+            return 1
+          }
+
+          extract_binary() {
+            local zip_path="$1"
+            local binary_name="$2"
+            local tmp_dir
+            local candidate
+
+            tmp_dir="$(mktemp -d)"
+            unzip -o "$zip_path" -d "$tmp_dir" >/dev/null
+            candidate="$(find "$tmp_dir" -type f -name "$binary_name" | head -n 1 || true)"
+
+            if [ -z "$candidate" ]; then
+              rm -rf "$tmp_dir"
+              return 1
+            fi
+
+            cp "$candidate" "dist-bin/$binary_name"
+            chmod +x "dist-bin/$binary_name"
+            rm -rf "$tmp_dir"
+            return 0
+          }
+
           mkdir -p dist-bin
-          curl -L "$FFMPEG_MACOS_URL" -o dist-bin/ffmpeg.zip
-          curl -L "$FFPROBE_MACOS_URL" -o dist-bin/ffprobe.zip
-          unzip -o dist-bin/ffmpeg.zip -d dist-bin/
-          unzip -o dist-bin/ffprobe.zip -d dist-bin/
-          rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
-          chmod +x dist-bin/ffmpeg dist-bin/ffprobe
+          download_with_fallback "$FFMPEG_MACOS_URL" dist-bin/ffmpeg.zip
+          extract_binary dist-bin/ffmpeg.zip ffmpeg
+
+          download_with_fallback "$FFPROBE_MACOS_URL" dist-bin/ffprobe.zip
+          if ! extract_binary dist-bin/ffprobe.zip ffprobe; then
+            echo "Primary ffprobe archive did not contain ffprobe, trying fallback URL"
+            download_with_fallback "$FFPROBE_MACOS_FALLBACK_URL" dist-bin/ffprobe_fallback.zip
+            extract_binary dist-bin/ffprobe_fallback.zip ffprobe
+          fi
+
+          rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip dist-bin/ffprobe_fallback.zip
 
       - name: Build distributable (macOS)
         shell: bash
