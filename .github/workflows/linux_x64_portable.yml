@@ -6,6 +6,7 @@ on:
     branches: [ main ]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   TOOLS_CACHE_VERSION: v2
   YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
   FFMPEG_LINUX_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz

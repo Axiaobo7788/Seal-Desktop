@@ -6,6 +6,7 @@ on:
     branches: [ main ]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   TOOLS_CACHE_VERSION: v2
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
   FFMPEG_MACOS_URL: https://evermeet.cx/ffmpeg/getrelease/zip
