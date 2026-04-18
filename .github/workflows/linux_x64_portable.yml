@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
 
       - name: Cache tools (yt-dlp/ffmpeg)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             dist-bin
@@ -135,7 +135,7 @@ jobs:
           echo "PORTABLE_DIR=$app_root" >> "$GITHUB_ENV"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: desktop-portable-linux-x64
           path: ${{ env.PORTABLE_DIR }}
