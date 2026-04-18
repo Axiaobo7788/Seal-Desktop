@@ -65,6 +65,7 @@ configurations.all {
 compose.desktop {
     application {
         mainClass = "com.junkfood.seal.desktop.MainKt"
+        val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
 
         buildTypes {
             release {
@@ -85,9 +86,11 @@ compose.desktop {
 
             targetFormats(*currentTargetFormats)
             packageName = "Seal"
-            packageVersion = "0.0.0"
+            packageVersion = desktopPackageVersion
             
             macOS {
+                packageVersion = desktopPackageVersion
+                dmgPackageVersion = desktopPackageVersion
                 iconFile.set(project.file("src/main/resources/icon.icns"))
             }
             windows {
