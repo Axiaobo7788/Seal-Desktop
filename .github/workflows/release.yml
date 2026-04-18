@@ -70,13 +70,17 @@ jobs:
 
             const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
             const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
+            const macosRunId = await findLatestSuccessfulRun("macos_x64_portable.yml");
             const linuxArtifactId = await findArtifactId(linuxRunId, "desktop-portable-linux-x64");
             const windowsArtifactId = await findArtifactId(windowsRunId, "desktop-portable-win-x64");
+            const macosArtifactId = await findArtifactId(macosRunId, "desktop-portable-macos");
 
             core.setOutput("linux_run_id", linuxRunId);
             core.setOutput("windows_run_id", windowsRunId);
+            core.setOutput("macos_run_id", macosRunId);
             core.setOutput("linux_artifact_id", linuxArtifactId);
             core.setOutput("windows_artifact_id", windowsArtifactId);
+            core.setOutput("macos_artifact_id", macosArtifactId);
 
       - name: Download raw artifact zips (no repack)
         shell: bash
@@ -97,6 +101,12 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
             -o "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.zip"
+
+          curl -L \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.macos_artifact_id }}/zip" \
+            -o "release-assets/seal-desktop-macos-x64-portable-v${{ inputs.version }}.zip"
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2

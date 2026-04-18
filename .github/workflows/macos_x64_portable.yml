@@ -1,0 +1,103 @@
+name: desktop-macos-portable
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  TOOLS_CACHE_VERSION: v2
+  YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
+  FFMPEG_MACOS_URL: https://evermeet.cx/ffmpeg/getrelease/zip
+  FFPROBE_MACOS_URL: https://evermeet.cx/ffprobe/getrelease/zip
+
+jobs:
+  build-macos-portable:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Cache tools (yt-dlp/ffmpeg)
+        uses: actions/cache@v4
+        with:
+          path: dist-bin
+          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
+
+      - name: Download yt-dlp (macOS universal)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "dist-bin/yt-dlp_macos" ]; then
+            echo "yt-dlp cache hit"
+            exit 0
+          fi
+          mkdir -p dist-bin
+          curl -L "$YT_DLP_MACOS_URL" -o dist-bin/yt-dlp_macos
+          chmod +x dist-bin/yt-dlp_macos
+
+      - name: Download FFmpeg & FFprobe (macOS x64 static)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "dist-bin/ffmpeg" ] && [ -f "dist-bin/ffprobe" ]; then
+            echo "ffmpeg cache hit"
+            exit 0
+          fi
+          mkdir -p dist-bin
+          curl -L "$FFMPEG_MACOS_URL" -o dist-bin/ffmpeg.zip
+          curl -L "$FFPROBE_MACOS_URL" -o dist-bin/ffprobe.zip
+          unzip -o dist-bin/ffmpeg.zip -d dist-bin/
+          unzip -o dist-bin/ffprobe.zip -d dist-bin/
+          rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
+          chmod +x dist-bin/ffmpeg dist-bin/ffprobe
+
+      - name: Build distributable (macOS)
+        shell: bash
+        run: |
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+
+      - name: Inject tools into .app bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          workspace="$GITHUB_WORKSPACE"
+          desktop_build="$workspace/desktop/build"
+          
+          if [ ! -d "$desktop_build" ]; then
+            echo "Build directory not found: $desktop_build"
+            exit 1
+          fi
+
+          app_bundle=$(find "$desktop_build/compose/binaries" -type d -name "*.app" | head -n 1 || true)
+          if [ -z "$app_bundle" ] || [ ! -d "$app_bundle" ]; then
+            echo "Cannot locate macOS .app bundle under $desktop_build/compose/binaries"
+            exit 1
+          fi
+          
+          echo "Resolved app bundle: $app_bundle"
+          bin_dir="$app_bundle/Contents/bin"
+          mkdir -p "$bin_dir"
+          
+          cp "$workspace/dist-bin/yt-dlp_macos" "$bin_dir/yt-dlp_macos"
+          if [ -f "$workspace/dist-bin/ffmpeg" ]; then
+            cp "$workspace/dist-bin/ffmpeg" "$bin_dir/ffmpeg"
+          fi
+          if [ -f "$workspace/dist-bin/ffprobe" ]; then
+            cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
+          fi
+
+          echo "PORTABLE_DIR=$app_bundle" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-macos
+          path: ${{ env.PORTABLE_DIR }}
