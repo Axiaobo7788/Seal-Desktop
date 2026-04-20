@@ -51,7 +51,7 @@ jobs:
 
       - name: Resolve latest successful workflow runs
         id: resolve_runs
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner;
@@ -135,7 +135,7 @@ jobs:
 
       - name: Publish to GitHub Release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.release_meta.outputs.version }}
           name: v${{ steps.release_meta.outputs.version }}
@@ -143,13 +143,14 @@ jobs:
           make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
           body: |
             <!-- manual-release -->
+          append_body: true
           files: |
             release-assets/*.zip
           generate_release_notes: true
 
       - name: Upload assets to existing release (release event)
         if: ${{ github.event_name == 'release' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.release_meta.outputs.version }}
           prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
