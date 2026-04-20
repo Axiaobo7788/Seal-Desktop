@@ -54,6 +54,7 @@ import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelect
 import com.junkfood.seal.desktop.download.configure.DownloadInputSheet
 import com.junkfood.seal.desktop.download.configure.DownloadOptionsSheet
 import com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
@@ -124,6 +125,7 @@ fun DesktopDownloadScreen(
     controller: DesktopDownloadController,
     customCommandEnabled: Boolean = false,
     customCommandTemplate: DesktopCommandTemplate? = null,
+    appSettings: DesktopAppSettings = DesktopAppSettings(),
 ) {
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -422,6 +424,7 @@ fun DesktopDownloadScreen(
                                             urlInput = url,
                                             template = customCommandTemplate,
                                             preferences = workingPreferences,
+                                            appSettings = appSettings,
                                         ).onFailure { error ->
                                             actionErrorMessage = error.message ?: error.toString()
                                         }

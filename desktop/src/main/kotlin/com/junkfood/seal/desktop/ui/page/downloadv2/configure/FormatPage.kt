@@ -132,7 +132,7 @@ internal fun CustomFormatSelectionSheet(
             return@LaunchedEffect
         }
         isLoading = true
-        val result = controller.fetchVideoInfo(url)
+        val result = controller.fetchVideoInfo(url, basePreferences)
         result.onSuccess {
             videoInfo = it
             isLoading = false

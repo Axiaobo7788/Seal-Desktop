@@ -104,7 +104,12 @@ internal fun NetworkSettingsPage(
             icon = Icons.Rounded.VpnKey,
             checked = preferences.proxy,
             onClick = { showProxyDialog = true },
-            onCheckedChange = { checked -> onUpdate { it.copy(proxy = checked) } }
+            onCheckedChange = { checked ->
+                onUpdate { it.copy(proxy = checked) }
+                if (!checked && appSettings.autoProxyEnabled) {
+                    onUpdateAppSettings { it.copy(autoProxyEnabled = false) }
+                }
+            }
         )
 
         ProxyConfigurationDialog(

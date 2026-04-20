@@ -46,10 +46,7 @@ object DesktopGlobalProxy {
             snapshotFlow {
                 settingsState.preferences to appSettingsState.settings
             }.collectLatest { (prefs, appSettings) ->
-                val autoProxy = if (appSettings.autoProxyEnabled) DesktopProxyAutoDetector.detectXrayProxy() else null
-                val manualProxy = if (prefs.proxy) prefs.proxyUrl.trim().takeIf { it.isNotBlank() } else null
-                
-                val finalUrlStr = autoProxy ?: manualProxy
+                val finalUrlStr = DesktopProxyResolver.resolveProxyUrl(prefs, appSettings)
                 currentProxy = parseProxyUrl(finalUrlStr)
             }
         }

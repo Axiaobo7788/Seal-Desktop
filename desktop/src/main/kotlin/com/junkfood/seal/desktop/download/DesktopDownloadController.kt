@@ -15,7 +15,7 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
-import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
+import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
@@ -37,14 +37,20 @@ import java.nio.file.Path
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+
+private const val MAX_CONCURRENT_DOWNLOADS = 3
 
 class DesktopDownloadController(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -65,11 +71,64 @@ class DesktopDownloadController(
     var runningProcess by mutableStateOf<DownloadPlanExecutor.RunningProcess?>(null)
         private set
 
+    private val runningProcessesByItemId = ConcurrentHashMap<String, DownloadPlanExecutor.RunningProcess>()
+    private val runningJobsByItemId = ConcurrentHashMap<String, Job>()
+    private val downloadScheduler = Semaphore(MAX_CONCURRENT_DOWNLOADS)
     private val canceledItemIds = ConcurrentHashMap.newKeySet<String>()
     private val requestByItemId = ConcurrentHashMap<String, DesktopDownloadRequest>()
     private val logLinesByItemId = ConcurrentHashMap<String, MutableList<String>>()
 
     val historyEntries = mutableStateListOf<DesktopDownloadHistoryEntry>()
+
+    private fun DownloadQueueItemState.isOngoingForExit(): Boolean =
+        status == DownloadQueueStatus.FetchingInfo ||
+            status == DownloadQueueStatus.Ready ||
+            status == DownloadQueueStatus.Running
+
+    private fun buildQueueBackup(items: List<DownloadQueueItemState>): DesktopQueueBackup {
+        val backups =
+            items.mapNotNull { item ->
+                val request = requestByItemId[item.id] ?: return@mapNotNull null
+                DesktopQueueItemBackup(
+                    id = item.id,
+                    title = item.title,
+                    author = item.author,
+                    url = item.url,
+                    thumbnailUrl = item.thumbnailUrl,
+                    mediaType = item.mediaType.name,
+                    status = item.status.name,
+                    request =
+                        DesktopDownloadRequestBackup(
+                            url = request.url,
+                            type = request.type.name,
+                            preferences = request.preferences,
+                        ),
+                )
+            }
+        return DesktopQueueBackup(version = 1, items = backups)
+    }
+
+    suspend fun persistQueueStateNow() {
+        val inQueue = queueItems.filter { it.status != DownloadQueueStatus.Completed }
+        queueStorage.save(buildQueueBackup(inQueue))
+    }
+
+    fun ongoingTaskCount(): Int = queueItems.count { it.isOngoingForExit() }
+
+    fun hasOngoingTasks(): Boolean = ongoingTaskCount() > 0
+
+    suspend fun cancelAllOngoingAndPersist() {
+        val ongoingIds = queueItems.filter { it.isOngoingForExit() }.map { it.id }
+        ongoingIds.forEach { itemId ->
+            canceledItemIds.add(itemId)
+            runningProcessesByItemId[itemId]?.cancel()
+            runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by exit"))
+            updateQueueItem(itemId) {
+                it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停")
+            }
+        }
+        persistQueueStateNow()
+    }
 
     init {
         scope.launch {
@@ -107,24 +166,7 @@ class DesktopDownloadController(
             snapshotFlow { queueItems.toList() }
                 .map { list -> list.filter { it.status != DownloadQueueStatus.Completed } }
                 .collectLatest { list ->
-                    val backups = list.mapNotNull { item ->
-                        val request = requestByItemId[item.id] ?: return@mapNotNull null
-                        DesktopQueueItemBackup(
-                            id = item.id,
-                            title = item.title,
-                            author = item.author,
-                            url = item.url,
-                            thumbnailUrl = item.thumbnailUrl,
-                            mediaType = item.mediaType.name,
-                            status = item.status.name,
-                            request = DesktopDownloadRequestBackup(
-                                url = request.url,
-                                type = request.type.name,
-                                preferences = request.preferences
-                            )
-                        )
-                    }
-                    queueStorage.save(DesktopQueueBackup(version = 1, items = backups))
+                    queueStorage.save(buildQueueBackup(list))
                 }
         }
     }
@@ -136,15 +178,13 @@ class DesktopDownloadController(
         }
     }
 
-    suspend fun fetchVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
+    suspend fun fetchVideoInfo(url: String, basePreferences: DownloadPreferences): Result<VideoInfo> = withContext(Dispatchers.IO) {
         runCatching {
             val appSettings = appSettingsProvider()
-            val runtimeProxy = resolveAutomaticProxy(appSettings)
-            val env = proxyEnvironment(runtimeProxy)
+            val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(basePreferences, appSettings)
             metadataFetcher.fetch(
                 url,
                 proxyUrl = runtimeProxy,
-                extraEnv = env,
             )
         }
     }
@@ -172,16 +212,38 @@ class DesktopDownloadController(
         return args
     }
 
-    fun cancelIfRunning(itemId: String) {
-        if (itemId == runningItemId) {
-            canceledItemIds.add(itemId)
-            runningProcess?.cancel()
-            updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+    private fun refreshRunningSnapshot() {
+        val activeItemId = runningProcessesByItemId.keys.firstOrNull()
+        runningItemId = activeItemId
+        runningProcess = activeItemId?.let { runningProcessesByItemId[it] }
+    }
+
+    private fun launchManagedDownload(itemId: String, block: suspend () -> Unit) {
+        val job =
+            scope.launch {
+                downloadScheduler.withPermit {
+                    block()
+                }
+            }
+        runningJobsByItemId[itemId] = job
+        job.invokeOnCompletion {
+            runningJobsByItemId.remove(itemId, job)
         }
+    }
+
+    fun cancelIfRunning(itemId: String) {
+        canceledItemIds.add(itemId)
+        runningProcessesByItemId[itemId]?.cancel()
+        runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by user"))
+        updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
     }
 
     fun deleteQueueItem(itemId: String) {
         cancelIfRunning(itemId)
+        runningProcessesByItemId.remove(itemId)
+        runningJobsByItemId.remove(itemId)
+        canceledItemIds.remove(itemId)
+        refreshRunningSnapshot()
         queueItems.removeAll { it.id == itemId }
         requestByItemId.remove(itemId)
         logLinesByItemId.remove(itemId)
@@ -296,12 +358,10 @@ class DesktopDownloadController(
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
 
-        if (runningItemId != null) return
-
         val itemId = System.currentTimeMillis().toString()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
         val appSettings = appSettingsProvider()
-        val effectivePreferences = applyRuntimeProxy(preferencesForType(basePreferences, type), appSettings)
+        val effectivePreferences = DesktopProxyResolver.applyToPreferences(preferencesForType(basePreferences, type), appSettings)
 
         queueItems.add(
             DownloadQueueItemState(
@@ -334,7 +394,6 @@ class DesktopDownloadController(
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
         if (formatList.isEmpty()) return
-        if (runningItemId != null) return
 
         val itemId = System.currentTimeMillis().toString()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
@@ -352,7 +411,7 @@ class DesktopDownloadController(
             )
 
         val appSettings = appSettingsProvider()
-        val effectivePreferences = applyRuntimeProxy(preferencesForType(selection.preferences, type), appSettings)
+        val effectivePreferences = DesktopProxyResolver.applyToPreferences(preferencesForType(selection.preferences, type), appSettings)
         onSelectionApplied(selection.preferences)
 
         queueItems.add(
@@ -368,7 +427,7 @@ class DesktopDownloadController(
         val request = DesktopDownloadRequest(trimmed, type, effectivePreferences)
         requestByItemId[itemId] = request
 
-        scope.launch {
+        launchManagedDownload(itemId) {
             appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}] (custom)")
 
             updateQueueItem(itemId) {
@@ -393,16 +452,11 @@ class DesktopDownloadController(
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            var config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
-            val runtimeProxy = effectivePreferences.proxyUrl.takeIf { effectivePreferences.proxy }
-            if (runtimeProxy != null) {
-                config = config.copy(extraEnv = proxyEnvironment(runtimeProxy))
-            }
+            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
             try {
-                runningItemId = itemId
                 updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
 
                 val proc =
@@ -416,20 +470,23 @@ class DesktopDownloadController(
                                 updateProgressFromLine(itemId, line)
                             },
                             onStderr = { line ->
-                                appendLog("[err] $line")
-                                appendItemLog(itemId, "[err] $line")
+                                val isError = isYtDlpErrorLine(line)
+                                val display = if (isError) "[err] $line" else line
+                                appendLog(display)
+                                appendItemLog(itemId, display)
                                 updateProgressFromLine(itemId, line)
                             },
                         )
                     }
 
-                runningProcess = proc
+                runningProcessesByItemId[itemId] = proc
+                refreshRunningSnapshot()
                 val result = withContext(Dispatchers.IO) { proc.waitForResult() }
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
-                    return@launch
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    return@launchManagedDownload
                 }
 
                 val success = result.exitCode == 0
@@ -478,6 +535,11 @@ class DesktopDownloadController(
                         )
                     }
                 }
+            } catch (e: CancellationException) {
+                val canceled = canceledItemIds.remove(itemId)
+                if (canceled) {
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                }
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")
@@ -501,14 +563,16 @@ class DesktopDownloadController(
                     }
                 }
             } finally {
-                runningProcess = null
-                runningItemId = null
+                runningProcessesByItemId.remove(itemId)
+                refreshRunningSnapshot()
             }
         }
     }
 
     fun resumeIfPossible(itemId: String) {
-        if (runningItemId != null) return
+        if (runningJobsByItemId[itemId]?.isActive == true) return
+        if (runningProcessesByItemId.containsKey(itemId)) return
+        canceledItemIds.remove(itemId)
         val request = requestByItemId[itemId] ?: return
         startDownloadInternal(itemId, request, reuseExisting = true)
     }
@@ -538,18 +602,17 @@ class DesktopDownloadController(
             }
         }
 
-        scope.launch {
+        launchManagedDownload(itemId) {
             appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}]")
 
             val appSettings = appSettingsProvider()
-            val runtimeProxy = resolveAutomaticProxy(appSettings)
+            val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(effectivePreferences, appSettings)
             val videoInfo =
                 try {
                     withContext(Dispatchers.IO) {
                         metadataFetcher.fetch(
                             trimmed,
                             proxyUrl = runtimeProxy,
-                            extraEnv = proxyEnvironment(runtimeProxy),
                         )
                     }
                 } catch (e: Exception) {
@@ -574,7 +637,7 @@ class DesktopDownloadController(
                 )
             }
 
-            val preferencesWithProxy = applyRuntimeProxy(effectivePreferences, appSettings)
+            val preferencesWithProxy = DesktopProxyResolver.applyToPreferences(effectivePreferences, appSettings)
 
             val plan =
                 buildDownloadPlan(
@@ -584,16 +647,11 @@ class DesktopDownloadController(
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            var config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
-            val resolvedProxy = preferencesWithProxy.proxyUrl.takeIf { preferencesWithProxy.proxy }
-            if (resolvedProxy != null) {
-                config = config.copy(extraEnv = proxyEnvironment(resolvedProxy))
-            }
+            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
             try {
-                runningItemId = itemId
                 updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
 
                 val proc =
@@ -607,20 +665,23 @@ class DesktopDownloadController(
                                 updateProgressFromLine(itemId, line)
                             },
                             onStderr = { line ->
-                                appendLog("[err] $line")
-                                appendItemLog(itemId, "[err] $line")
+                                val isError = isYtDlpErrorLine(line)
+                                val display = if (isError) "[err] $line" else line
+                                appendLog(display)
+                                appendItemLog(itemId, display)
                                 updateProgressFromLine(itemId, line)
                             },
                         )
                     }
 
-                runningProcess = proc
+                runningProcessesByItemId[itemId] = proc
+                refreshRunningSnapshot()
                 val result = withContext(Dispatchers.IO) { proc.waitForResult() }
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
-                    return@launch
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    return@launchManagedDownload
                 }
 
                 val success = result.exitCode == 0
@@ -669,6 +730,11 @@ class DesktopDownloadController(
                         )
                     }
                 }
+            } catch (e: CancellationException) {
+                val canceled = canceledItemIds.remove(itemId)
+                if (canceled) {
+                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                }
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")
@@ -692,8 +758,8 @@ class DesktopDownloadController(
                     }
                 }
             } finally {
-                runningProcess = null
-                runningItemId = null
+                runningProcessesByItemId.remove(itemId)
+                refreshRunningSnapshot()
             }
         }
     }
@@ -717,28 +783,16 @@ class DesktopDownloadController(
     }
 }
 
-private fun resolveAutomaticProxy(appSettings: DesktopAppSettings): String? {
-    if (!appSettings.autoProxyEnabled) return null
-    return DesktopProxyAutoDetector.detectXrayProxy()
-}
-
-private fun applyRuntimeProxy(preferences: DownloadPreferences, appSettings: DesktopAppSettings): DownloadPreferences {
-    val auto = if (appSettings.autoProxyEnabled) resolveAutomaticProxy(appSettings) else null
-    val manual = if (preferences.proxy) preferences.proxyUrl.trim().takeIf { it.isNotBlank() } else null
-    val resolved = auto ?: manual ?: return preferences
-    return preferences.copy(proxy = true, proxyUrl = resolved)
-}
-
-private fun proxyEnvironment(proxyUrl: String?): Map<String, String> {
-    val proxy = proxyUrl?.trim()?.takeIf { it.isNotBlank() } ?: return emptyMap()
-    return mapOf(
-        "HTTP_PROXY" to proxy,
-        "HTTPS_PROXY" to proxy,
-        "ALL_PROXY" to proxy,
-        "http_proxy" to proxy,
-        "https_proxy" to proxy,
-        "all_proxy" to proxy,
-    )
+private fun isYtDlpErrorLine(line: String): Boolean {
+    val normalized = line.trim().lowercase()
+    if (normalized.isBlank()) return false
+    if (normalized.startsWith("[debug]")) return false
+    if (normalized.startsWith("debug:")) return false
+    if (normalized.contains("ffmpeg command line")) return false
+    return normalized.contains("error:") ||
+        normalized.contains("traceback") ||
+        normalized.contains("exception") ||
+        normalized.contains(" failed")
 }
 
 private data class DesktopDownloadRequest(

@@ -79,11 +79,14 @@ import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadScreen
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryPage
 import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.desktop.theme.DesktopSealTheme
 import com.junkfood.seal.desktop.theme.DesktopThemeState
 import com.junkfood.seal.desktop.theme.rememberDesktopThemeState
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.app_name
+import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.desktop_menu
 import com.junkfood.seal.shared.generated.resources.desktop_navigation
@@ -170,6 +173,9 @@ fun main() = application {
     val appSettingsState = rememberDesktopAppSettingsState()
     val downloadController = remember { DesktopDownloadController(appSettingsProvider = { appSettingsState.settings }) }
     val themeState = rememberDesktopThemeState()
+    val appScope = rememberCoroutineScope()
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
+    var exitInProgress by remember { mutableStateOf(false) }
     val systemLocale = remember { Locale.getDefault() }
     val languageTag = appSettingsState.settings.languageTag
     val normalizedLanguageTag = languageTag?.takeIf { it.isNotBlank() }
@@ -181,8 +187,16 @@ fun main() = application {
         Locale.setDefault(locale)
     }
 
+    val handleCloseRequest = {
+        if (downloadController.hasOngoingTasks()) {
+            showExitConfirmDialog = true
+        } else {
+            exitApplication()
+        }
+    }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = handleCloseRequest,
         title = stringResource(Res.string.app_name),
         icon = androidx.compose.ui.res.painterResource("icon.png"),
         state = rememberWindowState(width = 1100.dp, height = 720.dp),
@@ -194,6 +208,54 @@ fun main() = application {
                     appSettingsState = appSettingsState,
                     downloadController = downloadController,
                     languageRefreshToken = normalizedLanguageTag,
+                )
+
+                val ongoingCount = downloadController.ongoingTaskCount()
+                val exitMessage =
+                    if (ongoingCount > 0) {
+                        "当前有 $ongoingCount 个下载任务正在运行，退出将中断下载。"
+                    } else {
+                        "当前仍有下载任务未完成，退出将中断下载。"
+                    }
+
+                AnimatedAlertDialog(
+                    visible = showExitConfirmDialog,
+                    onDismissRequest = {
+                        if (!exitInProgress) {
+                            showExitConfirmDialog = false
+                        }
+                    },
+                    title = { Text("结束下载并退出？") },
+                    text = { Text(exitMessage) },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                if (!exitInProgress) {
+                                    showExitConfirmDialog = false
+                                }
+                            }
+                        ) {
+                            Text(stringResource(Res.string.cancel))
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (exitInProgress) return@TextButton
+                                exitInProgress = true
+                                appScope.launch {
+                                    runCatching {
+                                        downloadController.cancelAllOngoingAndPersist()
+                                    }
+                                    showExitConfirmDialog = false
+                                    exitInProgress = false
+                                    exitApplication()
+                                }
+                            }
+                        ) {
+                            Text(stringResource(Res.string.confirm))
+                        }
+                    },
                 )
             }
         }
@@ -461,6 +523,7 @@ private fun ContentArea(
                     preferences = settingsState.preferences,
                     onPreferencesChange = settingsState::set,
                     controller = downloadController,
+                    appSettings = appSettingsState.settings,
                 )
             Destination.DownloadHistory ->
                 DesktopDownloadHistoryPage(

@@ -2,6 +2,8 @@ package com.junkfood.seal.desktop.customcommand
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.junkfood.seal.desktop.network.DesktopProxyResolver
+import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
@@ -55,6 +57,7 @@ object DesktopCustomCommandTaskManager {
         urlInput: String,
         template: DesktopCommandTemplate,
         preferences: DownloadPreferences,
+        appSettings: DesktopAppSettings = DesktopAppSettings(),
     ): Result<String> {
         val urls = parseUrls(urlInput)
         if (urls.isEmpty()) {
@@ -86,7 +89,8 @@ object DesktopCustomCommandTaskManager {
                 configFile = writeTemplateConfig(taskId, template.template)
                 val args = buildCommandArgs(plan, urls, configFile)
 
-                val proxyEnv = proxyEnvironment(preferences.proxyUrl.takeIf { preferences.proxy })
+                val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(preferences, appSettings)
+                val proxyEnv = DesktopProxyResolver.buildProxyEnvironment(runtimeProxy)
                 val workingDir = DesktopYtDlpPaths.downloadDirectory(preferences.commandDirectory)
 
                 val running =
@@ -102,7 +106,7 @@ object DesktopCustomCommandTaskManager {
                                 scope.launch { appendLine(taskId, line, isError = false) }
                             },
                             onStderr = { line ->
-                                scope.launch { appendLine(taskId, line, isError = true) }
+                                scope.launch { appendLine(taskId, line, isError = isYtDlpErrorLine(line)) }
                             },
                         )
                     }
@@ -129,7 +133,13 @@ object DesktopCustomCommandTaskManager {
                             if (success) DesktopCustomCommandTaskStatus.Completed
                             else DesktopCustomCommandTaskStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        errorReport = if (success) null else result.stderr.lastOrNull(),
+                        errorReport =
+                            if (success) {
+                                null
+                            } else {
+                                result.stderr.lastOrNull { line -> isYtDlpErrorLine(line) }
+                                    ?: result.stderr.lastOrNull()
+                            },
                         exitCode = result.exitCode,
                     )
                 }
@@ -161,7 +171,11 @@ object DesktopCustomCommandTaskManager {
         }
     }
 
-    fun restart(taskId: String, preferences: DownloadPreferences): Result<String> {
+    fun restart(
+        taskId: String,
+        preferences: DownloadPreferences,
+        appSettings: DesktopAppSettings = DesktopAppSettings(),
+    ): Result<String> {
         val task = _tasks.firstOrNull { it.id == taskId }
             ?: return Result.failure(IllegalArgumentException("Task not found"))
 
@@ -174,6 +188,7 @@ object DesktopCustomCommandTaskManager {
                     template = task.templateContent,
                 ),
             preferences = preferences,
+            appSettings = appSettings,
         )
     }
 
@@ -226,18 +241,6 @@ object DesktopCustomCommandTaskManager {
         return path
     }
 
-    private fun proxyEnvironment(proxyUrl: String?): Map<String, String> {
-        val proxy = proxyUrl?.trim()?.takeIf { it.isNotBlank() } ?: return emptyMap()
-        return mapOf(
-            "HTTP_PROXY" to proxy,
-            "HTTPS_PROXY" to proxy,
-            "ALL_PROXY" to proxy,
-            "http_proxy" to proxy,
-            "https_proxy" to proxy,
-            "all_proxy" to proxy,
-        )
-    }
-
     private fun parseUrls(input: String): List<String> =
         input.split(Regex("[\\n ]+")).map { it.trim() }.filter { it.isNotBlank() }
 
@@ -249,5 +252,17 @@ object DesktopCustomCommandTaskManager {
             ?.toFloatOrNull()
             ?: return null
         return (match / 100f).coerceIn(0f, 1f)
+    }
+
+    private fun isYtDlpErrorLine(line: String): Boolean {
+        val normalized = line.trim().lowercase()
+        if (normalized.isBlank()) return false
+        if (normalized.startsWith("[debug]")) return false
+        if (normalized.startsWith("debug:")) return false
+        if (normalized.contains("ffmpeg command line")) return false
+        return normalized.contains("error:") ||
+            normalized.contains("traceback") ||
+            normalized.contains("exception") ||
+            normalized.contains(" failed")
     }
 }

@@ -163,7 +163,8 @@ fun DesktopCustomCommandScreen(
                 DesktopCustomCommandTaskManager.start(
                     urlInput = url,
                     template = template,
-                    preferences = settingsState.preferences
+                    preferences = settingsState.preferences,
+                    appSettings = appSettingsState.settings,
                 )
             }
         )
