@@ -22,6 +22,8 @@ on:
 permissions:
   contents: write
   actions: read
+  issues: write
+  pull-requests: write
 
 jobs:
   publish-release:
@@ -133,8 +135,29 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.macos_artifact_id }}/zip" \
             -o "release-assets/seal-desktop-macos-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
 
-      - name: Publish to GitHub Release (workflow_dispatch)
+      - name: Generate release notes via release-please (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
+        id: release_please_notes
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/config.json
+          manifest-file: .github/release-please/manifest.json
+          release-as: ${{ steps.release_meta.outputs.version }}
+          skip-github-pull-request: true
+
+      - name: Upload assets to release from release-please (workflow_dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.release_please_notes.outputs.release_created == 'true' }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ steps.release_meta.outputs.version }}
+          prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
+          make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
+          files: |
+            release-assets/*.zip
+
+      - name: Fallback publish with GitHub release notes (workflow_dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.release_please_notes.outputs.release_created != 'true' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.release_meta.outputs.version }}
