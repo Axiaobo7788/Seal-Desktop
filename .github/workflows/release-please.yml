@@ -7,9 +7,11 @@ on:
         description: Optional exact version, e.g. 0.0.4-B
         required: false
         type: string
-  release:
+  workflow_run:
+    workflows:
+      - release
     types:
-      - published
+      - completed
 
 permissions:
   contents: write
@@ -20,8 +22,8 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - name: Run release-please (release event)
-        if: ${{ github.event_name == 'release' }}
+      - name: Run release-please (release workflow completed)
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
