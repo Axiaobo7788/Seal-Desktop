@@ -25,6 +25,9 @@ permissions:
   issues: write
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   publish-release:
     if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.release.body || '', '<!-- manual-release -->') }}
@@ -156,20 +159,15 @@ jobs:
           files: |
             release-assets/*.zip
 
-      - name: Fallback publish with GitHub release notes (workflow_dispatch)
+      - name: Fail when release-please did not create release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' && steps.release_please_notes.outputs.release_created != 'true' }}
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: v${{ steps.release_meta.outputs.version }}
-          name: v${{ steps.release_meta.outputs.version }}
-          prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
-          make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
-          body: |
-            <!-- manual-release -->
-          append_body: true
-          files: |
-            release-assets/*.zip
-          generate_release_notes: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "release-please did not create a release for v${{ steps.release_meta.outputs.version }}." >&2
+          echo "This usually means the target version is not ahead of .github/release-please/manifest.json or no releasable changes were found." >&2
+          echo "Current manifest: .github/release-please/manifest.json" >&2
+          exit 1
 
       - name: Upload assets to existing release (release event)
         if: ${{ github.event_name == 'release' }}
