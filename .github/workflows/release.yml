@@ -15,6 +15,9 @@ on:
         options:
           - stable
           - prerelease
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
@@ -22,8 +25,30 @@ permissions:
 
 jobs:
   publish-release:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.release.body || '', '<!-- manual-release -->') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+            version="${version#v}"
+            if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+              release_type="prerelease"
+            else
+              release_type="stable"
+            fi
+          else
+            version="${{ inputs.version }}"
+            release_type="${{ inputs.release_type }}"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "release_type=${release_type}" >> "$GITHUB_OUTPUT"
+
       - name: Resolve latest successful workflow runs
         id: resolve_runs
         uses: actions/github-script@v7
@@ -94,27 +119,40 @@ jobs:
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.linux_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-linux-x64-portable-v${{ inputs.version }}.zip"
+            -o "release-assets/seal-desktop-linux-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
 
           curl -L \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-windows-x64-portable-v${{ inputs.version }}.zip"
+            -o "release-assets/seal-desktop-windows-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
 
           curl -L \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.macos_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-macos-x64-portable-v${{ inputs.version }}.zip"
+            -o "release-assets/seal-desktop-macos-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
 
-      - name: Publish to GitHub Release
+      - name: Publish to GitHub Release (workflow_dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
-          prerelease: ${{ inputs.release_type == 'prerelease' }}
-          make_latest: ${{ inputs.release_type == 'stable' }}
+          tag_name: v${{ steps.release_meta.outputs.version }}
+          name: v${{ steps.release_meta.outputs.version }}
+          prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
+          make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
+          body: |
+            <!-- manual-release -->
           files: |
             release-assets/*.zip
           generate_release_notes: true
+
+      - name: Upload assets to existing release (release event)
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.release_meta.outputs.version }}
+          prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
+          make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
+          files: |
+            release-assets/*.zip

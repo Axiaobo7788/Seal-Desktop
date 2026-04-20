@@ -1,0 +1,46 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      release_as:
+        description: Optional exact version, e.g. 0.0.4-B
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please (push)
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/config.json
+          manifest-file: .github/release-please/manifest.json
+
+      - name: Run release-please (manual without release_as)
+        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.release_as == '' || github.event.inputs.release_as == null) }}
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/config.json
+          manifest-file: .github/release-please/manifest.json
+
+      - name: Run release-please (manual with release_as)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_as != '' }}
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please/config.json
+          manifest-file: .github/release-please/manifest.json
+          release-as: ${{ github.event.inputs.release_as }}
