@@ -22,7 +22,6 @@ on:
 permissions:
   contents: write
   actions: read
-  pull-requests: read
 
 jobs:
   publish-release:
@@ -49,55 +48,6 @@ jobs:
 
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "release_type=${release_type}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout repository for release notes
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Resolve release notes range
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        id: notes_range
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch --tags --force
-
-          target_tag="v${{ steps.release_meta.outputs.version }}"
-          previous_tag="$(git tag --sort=-v:refname | grep -v "^${target_tag}$" | head -n1 || true)"
-
-          if [ -z "${previous_tag}" ]; then
-            previous_tag="$(git rev-list --max-parents=0 HEAD | tail -n1)"
-          fi
-
-          echo "base_ref=${previous_tag}" >> "$GITHUB_OUTPUT"
-          echo "head_ref=HEAD" >> "$GITHUB_OUTPUT"
-
-      - name: Validate COPILOT_GITHUB_TOKEN
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        shell: bash
-        env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${COPILOT_GITHUB_TOKEN}" ]; then
-            echo "Missing required secret: COPILOT_GITHUB_TOKEN" >&2
-            echo "Create a fine-grained PAT with 'Copilot Requests: Read' and save it as COPILOT_GITHUB_TOKEN." >&2
-            exit 1
-          fi
-
-      - name: Generate release notes with Copilot
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        id: copilot_notes
-        uses: github/copilot-release-notes@v1
-        with:
-          base-ref: ${{ steps.notes_range.outputs.base_ref }}
-          head-ref: ${{ steps.notes_range.outputs.head_ref }}
-          model: gemini-3.1-pro
-          pr-strategy: github-api
-        env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 
       - name: Resolve latest successful workflow runs
         id: resolve_runs
@@ -193,8 +143,7 @@ jobs:
           make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
           body: |
             <!-- manual-release -->
-
-            ${{ steps.copilot_notes.outputs.release-notes }}
+          generate_release_notes: true
           files: |
             release-assets/*.zip
 
