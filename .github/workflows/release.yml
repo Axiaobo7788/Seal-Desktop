@@ -22,11 +22,7 @@ on:
 permissions:
   contents: write
   actions: read
-  issues: write
-  pull-requests: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  pull-requests: read
 
 jobs:
   publish-release:
@@ -53,6 +49,55 @@ jobs:
 
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "release_type=${release_type}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository for release notes
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release notes range
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        id: notes_range
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          target_tag="v${{ steps.release_meta.outputs.version }}"
+          previous_tag="$(git tag --sort=-v:refname | grep -v "^${target_tag}$" | head -n1 || true)"
+
+          if [ -z "${previous_tag}" ]; then
+            previous_tag="$(git rev-list --max-parents=0 HEAD | tail -n1)"
+          fi
+
+          echo "base_ref=${previous_tag}" >> "$GITHUB_OUTPUT"
+          echo "head_ref=HEAD" >> "$GITHUB_OUTPUT"
+
+      - name: Validate COPILOT_GITHUB_TOKEN
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${COPILOT_GITHUB_TOKEN}" ]; then
+            echo "Missing required secret: COPILOT_GITHUB_TOKEN" >&2
+            echo "Create a fine-grained PAT with 'Copilot Requests: Read' and save it as COPILOT_GITHUB_TOKEN." >&2
+            exit 1
+          fi
+
+      - name: Generate release notes with Copilot
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        id: copilot_notes
+        uses: github/copilot-release-notes@v1
+        with:
+          base-ref: ${{ steps.notes_range.outputs.base_ref }}
+          head-ref: ${{ steps.notes_range.outputs.head_ref }}
+          model: gemini-3.1-pro
+          pr-strategy: github-api
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 
       - name: Resolve latest successful workflow runs
         id: resolve_runs
@@ -124,50 +169,34 @@ jobs:
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.linux_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-linux-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
+            -o "release-assets/seal-desktop-linux-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
 
           curl -L \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-windows-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
+            -o "release-assets/seal-desktop-windows-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
 
           curl -L \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.macos_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-macos-x64-portable-v${{ steps.release_meta.outputs.version }}.zip"
+            -o "release-assets/seal-desktop-macos-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
 
-      - name: Generate release notes via release-please (workflow_dispatch)
+      - name: Publish to GitHub Release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        id: release_please_notes
-        uses: googleapis/release-please-action@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: .github/release-please/config.json
-          manifest-file: .github/release-please/manifest.json
-          release-as: ${{ steps.release_meta.outputs.version }}
-          skip-github-pull-request: true
-
-      - name: Upload assets to release from release-please (workflow_dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' && steps.release_please_notes.outputs.release_created == 'true' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.release_meta.outputs.version }}
+          name: v${{ steps.release_meta.outputs.version }}
           prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
           make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
+          body: |
+            <!-- manual-release -->
+
+            ${{ steps.copilot_notes.outputs.release-notes }}
           files: |
             release-assets/*.zip
-
-      - name: Fail when release-please did not create release (workflow_dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' && steps.release_please_notes.outputs.release_created != 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "release-please did not create a release for v${{ steps.release_meta.outputs.version }}." >&2
-          echo "This usually means the target version is not ahead of .github/release-please/manifest.json or no releasable changes were found." >&2
-          echo "Current manifest: .github/release-please/manifest.json" >&2
-          exit 1
 
       - name: Upload assets to existing release (release event)
         if: ${{ github.event_name == 'release' }}
