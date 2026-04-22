@@ -41,6 +41,7 @@ ktfmt = "0.20.1"
 
 # Compose Multiplatform (Desktop)
 jetbrainsCompose = "1.7.0"
+sqliteJdbc = "3.46.1.3"
 
 [libraries]
 
@@ -113,6 +114,7 @@ youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", n
 youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", name = "aria2c", version.ref = "youtubedlAndroid" }
 
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
+sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqliteJdbc" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

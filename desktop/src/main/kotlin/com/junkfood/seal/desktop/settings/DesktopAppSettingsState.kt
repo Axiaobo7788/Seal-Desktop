@@ -6,11 +6,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.junkfood.seal.desktop.storage.DesktopSqliteStorage
+import com.junkfood.seal.desktop.storage.DesktopStorageBackend
+import com.junkfood.seal.desktop.storage.DesktopStorageConfig
+import com.junkfood.seal.desktop.storage.DesktopStorageEventLogger
+import com.junkfood.seal.desktop.storage.appSettingsJsonPath
+import com.junkfood.seal.desktop.storage.quarantineCorruptedFile
+import com.junkfood.seal.desktop.storage.writeTextAtomically
 import java.nio.file.Path
-import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,24 +62,92 @@ data class DesktopAppSettings(
 )
 
 private fun appSettingsPath(): Path {
-    val xdg = System.getenv("XDG_STATE_HOME")?.takeIf { it.isNotBlank() }
-    val base =
-        if (xdg != null) Path.of(xdg) else Path.of(System.getProperty("user.home"), ".local", "state")
-    return base.resolve("seal").resolve("app-settings.json")
+    return appSettingsJsonPath()
 }
 
 class DesktopAppSettingsStorage(private val path: Path = appSettingsPath()) {
+    private fun loadFromJsonOrNull(): DesktopAppSettings? {
+        if (!path.exists()) return null
+
+        return runCatching { appSettingsJson.decodeFromString<DesktopAppSettings>(path.readText()) }
+            .getOrElse {
+                val quarantined = quarantineCorruptedFile(path)
+                if (quarantined != null) {
+                    DesktopStorageEventLogger.warn(
+                        component = "DesktopAppSettingsStorage",
+                        event = "json_app_settings_quarantined",
+                        message = "Corrupted app settings JSON file quarantined",
+                        details = mapOf("path" to quarantined.toAbsolutePath().toString()),
+                    )
+                }
+                logAppSettingsStorageWarning("Failed to parse app settings JSON, fallback to defaults", it)
+                null
+            }
+    }
+
+    private fun saveToJson(settings: DesktopAppSettings) {
+        writeTextAtomically(path, appSettingsJson.encodeToString(settings))
+    }
+
     suspend fun load(): DesktopAppSettings? =
         withContext(Dispatchers.IO) {
-            if (!path.exists()) return@withContext null
-            runCatching { appSettingsJson.decodeFromString<DesktopAppSettings>(path.readText()) }
-                .getOrNull()
+            when (DesktopStorageConfig.backend) {
+                DesktopStorageBackend.Json -> loadFromJsonOrNull()
+                DesktopStorageBackend.DualWrite -> {
+                    val settingsFromJson = loadFromJsonOrNull()
+                    if (settingsFromJson != null) {
+                        runCatching { DesktopSqliteStorage.writeAppSettings(settingsFromJson) }
+                            .onFailure {
+                                logAppSettingsStorageWarning(
+                                    "Failed to mirror app settings to SQLite on load",
+                                    it,
+                                )
+                            }
+                        settingsFromJson
+                    } else {
+                        val settingsFromSqlite = DesktopSqliteStorage.readAppSettings()
+                        if (settingsFromSqlite != null) {
+                            DesktopStorageEventLogger.info(
+                                component = "DesktopAppSettingsStorage",
+                                event = "dual_mode_fallback_to_sqlite",
+                                message = "App settings loaded from SQLite because JSON was unavailable",
+                                details = mapOf("backend" to DesktopStorageConfig.backend.name),
+                            )
+                        }
+                        settingsFromSqlite
+                    }
+                }
+                DesktopStorageBackend.Sqlite -> {
+                    DesktopSqliteStorage.readAppSettings() ?: loadFromJsonOrNull()
+                }
+            }
         }
 
     suspend fun save(settings: DesktopAppSettings) {
         withContext(Dispatchers.IO) {
-            path.parent?.createDirectories()
-            path.writeText(appSettingsJson.encodeToString(settings))
+            when (DesktopStorageConfig.backend) {
+                DesktopStorageBackend.Json -> saveToJson(settings)
+                DesktopStorageBackend.DualWrite -> {
+                    saveToJson(settings)
+                    runCatching { DesktopSqliteStorage.writeAppSettings(settings) }
+                        .onFailure {
+                            logAppSettingsStorageWarning(
+                                "Failed to mirror app settings to SQLite on save",
+                                it,
+                            )
+                        }
+                }
+                DesktopStorageBackend.Sqlite -> {
+                    runCatching { DesktopSqliteStorage.writeAppSettings(settings) }
+                        .onFailure {
+                            logAppSettingsStorageWarning(
+                                "Failed to save app settings to SQLite, falling back to JSON",
+                                it,
+                            )
+                            saveToJson(settings)
+                        }
+                }
+            }
         }
     }
 }
@@ -117,3 +190,13 @@ internal const val DownloadTypePrevious = 1
 
 internal const val UpdateChannelStable = 0
 internal const val UpdateChannelPreview = 1
+
+private fun logAppSettingsStorageWarning(message: String, throwable: Throwable) {
+    DesktopStorageEventLogger.warn(
+        component = "DesktopAppSettingsStorage",
+        event = "app_settings_storage_warning",
+        message = message,
+        details = mapOf("backend" to DesktopStorageConfig.backend.name),
+        throwable = throwable,
+    )
+}

@@ -1,7 +1,14 @@
 package com.junkfood.seal.desktop.download.history
 
-import java.nio.file.Files
+import com.junkfood.seal.desktop.storage.DesktopSqliteStorage
+import com.junkfood.seal.desktop.storage.DesktopStorageBackend
+import com.junkfood.seal.desktop.storage.DesktopStorageConfig
+import com.junkfood.seal.desktop.storage.DesktopStorageEventLogger
+import com.junkfood.seal.desktop.storage.historyJsonPath
+import com.junkfood.seal.desktop.storage.quarantineCorruptedFile
+import com.junkfood.seal.desktop.storage.writeTextAtomically
 import java.nio.file.Path
+import java.nio.file.Files
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -153,25 +160,89 @@ internal fun decodeHistoryUrls(text: String): List<String> =
         .toList()
 
 private fun defaultHistoryPath(): Path {
-    val xdg = System.getenv("XDG_STATE_HOME")?.takeIf { it.isNotBlank() }
-    val base =
-        if (xdg != null) Path.of(xdg) else Path.of(System.getProperty("user.home"), ".local", "state")
-    return base.resolve("seal").resolve("history.json")
+    return historyJsonPath()
 }
 
 class DesktopDownloadHistoryStorage(private val path: Path = defaultHistoryPath()) {
+    private fun loadFromJsonOrNull(): List<DesktopDownloadHistoryEntry>? {
+        if (!path.exists()) return null
+
+        return runCatching { historyJson.decodeFromString<List<DesktopDownloadHistoryEntry>>(path.readText()) }
+            .getOrElse {
+                val quarantined = quarantineCorruptedFile(path)
+                if (quarantined != null) {
+                    DesktopStorageEventLogger.warn(
+                        component = "DesktopDownloadHistoryStorage",
+                        event = "json_history_quarantined",
+                        message = "Corrupted history JSON file quarantined",
+                        details = mapOf("path" to quarantined.toAbsolutePath().toString()),
+                    )
+                }
+                logHistoryStorageWarning("Failed to parse history JSON, fallback to empty history", it)
+                null
+            }
+    }
+
+    private fun loadFromJsonWithDefault(): List<DesktopDownloadHistoryEntry> =
+        loadFromJsonOrNull() ?: emptyList()
+
+    private fun saveToJson(entries: List<DesktopDownloadHistoryEntry>) {
+        writeTextAtomically(path, historyJson.encodeToString(entries))
+    }
+
     suspend fun load(): List<DesktopDownloadHistoryEntry> =
         withContext(Dispatchers.IO) {
-            if (!path.exists()) return@withContext emptyList()
-            runCatching { historyJson.decodeFromString<List<DesktopDownloadHistoryEntry>>(path.readText()) }
-                .getOrNull()
-                ?: emptyList()
+            when (DesktopStorageConfig.backend) {
+                DesktopStorageBackend.Json -> loadFromJsonWithDefault()
+                DesktopStorageBackend.DualWrite -> {
+                    val entriesFromJson = loadFromJsonOrNull()
+                    if (entriesFromJson != null) {
+                        runCatching { DesktopSqliteStorage.writeHistory(entriesFromJson) }
+                            .onFailure {
+                                logHistoryStorageWarning("Failed to mirror history to SQLite on load", it)
+                            }
+                        entriesFromJson
+                    } else {
+                        val entriesFromSqlite = DesktopSqliteStorage.readHistory()
+                        if (entriesFromSqlite != null) {
+                            DesktopStorageEventLogger.info(
+                                component = "DesktopDownloadHistoryStorage",
+                                event = "dual_mode_fallback_to_sqlite",
+                                message = "History loaded from SQLite because JSON was unavailable",
+                                details = mapOf("backend" to DesktopStorageConfig.backend.name),
+                            )
+                        }
+                        entriesFromSqlite ?: emptyList()
+                    }
+                }
+                DesktopStorageBackend.Sqlite -> {
+                    DesktopSqliteStorage.readHistory() ?: loadFromJsonWithDefault()
+                }
+            }
         }
 
     suspend fun save(entries: List<DesktopDownloadHistoryEntry>) {
         withContext(Dispatchers.IO) {
-            path.parent?.createDirectories()
-            Files.writeString(path, historyJson.encodeToString(entries))
+            when (DesktopStorageConfig.backend) {
+                DesktopStorageBackend.Json -> saveToJson(entries)
+                DesktopStorageBackend.DualWrite -> {
+                    saveToJson(entries)
+                    runCatching { DesktopSqliteStorage.writeHistory(entries) }
+                        .onFailure {
+                            logHistoryStorageWarning("Failed to mirror history to SQLite on save", it)
+                        }
+                }
+                DesktopStorageBackend.Sqlite -> {
+                    runCatching { DesktopSqliteStorage.writeHistory(entries) }
+                        .onFailure {
+                            logHistoryStorageWarning(
+                                "Failed to save history to SQLite, falling back to JSON",
+                                it,
+                            )
+                            saveToJson(entries)
+                        }
+                }
+            }
         }
     }
 
@@ -188,4 +259,14 @@ class DesktopDownloadHistoryStorage(private val path: Path = defaultHistoryPath(
             val text = Files.readString(source)
             runCatching { decodeHistoryEntries(text) }.getOrDefault(emptyList())
         }
+}
+
+private fun logHistoryStorageWarning(message: String, throwable: Throwable) {
+    DesktopStorageEventLogger.warn(
+        component = "DesktopDownloadHistoryStorage",
+        event = "history_storage_warning",
+        message = message,
+        details = mapOf("backend" to DesktopStorageConfig.backend.name),
+        throwable = throwable,
+    )
 }

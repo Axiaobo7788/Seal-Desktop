@@ -49,6 +49,29 @@ dependencies {
     implementation(compose.components.resources)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.sqlite.jdbc)
+}
+
+tasks.register<JavaExec>("desktopStorageSelfCheck") {
+    group = "verification"
+    description = "Runs desktop storage self-check for json/dual/sqlite backends"
+    dependsOn(tasks.named("classes"))
+
+    val mainSourceSet = sourceSets.named("main").get()
+    classpath = mainSourceSet.runtimeClasspath
+    mainClass.set("com.junkfood.seal.desktop.storage.DesktopStorageSelfCheckMainKt")
+
+    (project.findProperty("storageBackend") as String?)
+        ?.takeIf { it.isNotBlank() }
+        ?.let { backend ->
+            jvmArgs("-Dseal.desktop.storage.backend=$backend")
+        }
+
+    (project.findProperty("storageStateDir") as String?)
+        ?.takeIf { it.isNotBlank() }
+        ?.let { stateDir ->
+            jvmArgs("-Dseal.desktop.storage.stateDir=$stateDir")
+        }
 }
 
 // Override the bundled ProGuard version to one that understands Java 21 class files.
