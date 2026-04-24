@@ -70,13 +70,20 @@ internal fun TemplateEditPage(
                 IconButton(onClick = {
                     val newTemplates = settings.customCommandTemplates.filter { it.id != initialTemplate.id }
                     if (newTemplates.isNotEmpty()) {
-                        val fallback = newTemplates.first()
                         onUpdate {
+                            val currentSelectionRemoved = it.customCommandTemplateId == initialTemplate.id
+                            val activeTemplate =
+                                if (currentSelectionRemoved) {
+                                    newTemplates.first()
+                                } else {
+                                    newTemplates.find { template -> template.id == it.customCommandTemplateId }
+                                        ?: newTemplates.first()
+                                }
                             it.copy(
                                 customCommandTemplates = newTemplates,
-                                customCommandTemplateId = fallback.id,
-                                customCommandLabel = fallback.label,
-                                customCommandTemplate = fallback.template
+                                customCommandTemplateId = activeTemplate.id,
+                                customCommandLabel = activeTemplate.label,
+                                customCommandTemplate = activeTemplate.template
                             )
                         }
                     } else {
@@ -108,12 +115,20 @@ internal fun TemplateEditPage(
                         settings.customCommandTemplates + updatedTemplate
                     }
                     onUpdate {
-                        it.copy(
-                            customCommandTemplates = newTemplates,
-                            customCommandTemplateId = updatedTemplate.id,
-                            customCommandLabel = updatedTemplate.label,
-                            customCommandTemplate = updatedTemplate.template
-                        )
+                        val shouldUpdateSelection =
+                            it.customCommandTemplateId == updatedTemplate.id ||
+                                it.customCommandTemplates.isEmpty() ||
+                                it.customCommandTemplates.none { template -> template.id == it.customCommandTemplateId }
+                        if (shouldUpdateSelection) {
+                            it.copy(
+                                customCommandTemplates = newTemplates,
+                                customCommandTemplateId = updatedTemplate.id,
+                                customCommandLabel = updatedTemplate.label,
+                                customCommandTemplate = updatedTemplate.template
+                            )
+                        } else {
+                            it.copy(customCommandTemplates = newTemplates)
+                        }
                     }
                     onBack()
                 },

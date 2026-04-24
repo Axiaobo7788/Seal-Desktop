@@ -410,6 +410,8 @@ fun DesktopDownloadScreen(
                                 workingPreferences = it
                                 onPreferencesChange(it)
                             },
+                            customCommandEnabled = customCommandEnabled,
+                            customCommandTemplate = customCommandTemplate,
                             onDismissRequest = {
                                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                                     showSheet = false
@@ -786,4 +788,3 @@ private fun LatestLogRow(line: String) {
         )
     }
 }
-

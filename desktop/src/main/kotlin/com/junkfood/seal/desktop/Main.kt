@@ -64,11 +64,11 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Terminal
 import com.junkfood.seal.desktop.settings.DesktopSettingsScreen
 import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
@@ -188,7 +188,7 @@ fun main() = application {
     }
 
     val handleCloseRequest = {
-        if (downloadController.hasOngoingTasks()) {
+        if (downloadController.hasOngoingTasks() || com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager.hasOngoingTasks()) {
             showExitConfirmDialog = true
         } else {
             exitApplication()
@@ -246,6 +246,7 @@ fun main() = application {
                                 appScope.launch {
                                     runCatching {
                                         downloadController.cancelAllOngoingAndPersist()
+                                        com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager.cancelAllOngoing()
                                     }
                                     showExitConfirmDialog = false
                                     exitInProgress = false
@@ -475,6 +476,20 @@ private fun ContentArea(
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     val clipboard = LocalClipboardManager.current
     val order = remember { Destination.entries.toList() }
+    val activeCustomCommandTemplate =
+        appSettingsState.settings.customCommandTemplates.find {
+            it.id == appSettingsState.settings.customCommandTemplateId
+        }
+            ?: appSettingsState.settings.customCommandTemplates.firstOrNull()
+            ?: appSettingsState.settings.customCommandTemplate
+                .takeIf { it.isNotBlank() }
+                ?.let { legacyTemplate ->
+                    com.junkfood.seal.desktop.settings.DesktopCommandTemplate(
+                        id = appSettingsState.settings.customCommandTemplateId.takeIf { it > 0 } ?: 1,
+                        label = appSettingsState.settings.customCommandLabel.ifBlank { "Default" },
+                        template = legacyTemplate,
+                    )
+                }
 
     AnimatedContent(
         targetState = current,
@@ -523,6 +538,8 @@ private fun ContentArea(
                     preferences = settingsState.preferences,
                     onPreferencesChange = settingsState::set,
                     controller = downloadController,
+                    customCommandEnabled = appSettingsState.settings.customCommandEnabled,
+                    customCommandTemplate = activeCustomCommandTemplate,
                     appSettings = appSettingsState.settings,
                 )
             Destination.DownloadHistory ->
@@ -562,6 +579,7 @@ private fun ContentArea(
                     modifier = contentModifier,
                     isCompact = isCompact,
                     onMenuClick = onMenuClick,
+                    settingsState = settingsState,
                     appSettingsState = appSettingsState,
                 )
         }
@@ -571,7 +589,7 @@ private fun ContentArea(
 private enum class Destination(val labelRes: StringResource, val icon: ImageVector) {
     DownloadQueue(Res.string.download_queue, Icons.Outlined.FileDownload),
     DownloadHistory(Res.string.downloads_history, Icons.Outlined.History),
-    CustomCommand(Res.string.custom_command, Icons.Outlined.Add),
+    CustomCommand(Res.string.custom_command, Icons.Outlined.Terminal),
     Settings(Res.string.settings, Icons.Outlined.Settings),
 }
 

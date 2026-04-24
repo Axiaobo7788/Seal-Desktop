@@ -83,6 +83,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.stringResource
 
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class DesktopOptionShortcutBackup(val id: Long = 0, val option: String)
+
+@Serializable
+private data class DesktopCommandBackup(
+    val templates: List<DesktopCommandTemplate>? = null,
+    val shortcuts: List<DesktopOptionShortcutBackup>? = null,
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CommandSettingsPage(
@@ -130,11 +141,12 @@ internal fun CommandSettingsPage(
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.export_to_clipboard)) },
                     onClick = {
-                        val activeTemplate = settings.customCommandTemplates.find { it.id == settings.customCommandTemplateId }
-                        if (activeTemplate != null) {
-                            val json = Json.encodeToString(activeTemplate)
-                            clipboardManager.setText(AnnotatedString(json))
-                        }
+                        val backup = DesktopCommandBackup(
+                            templates = settings.customCommandTemplates,
+                            shortcuts = settings.customCommandShortcuts.mapIndexed { index, s -> DesktopOptionShortcutBackup(id = index.toLong(), option = s) }
+                        )
+                        val json = Json.encodeToString(backup)
+                        clipboardManager.setText(AnnotatedString(json))
                         isMenuExpanded = false
                     },
                     leadingIcon = { Icon(Icons.Outlined.AssignmentReturn, contentDescription = null) }
@@ -144,16 +156,38 @@ internal fun CommandSettingsPage(
                     onClick = {
                         clipboardManager.getText()?.text?.let { text ->
                             runCatching {
-                                val template = Json.decodeFromString<DesktopCommandTemplate>(text)
-                                val newId = (settings.customCommandTemplates.maxOfOrNull { it.id } ?: 0) + 1
-                                val newTemplate = template.copy(id = newId)
-                                onUpdate {
-                                    it.copy(
-                                        customCommandTemplates = it.customCommandTemplates + newTemplate,
-                                        customCommandTemplateId = newId,
-                                        customCommandLabel = newTemplate.label,
-                                        customCommandTemplate = newTemplate.template
-                                    )
+                                val backup = Json { ignoreUnknownKeys = true }.decodeFromString<DesktopCommandBackup>(text)
+                                val importedTemplates = backup.templates ?: emptyList()
+                                val importedShortcuts = backup.shortcuts?.map { it.option } ?: emptyList()
+                                
+                                if (importedTemplates.isNotEmpty() || importedShortcuts.isNotEmpty()) {
+                                    onUpdate {
+                                        val maxId = it.customCommandTemplates.maxOfOrNull { t -> t.id } ?: 0
+                                        val newTemplates = importedTemplates.mapIndexed { index, t -> t.copy(id = maxId + index + 1) }
+                                        val allTemplates = it.customCommandTemplates + newTemplates
+                                        val newSelection = newTemplates.firstOrNull()
+                                        it.copy(
+                                            customCommandTemplates = allTemplates,
+                                            customCommandShortcuts = (it.customCommandShortcuts + importedShortcuts).distinct(),
+                                            customCommandTemplateId = newSelection?.id ?: it.customCommandTemplateId,
+                                            customCommandLabel = newSelection?.label ?: it.customCommandLabel,
+                                            customCommandTemplate = newSelection?.template ?: it.customCommandTemplate
+                                        )
+                                    }
+                                }
+                            }.onFailure {
+                                runCatching {
+                                    val template = Json { ignoreUnknownKeys = true }.decodeFromString<DesktopCommandTemplate>(text)
+                                    val newId = (settings.customCommandTemplates.maxOfOrNull { t -> t.id } ?: 0) + 1
+                                    val newTemplate = template.copy(id = newId)
+                                    onUpdate {
+                                        it.copy(
+                                            customCommandTemplates = it.customCommandTemplates + newTemplate,
+                                            customCommandTemplateId = newId,
+                                            customCommandLabel = newTemplate.label,
+                                            customCommandTemplate = newTemplate.template
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -1,10 +1,12 @@
 package com.junkfood.seal.desktop.customcommand
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
+import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.download.CustomCommandPlan
@@ -17,9 +19,12 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class DesktopCustomCommandTaskStatus {
     Running,
     Completed,
@@ -27,6 +32,7 @@ enum class DesktopCustomCommandTaskStatus {
     Error,
 }
 
+@Serializable
 data class DesktopCustomCommandTask(
     val id: String,
     val templateId: Int,
@@ -45,13 +51,39 @@ data class DesktopCustomCommandTask(
 object DesktopCustomCommandTaskManager {
     private const val MAX_OUTPUT_CHARS = 120_000
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val executor = DownloadPlanExecutor()
     private val runningProcesses = ConcurrentHashMap<String, DownloadPlanExecutor.RunningProcess>()
     private val canceledTaskIds = ConcurrentHashMap.newKeySet<String>()
 
     private val _tasks = mutableStateListOf<DesktopCustomCommandTask>()
     val tasks: SnapshotStateList<DesktopCustomCommandTask> = _tasks
+
+    init {
+        scope.launch {
+            val loaded = DesktopCustomCommandTaskStorage.load()
+            _tasks.addAll(loaded)
+
+            snapshotFlow { _tasks.toList() }
+                .collectLatest { list ->
+                    DesktopCustomCommandTaskStorage.save(list)
+                }
+        }
+    }
+
+    fun hasOngoingTasks(): Boolean {
+        return _tasks.any { it.status == DesktopCustomCommandTaskStatus.Running }
+    }
+
+    fun ongoingTaskCount(): Int {
+        return _tasks.count { it.status == DesktopCustomCommandTaskStatus.Running }
+    }
+
+    fun cancelAllOngoing() {
+        _tasks.filter { it.status == DesktopCustomCommandTaskStatus.Running }.forEach {
+            cancel(it.id)
+        }
+    }
 
     fun start(
         urlInput: String,
@@ -127,6 +159,19 @@ object DesktopCustomCommandTaskManager {
                 }
 
                 val success = result.exitCode == 0
+                if (appSettings.downloadNotificationEnabled) {
+                    if (success) {
+                        DesktopNotifier.sendNotification(
+                            title = "Command Completed",
+                            message = template.label
+                        )
+                    } else {
+                        DesktopNotifier.sendNotification(
+                            title = "Command Error",
+                            message = template.label
+                        )
+                    }
+                }
                 updateTask(taskId) {
                     it.copy(
                         status =

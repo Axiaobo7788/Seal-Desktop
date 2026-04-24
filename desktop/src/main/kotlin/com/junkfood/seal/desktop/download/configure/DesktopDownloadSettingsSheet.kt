@@ -66,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadType
+import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.additional_settings
 import com.junkfood.seal.shared.generated.resources.audio
@@ -74,6 +75,8 @@ import com.junkfood.seal.shared.generated.resources.best_quality
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.create_thumbnail
 import com.junkfood.seal.shared.generated.resources.custom
+import com.junkfood.seal.shared.generated.resources.custom_command_enabled_hint
+import com.junkfood.seal.shared.generated.resources.custom_command_template
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_subtitles
 import com.junkfood.seal.shared.generated.resources.edit_preset
@@ -81,6 +84,7 @@ import com.junkfood.seal.shared.generated.resources.embed_metadata
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
 import com.junkfood.seal.shared.generated.resources.format_preference
+import com.junkfood.seal.shared.generated.resources.commands
 import com.junkfood.seal.shared.generated.resources.legacy
 import com.junkfood.seal.shared.generated.resources.lowest_quality
 import com.junkfood.seal.shared.generated.resources.new_task
@@ -94,6 +98,7 @@ import com.junkfood.seal.shared.generated.resources.quality
 import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.settings_before_download
 import com.junkfood.seal.shared.generated.resources.sponsorblock
+import com.junkfood.seal.shared.generated.resources.start
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_format_preference
@@ -159,6 +164,8 @@ internal fun DownloadOptionsSheet(
     onTypeChange: (DesktopDownloadType) -> Unit,
     preferences: DownloadPreferences,
     onPreferencesChange: (DownloadPreferences) -> Unit,
+    customCommandEnabled: Boolean,
+    customCommandTemplate: DesktopCommandTemplate?,
     onDismissRequest: () -> Unit,
     onDownload: () -> Unit,
     onCustomFormatClick: () -> Unit,
@@ -166,6 +173,8 @@ internal fun DownloadOptionsSheet(
     var showAdvanced by remember { mutableStateOf(false) }
     var showPresetDialog by remember { mutableStateOf(false) }
     val formatSummary = formatSummary(preferences, downloadType)
+    val isCustomCommandMode = customCommandEnabled
+    val canStart = !isCustomCommandMode || customCommandTemplate != null
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -185,49 +194,54 @@ internal fun DownloadOptionsSheet(
             )
         }
 
-        SectionTitle(text = stringResource(Res.string.download))
-        DownloadTypeSegmentedRow(selected = downloadType, onSelect = onTypeChange)
+        if (isCustomCommandMode) {
+            SectionTitle(text = stringResource(Res.string.commands))
+            CustomCommandModeSection(template = customCommandTemplate)
+        } else {
+            SectionTitle(text = stringResource(Res.string.download))
+            DownloadTypeSegmentedRow(selected = downloadType, onSelect = onTypeChange)
 
-        SectionTitle(text = stringResource(Res.string.format_selection))
-        FormatSelectionSection(
-            summary = formatSummary,
-            onPresetClick = { },
-            onPresetMenuClick = { showPresetDialog = true },
-            onCustomClick = onCustomFormatClick,
-            showEdit = downloadType != DesktopDownloadType.Playlist,
-        )
+            SectionTitle(text = stringResource(Res.string.format_selection))
+            FormatSelectionSection(
+                summary = formatSummary,
+                onPresetClick = { },
+                onPresetMenuClick = { showPresetDialog = true },
+                onCustomClick = onCustomFormatClick,
+                showEdit = downloadType != DesktopDownloadType.Playlist,
+            )
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { showAdvanced = !showAdvanced },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            SectionTitle(text = stringResource(Res.string.additional_settings))
-            Icon(if (showAdvanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { showAdvanced = !showAdvanced },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                SectionTitle(text = stringResource(Res.string.additional_settings))
+                Icon(if (showAdvanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
+            }
 
-        if (showAdvanced) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OptionChipRow(
-                    title = stringResource(Res.string.download_subtitles),
-                    checked = preferences.downloadSubtitle,
-                    onCheckedChange = { onPreferencesChange(preferences.copy(downloadSubtitle = it, embedSubtitle = it && preferences.embedSubtitle)) },
-                )
-                OptionChipRow(
-                    title = stringResource(Res.string.create_thumbnail),
-                    checked = preferences.embedThumbnail,
-                    onCheckedChange = { onPreferencesChange(preferences.copy(embedThumbnail = it)) },
-                )
-                OptionChipRow(
-                    title = stringResource(Res.string.embed_metadata),
-                    checked = preferences.embedMetadata,
-                    onCheckedChange = { onPreferencesChange(preferences.copy(embedMetadata = it)) },
-                )
-                OptionChipRow(
-                    title = stringResource(Res.string.sponsorblock),
-                    checked = preferences.sponsorBlock,
-                    onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
-                )
+            if (showAdvanced) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OptionChipRow(
+                        title = stringResource(Res.string.download_subtitles),
+                        checked = preferences.downloadSubtitle,
+                        onCheckedChange = { onPreferencesChange(preferences.copy(downloadSubtitle = it, embedSubtitle = it && preferences.embedSubtitle)) },
+                    )
+                    OptionChipRow(
+                        title = stringResource(Res.string.create_thumbnail),
+                        checked = preferences.embedThumbnail,
+                        onCheckedChange = { onPreferencesChange(preferences.copy(embedThumbnail = it)) },
+                    )
+                    OptionChipRow(
+                        title = stringResource(Res.string.embed_metadata),
+                        checked = preferences.embedMetadata,
+                        onCheckedChange = { onPreferencesChange(preferences.copy(embedMetadata = it)) },
+                    )
+                    OptionChipRow(
+                        title = stringResource(Res.string.sponsorblock),
+                        checked = preferences.sponsorBlock,
+                        onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
+                    )
+                }
             }
         }
 
@@ -243,15 +257,19 @@ internal fun DownloadOptionsSheet(
             Button(
                 onClick = onDownload,
                 modifier = Modifier.weight(1f).height(44.dp),
+                enabled = canStart,
             ) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.start_download))
+                Text(stringResource(if (isCustomCommandMode) Res.string.start else Res.string.start_download))
             }
         }
     }
 
-    val isPresetDialogVisible = showPresetDialog && downloadType != DesktopDownloadType.Audio
+    val isPresetDialogVisible =
+        showPresetDialog &&
+            !isCustomCommandMode &&
+            downloadType != DesktopDownloadType.Audio
     var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
     var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
     VideoPresetDialog(
@@ -270,6 +288,54 @@ internal fun DownloadOptionsSheet(
             )
         },
     )
+}
+
+@Composable
+private fun CustomCommandModeSection(template: DesktopCommandTemplate?) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Description, contentDescription = null)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = template?.label ?: stringResource(Res.string.custom_command_template),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(Res.string.custom_command_enabled_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            template?.template?.takeIf { it.isNotBlank() }?.let { content ->
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Text(
+                        text = content,
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

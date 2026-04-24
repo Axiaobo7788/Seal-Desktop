@@ -25,10 +25,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -38,9 +42,11 @@ import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.BookmarkAdd
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,6 +66,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,25 +76,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
-import com.junkfood.seal.desktop.settings.rememberDesktopSettingsState
+import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.confirm
+import com.junkfood.seal.shared.generated.resources.copy_error_report
+import com.junkfood.seal.shared.generated.resources.copy_log
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_desc
 import com.junkfood.seal.shared.generated.resources.custom_command_template
 import com.junkfood.seal.shared.generated.resources.edit
 import com.junkfood.seal.shared.generated.resources.edit_template
 import com.junkfood.seal.shared.generated.resources.edit_template_desc
+import com.junkfood.seal.shared.generated.resources.logs
 import com.junkfood.seal.shared.generated.resources.new_task
 import com.junkfood.seal.shared.generated.resources.new_template
 import com.junkfood.seal.shared.generated.resources.proceed
 import com.junkfood.seal.shared.generated.resources.paste_msg
+import com.junkfood.seal.shared.generated.resources.restart
 import com.junkfood.seal.shared.generated.resources.running_tasks
+import com.junkfood.seal.shared.generated.resources.show_logs
 import com.junkfood.seal.shared.generated.resources.start
 import com.junkfood.seal.shared.generated.resources.status_canceled
 import com.junkfood.seal.shared.generated.resources.status_completed
@@ -104,13 +118,51 @@ fun DesktopCustomCommandScreen(
     modifier: Modifier = Modifier,
     isCompact: Boolean = false,
     onMenuClick: () -> Unit = {},
+    settingsState: DesktopSettingsState,
     appSettingsState: DesktopAppSettingsState,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-    val settingsState = rememberDesktopSettingsState()
     val tasks = DesktopCustomCommandTaskManager.tasks
+    val clipboardManager = LocalClipboardManager.current
 
     var showNewTaskDialog by remember { mutableStateOf(false) }
+    var logDialogTask by remember { mutableStateOf<DesktopCustomCommandTask?>(null) }
+    var taskActionErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(
+        appSettingsState.settings.customCommandTemplates,
+        appSettingsState.settings.customCommandLabel,
+        appSettingsState.settings.customCommandTemplate,
+    ) {
+        if (appSettingsState.settings.customCommandTemplates.isEmpty()) {
+            val hasLegacyTemplate =
+                appSettingsState.settings.customCommandLabel.isNotBlank() ||
+                    appSettingsState.settings.customCommandTemplate.isNotBlank()
+            val bootstrapTemplate =
+                if (hasLegacyTemplate) {
+                    DesktopCommandTemplate(
+                        id = 1,
+                        label = appSettingsState.settings.customCommandLabel.ifBlank { "Default" },
+                        template = appSettingsState.settings.customCommandTemplate,
+                    )
+                } else {
+                    DesktopCommandTemplate(
+                        id = 1,
+                        label = "yt-dlp Default",
+                        template = "-f bestvideo*+bestaudio/best %(url)s",
+                    )
+                }
+
+            appSettingsState.update {
+                it.copy(
+                    customCommandTemplates = listOf(bootstrapTemplate),
+                    customCommandTemplateId = bootstrapTemplate.id,
+                    customCommandLabel = bootstrapTemplate.label,
+                    customCommandTemplate = bootstrapTemplate.template,
+                )
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -148,10 +200,72 @@ fun DesktopCustomCommandScreen(
             items(tasks, key = { it.id }) { task ->
                 DesktopCustomCommandTaskItem(
                     task = task,
-                    onCancel = { DesktopCustomCommandTaskManager.cancel(task.id) }
+                    onCancel = { DesktopCustomCommandTaskManager.cancel(task.id) },
+                    onRestart = {
+                        DesktopCustomCommandTaskManager.restart(
+                            taskId = task.id,
+                            preferences = settingsState.preferences,
+                            appSettings = appSettingsState.settings,
+                        ).onFailure { error ->
+                            taskActionErrorMessage = error.message ?: error.toString()
+                        }
+                    },
+                    onCopyLog = {
+                        clipboardManager?.setText(AnnotatedString(task.output))
+                    },
+                    onCopyError = {
+                        val text = task.errorReport ?: task.currentLine
+                        if (text.isNotBlank()) {
+                            clipboardManager?.setText(AnnotatedString(text))
+                        }
+                    },
+                    onShowLogs = { logDialogTask = task },
                 )
             }
         }
+    }
+
+    if (taskActionErrorMessage != null) {
+        AnimatedAlertDialog(
+            visible = true,
+            onDismissRequest = { taskActionErrorMessage = null },
+            title = { Text(stringResource(Res.string.status_error)) },
+            text = { Text(taskActionErrorMessage.orEmpty()) },
+            dismissButton = {},
+            confirmButton = {
+                TextButton(onClick = { taskActionErrorMessage = null }) {
+                    Text(stringResource(Res.string.confirm))
+                }
+            },
+        )
+    }
+
+    logDialogTask?.let { task ->
+        AnimatedAlertDialog(
+            visible = true,
+            onDismissRequest = { logDialogTask = null },
+            title = { Text(task.templateLabel) },
+            text = {
+                Column(
+                    modifier = Modifier.height(360.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(stringResource(Res.string.logs), style = MaterialTheme.typography.labelLarge)
+                    SelectionContainer {
+                        Text(
+                            text = task.output.ifBlank { task.currentLine },
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        )
+                    }
+                }
+            },
+            dismissButton = {},
+            confirmButton = {
+                TextButton(onClick = { logDialogTask = null }) {
+                    Text(stringResource(Res.string.confirm))
+                }
+            },
+        )
     }
 
     if (showNewTaskDialog) {
@@ -171,10 +285,15 @@ fun DesktopCustomCommandScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DesktopCustomCommandTaskItem(
     task: DesktopCustomCommandTask,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onRestart: () -> Unit,
+    onCopyLog: () -> Unit,
+    onCopyError: () -> Unit,
+    onShowLogs: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -220,7 +339,8 @@ private fun DesktopCustomCommandTaskItem(
                     text = buildString {
                         append(statusTextStr)
                         if (task.progress != null && task.status == DesktopCustomCommandTaskStatus.Running) {
-                            append(" (").append(task.progress).append("%)")
+                            val progressPercent = ((task.progress * 100f).toInt()).coerceIn(0, 100)
+                            append(" (").append(progressPercent).append("%)")
                         }
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -235,6 +355,57 @@ private fun DesktopCustomCommandTaskItem(
                             Icons.Outlined.Cancel,
                             contentDescription = stringResource(Res.string.cancel),
                             tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            val canRestart =
+                task.status == DesktopCustomCommandTaskStatus.Canceled ||
+                    task.status == DesktopCustomCommandTaskStatus.Error
+            val hasOutput = task.output.isNotBlank() || task.currentLine.isNotBlank()
+            val hasError = !task.errorReport.isNullOrBlank()
+
+            if (canRestart || hasOutput || hasError) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (canRestart) {
+                        ElevatedAssistChip(
+                            onClick = onRestart,
+                            label = { Text(stringResource(Res.string.restart)) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.RestartAlt, null, modifier = Modifier.size(18.dp))
+                            },
+                        )
+                    }
+
+                    if (hasOutput) {
+                        ElevatedAssistChip(
+                            onClick = onShowLogs,
+                            label = { Text(stringResource(Res.string.show_logs)) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(18.dp))
+                            },
+                        )
+                        ElevatedAssistChip(
+                            onClick = onCopyLog,
+                            label = { Text(stringResource(Res.string.copy_log)) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.ContentCopy, null, modifier = Modifier.size(18.dp))
+                            },
+                        )
+                    }
+
+                    if (hasError) {
+                        ElevatedAssistChip(
+                            onClick = onCopyError,
+                            label = { Text(stringResource(Res.string.copy_error_report)) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.ErrorOutline, null, modifier = Modifier.size(18.dp))
+                            },
                         )
                     }
                 }
@@ -294,7 +465,8 @@ private fun NewDownloadTaskDialog(
                     onValueChange = { url = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(Res.string.video_url)) },
-                    singleLine = true,
+                    minLines = 3,
+                    maxLines = 4,
                     trailingIcon = {
                         androidx.compose.material3.IconButton(onClick = {
                             clipboardManager?.getText()?.text?.let { url = it }
@@ -363,7 +535,18 @@ private fun NewDownloadTaskDialog(
         templates = templates,
         selectedId = selectedTemplate?.id ?: -1,
         onSelect = { id ->
-            appSettingsState.update { it.copy(customCommandTemplateId = id) }
+            val selected = templates.find { it.id == id }
+            appSettingsState.update {
+                if (selected != null) {
+                    it.copy(
+                        customCommandTemplateId = id,
+                        customCommandLabel = selected.label,
+                        customCommandTemplate = selected.template,
+                    )
+                } else {
+                    it.copy(customCommandTemplateId = id)
+                }
+            }
             selectedTemplateId = id
         }
     )
@@ -377,7 +560,14 @@ private fun NewDownloadTaskDialog(
                 val newTemplates = templates.map {
                     if (it.id == selectedTemplate.id) it.copy(label = label, template = templateText) else it
                 }
-                appSettingsState.update { it.copy(customCommandTemplates = newTemplates) }
+                appSettingsState.update {
+                    val isCurrentSelection = it.customCommandTemplateId == selectedTemplate.id
+                    it.copy(
+                        customCommandTemplates = newTemplates,
+                        customCommandLabel = if (isCurrentSelection) label else it.customCommandLabel,
+                        customCommandTemplate = if (isCurrentSelection) templateText else it.customCommandTemplate,
+                    )
+                }
             }
         }
     )
@@ -393,7 +583,9 @@ private fun NewDownloadTaskDialog(
             appSettingsState.update {
                 it.copy(
                     customCommandTemplates = newTemplates,
-                    customCommandTemplateId = newId
+                    customCommandTemplateId = newId,
+                    customCommandLabel = newTemplate.label,
+                    customCommandTemplate = newTemplate.template,
                 )
             }
             selectedTemplateId = newId

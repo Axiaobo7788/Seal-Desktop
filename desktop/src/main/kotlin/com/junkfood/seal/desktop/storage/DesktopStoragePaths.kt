@@ -24,4 +24,6 @@ internal fun historyJsonPath(): Path = desktopAppStateDir().resolve("history.jso
 
 internal fun appSettingsJsonPath(): Path = desktopAppStateDir().resolve("app-settings.json")
 
+internal fun customCommandTasksJsonPath(): Path = desktopAppStateDir().resolve("custom-command-tasks.json")
+
 internal fun sqliteDbPath(): Path = desktopAppStateDir().resolve("seal.db")
