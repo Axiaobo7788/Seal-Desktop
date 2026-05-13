@@ -6,15 +6,24 @@ on:
     branches: [ main ]
 
 env:
-  TOOLS_CACHE_VERSION: v2
+  TOOLS_CACHE_VERSION: v3
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
-  FFMPEG_MACOS_URL: https://evermeet.cx/ffmpeg/getrelease/zip
-  FFPROBE_MACOS_URL: https://evermeet.cx/ffprobe/getrelease/zip
-  FFPROBE_MACOS_FALLBACK_URL: https://www.osxexperts.net/ffprobe711arm.zip
 
 jobs:
   build-macos-portable:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            os: macos-13
+            ffmpeg_url: https://evermeet.cx/ffmpeg/getrelease/zip
+            ffprobe_url: https://evermeet.cx/ffprobe/getrelease/zip
+          - arch: arm64
+            os: macos-14
+            ffmpeg_url: https://www.osxexperts.net/ffmpeg711arm.zip
+            ffprobe_url: https://www.osxexperts.net/ffprobe711arm.zip
+            
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -30,7 +39,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: dist-bin
-          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
+          key: tools-${{ runner.os }}-${{ matrix.arch }}-${{ env.TOOLS_CACHE_VERSION }}
 
       - name: Download yt-dlp (macOS universal)
         shell: bash
@@ -44,7 +53,6 @@ jobs:
           download_with_retry() {
             local url="$1"
             local output="$2"
-
             curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"
           }
 
@@ -52,7 +60,7 @@ jobs:
           download_with_retry "$YT_DLP_MACOS_URL" dist-bin/yt-dlp_macos
           chmod +x dist-bin/yt-dlp_macos
 
-      - name: Download FFmpeg & FFprobe (macOS x64 static)
+      - name: Download FFmpeg & FFprobe (macOS ${{ matrix.arch }})
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +72,6 @@ jobs:
           download_with_retry() {
             local url="$1"
             local output="$2"
-
             curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$url" -o "$output"
           }
 
@@ -90,19 +97,18 @@ jobs:
           }
 
           mkdir -p dist-bin
-          download_with_retry "$FFMPEG_MACOS_URL" dist-bin/ffmpeg.zip
+          
+          echo "Downloading FFmpeg from ${{ matrix.ffmpeg_url }}"
+          download_with_retry "${{ matrix.ffmpeg_url }}" dist-bin/ffmpeg.zip
           extract_binary dist-bin/ffmpeg.zip ffmpeg
 
-          download_with_retry "$FFPROBE_MACOS_URL" dist-bin/ffprobe.zip
-          if ! extract_binary dist-bin/ffprobe.zip ffprobe; then
-            echo "Primary ffprobe archive did not contain ffprobe, trying fallback URL"
-            download_with_retry "$FFPROBE_MACOS_FALLBACK_URL" dist-bin/ffprobe_fallback.zip
-            extract_binary dist-bin/ffprobe_fallback.zip ffprobe
-          fi
+          echo "Downloading FFprobe from ${{ matrix.ffprobe_url }}"
+          download_with_retry "${{ matrix.ffprobe_url }}" dist-bin/ffprobe.zip
+          extract_binary dist-bin/ffprobe.zip ffprobe
 
-          rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip dist-bin/ffprobe_fallback.zip
+          rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
 
-      - name: Build distributable (macOS)
+      - name: Build distributable (macOS ${{ matrix.arch }})
         shell: bash
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
@@ -160,5 +166,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: desktop-portable-macos
+          name: desktop-portable-macos-${{ matrix.arch }}
           path: ${{ env.PORTABLE_DIR }}
