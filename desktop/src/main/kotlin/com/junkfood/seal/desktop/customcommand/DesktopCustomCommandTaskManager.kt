@@ -29,6 +29,8 @@ enum class DesktopCustomCommandTaskStatus {
     Running,
     Completed,
     Canceled,
+    /** Task was [Running] when the app exited; restored on next launch so the user can restart it. */
+    Interrupted,
     Error,
 }
 
@@ -113,6 +115,15 @@ object DesktopCustomCommandTaskManager {
                 exitCode = null,
             )
         _tasks.add(0, initial)
+
+        if (appSettings.downloadNotificationEnabled) {
+            scope.launch {
+                DesktopNotifier.sendNotification(
+                    title = "Command Started",
+                    message = template.label,
+                )
+            }
+        }
 
         scope.launch {
             var configFile: Path? = null

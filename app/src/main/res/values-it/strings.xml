@@ -452,5 +452,5 @@
     <string name="desktop_download_detail_status">Stato</string>
     <string name="desktop_download_detail_exit_code">Codice di uscita</string>
     <string name="desktop_download_detail_args">Argomenti del comando</string>
-    <string name="desktop_download_detail_error">Dettagli dell'errore</string>
+    <string name="desktop_download_detail_error">"Dettagli dell'errore"</string>
 </resources>

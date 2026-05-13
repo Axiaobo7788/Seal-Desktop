@@ -32,9 +32,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -51,11 +53,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.size
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.back
+import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.clear_all_cookies
 import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_in_database
+import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.cookies_usage_msg
 import com.junkfood.seal.shared.generated.resources.export_to_file
 import com.junkfood.seal.shared.generated.resources.generate_new_cookies
@@ -65,7 +70,17 @@ import com.junkfood.seal.shared.generated.resources.show_more_actions
 import com.junkfood.seal.shared.generated.resources.ua_header
 import com.junkfood.seal.shared.generated.resources.use_cookies
 import com.junkfood.seal.util.DownloadPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
+import java.awt.FileDialog
+import java.awt.Frame
+import java.nio.file.Files
+import kotlin.io.path.copyTo
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.exists
+import kotlin.io.path.readText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,8 +97,20 @@ internal fun CookiesSettingsPage(
 
     var showMenu by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
-    var userAgent by remember { mutableStateOf(false) } // Placeholders
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var userAgent by remember { mutableStateOf(false) }
     var isCookieEnabled by remember { mutableStateOf(preferences.cookies) }
+    var cookiesStats by remember { mutableStateOf(DesktopCookiesStats(0, 0)) }
+
+    val cookiesFilePath = DesktopYtDlpPaths.cookiesFile()
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            cookiesStats = DesktopCookiesParser.parseStats(cookiesFilePath)
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -123,13 +150,36 @@ internal fun CookiesSettingsPage(
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.FileCopy, null) },
                                 text = { Text(stringResource(Res.string.export_to_file)) },
-                                onClick = { showMenu = false },
-                                enabled = false
+                                enabled = cookiesFilePath.exists(),
+                                onClick = {
+                                    showMenu = false
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            val dialog =
+                                                FileDialog(
+                                                    null as Frame?,
+                                                    "Export Cookies",
+                                                    FileDialog.SAVE,
+                                                )
+                                            dialog.file = "cookies.txt"
+                                            dialog.isVisible = true
+                                            if (dialog.file != null) {
+                                                val target =
+                                                    java.io.File(dialog.directory, dialog.file).toPath()
+                                                cookiesFilePath.copyTo(target, overwrite = true)
+                                            }
+                                        }
+                                    }
+                                },
                             )
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.DeleteForever, null) },
                                 text = { Text(stringResource(Res.string.clear_all_cookies)) },
-                                onClick = { showMenu = false }
+                                enabled = cookiesFilePath.exists(),
+                                onClick = {
+                                    showMenu = false
+                                    showClearConfirmDialog = true
+                                },
                             )
                         }
                     }
@@ -152,9 +202,13 @@ internal fun CookiesSettingsPage(
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .toggleable(
                             value = isCookieEnabled,
-                            onValueChange = { 
-                                isCookieEnabled = it
-                                onUpdate { prefs -> prefs.copy(cookies = it) }
+                            onValueChange = { target ->
+                                if (target && !cookiesFilePath.exists()) {
+                                    showHelpDialog = true
+                                    return@toggleable
+                                }
+                                isCookieEnabled = target
+                                onUpdate { prefs -> prefs.copy(cookies = target) }
                             },
                             interactionSource = interactionSource,
                             indication = LocalIndication.current,
@@ -183,7 +237,7 @@ internal fun CookiesSettingsPage(
 
             item {
                 Surface(
-                    modifier = Modifier.clickable { /* TODO: Open CookieGeneratorDialog */ }
+                    modifier = Modifier.clickable { showImportDialog = true }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp, 16.dp),
@@ -211,11 +265,8 @@ internal fun CookiesSettingsPage(
 
             item {
                 HorizontalDivider()
-                val cookiesCount = 0
-                val siteCount = 0
-
                 Text(
-                    text = stringResource(Res.string.cookies_in_database, cookiesCount, siteCount),
+                    text = stringResource(Res.string.cookies_in_database, cookiesStats.cookieCount, cookiesStats.siteCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -223,6 +274,84 @@ internal fun CookiesSettingsPage(
             }
         }
     }
+
+    AnimatedAlertDialog(
+        visible = showClearConfirmDialog,
+        onDismissRequest = { showClearConfirmDialog = false },
+        icon = { Icon(Icons.Outlined.DeleteForever, null) },
+        title = { Text(stringResource(Res.string.clear_all_cookies)) },
+        text = { Text("This will delete the cookies file, and yt-dlp will no longer use stored cookies.") },
+        dismissButton = {
+            TextButton(onClick = { showClearConfirmDialog = false }) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            cookiesFilePath.deleteIfExists()
+                            cookiesStats = DesktopCookiesParser.parseStats(cookiesFilePath)
+                        }
+                    }
+                    showClearConfirmDialog = false
+                }
+            ) {
+                Text(stringResource(Res.string.clear_all_cookies))
+            }
+        },
+    )
+
+    AnimatedAlertDialog(
+        visible = showImportDialog,
+        onDismissRequest = { showImportDialog = false },
+        icon = { Icon(Icons.Outlined.Cookie, null) },
+        title = { Text(stringResource(Res.string.generate_new_cookies)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(Res.string.cookies_usage_msg),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { showImportDialog = false }) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    showImportDialog = false
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            val dialog =
+                                FileDialog(
+                                    null as Frame?,
+                                    "Import Cookies",
+                                    FileDialog.LOAD,
+                                )
+                            dialog.isVisible = true
+                            val file = dialog.file
+                            val dir = dialog.directory
+                            if (file != null && dir != null) {
+                                val source = java.io.File(dir, file).toPath()
+                                if (DesktopCookiesParser.isValidCookiesFile(source)) {
+                                    source.copyTo(cookiesFilePath, overwrite = true)
+                                    cookiesStats =
+                                        DesktopCookiesParser.parseStats(cookiesFilePath)
+                                }
+                            }
+                        }
+                    }
+                }
+            ) {
+                Text(stringResource(Res.string.confirm))
+            }
+        },
+    )
 
     AnimatedAlertDialog(
         visible = showHelpDialog,

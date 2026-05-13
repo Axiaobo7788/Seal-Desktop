@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -107,6 +108,7 @@ import com.junkfood.seal.shared.generated.resources.status_canceled
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.status_error
+import com.junkfood.seal.shared.generated.resources.status_interrupted
 import com.junkfood.seal.shared.generated.resources.template_label
 import com.junkfood.seal.shared.generated.resources.template_selection
 import com.junkfood.seal.shared.generated.resources.video_url
@@ -192,36 +194,42 @@ fun DesktopCustomCommandScreen(
             }
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(tasks, key = { it.id }) { task ->
-                DesktopCustomCommandTaskItem(
-                    task = task,
-                    onCancel = { DesktopCustomCommandTaskManager.cancel(task.id) },
-                    onRestart = {
-                        DesktopCustomCommandTaskManager.restart(
-                            taskId = task.id,
-                            preferences = settingsState.preferences,
-                            appSettings = appSettingsState.settings,
-                        ).onFailure { error ->
-                            taskActionErrorMessage = error.message ?: error.toString()
-                        }
-                    },
-                    onCopyLog = {
-                        clipboardManager?.setText(AnnotatedString(task.output))
-                    },
-                    onCopyError = {
-                        val text = task.errorReport ?: task.currentLine
-                        if (text.isNotBlank()) {
-                            clipboardManager?.setText(AnnotatedString(text))
-                        }
-                    },
-                    onShowLogs = { logDialogTask = task },
-                )
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(tasks, key = { it.id }) { task ->
+                    DesktopCustomCommandTaskItem(
+                        task = task,
+                        onCancel = { DesktopCustomCommandTaskManager.cancel(task.id) },
+                        onRestart = {
+                            DesktopCustomCommandTaskManager.restart(
+                                taskId = task.id,
+                                preferences = settingsState.preferences,
+                                appSettings = appSettingsState.settings,
+                            ).onFailure { error ->
+                                taskActionErrorMessage = error.message ?: error.toString()
+                            }
+                        },
+                        onCopyLog = {
+                            clipboardManager?.setText(AnnotatedString(task.output))
+                        },
+                        onCopyError = {
+                            val text = task.errorReport ?: task.currentLine
+                            if (text.isNotBlank()) {
+                                clipboardManager?.setText(AnnotatedString(text))
+                            }
+                        },
+                        onShowLogs = { logDialogTask = task },
+                    )
+                }
             }
+
+            DesktopCustomCommandNotificationOverlay(
+                onOpenLog = { task -> logDialogTask = task },
+            )
         }
     }
 
@@ -323,6 +331,7 @@ private fun DesktopCustomCommandTaskItem(
                     DesktopCustomCommandTaskStatus.Running -> stringResource(Res.string.status_downloading)
                     DesktopCustomCommandTaskStatus.Completed -> stringResource(Res.string.status_completed)
                     DesktopCustomCommandTaskStatus.Canceled -> stringResource(Res.string.status_canceled)
+                    DesktopCustomCommandTaskStatus.Interrupted -> stringResource(Res.string.status_interrupted)
                     DesktopCustomCommandTaskStatus.Error -> stringResource(Res.string.status_error)
                 }
 
@@ -362,6 +371,7 @@ private fun DesktopCustomCommandTaskItem(
 
             val canRestart =
                 task.status == DesktopCustomCommandTaskStatus.Canceled ||
+                    task.status == DesktopCustomCommandTaskStatus.Interrupted ||
                     task.status == DesktopCustomCommandTaskStatus.Error
             val hasOutput = task.output.isNotBlank() || task.currentLine.isNotBlank()
             val hasError = !task.errorReport.isNullOrBlank()

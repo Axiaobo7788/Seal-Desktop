@@ -34,10 +34,11 @@ object DesktopCustomCommandTaskStorage {
 
         runCatching {
             val backup = json.decodeFromString<DesktopCustomCommandTasksBackup>(file.readText())
-            // 恢复时将 Running 统一回写为 Canceled
+            // Tasks that were Running when the app exited are restored as Interrupted
+            // so the user can distinguish them from manually Canceled tasks and restart them.
             backup.tasks.map { task ->
                 if (task.status == DesktopCustomCommandTaskStatus.Running) {
-                    task.copy(status = DesktopCustomCommandTaskStatus.Canceled)
+                    task.copy(status = DesktopCustomCommandTaskStatus.Interrupted)
                 } else {
                     task
                 }
