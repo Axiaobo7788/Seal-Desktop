@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">Code de sortie</string>
     <string name="desktop_download_detail_args">Arguments de la commande</string>
     <string name="desktop_download_detail_error">"Détails de l'erreur"</string>
+    <string name="desktop_exit_confirm_title">Arrêter les téléchargements et quitter ?</string>
+    <string name="desktop_exit_confirm_running_count">Il y a %1$d tâche(s) de téléchargement en cours. Quitter interrompra les téléchargements.</string>
+    <string name="desktop_exit_confirm_running_generic">Il y a des téléchargements non terminés. Quitter interrompra les téléchargements.</string>
 </resources>

@@ -194,6 +194,9 @@
     <string name="desktop_action_failed_prefix">Action failed: %1$s</string>
     <string name="desktop_error_item_not_found">Item not found</string>
     <string name="desktop_error_link_empty">Link is empty</string>
+    <string name="desktop_exit_confirm_title">End downloads and exit?</string>
+    <string name="desktop_exit_confirm_running_count">There are %1$d download task(s) running. Exiting will interrupt downloads.</string>
+    <string name="desktop_exit_confirm_running_generic">There are unfinished tasks. Exiting will interrupt downloads.</string>
     <string name="restart">Restart</string>
     <string name="status_error">Error</string>
     <string name="copy_link">Copy link</string>

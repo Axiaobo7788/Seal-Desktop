@@ -456,4 +456,7 @@
     <string name="desktop_download_detail_exit_code">Код выхода</string>
     <string name="desktop_download_detail_args">Аргументы команды</string>
     <string name="desktop_download_detail_error">Сведения об ошибке</string>
+    <string name="desktop_exit_confirm_title">Остановить загрузки и выйти?</string>
+    <string name="desktop_exit_confirm_running_count">Выполняется %1$d задача загрузки. Выход прервет загрузки.</string>
+    <string name="desktop_exit_confirm_running_generic">Есть незавершенные загрузки. Выход прервет загрузки.</string>
 </resources>

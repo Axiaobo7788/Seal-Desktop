@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">एग्ज़िट कोड</string>
     <string name="desktop_download_detail_args">कमांड आर्ग्युमेंट</string>
     <string name="desktop_download_detail_error">त्रुटि विवरण</string>
+    <string name="desktop_exit_confirm_title">डाउनलोड रोककर बाहर निकलें?</string>
+    <string name="desktop_exit_confirm_running_count">अभी %1$d डाउनलोड कार्य चल रहा है। बाहर निकलने से डाउनलोड रुक जाएंगे।</string>
+    <string name="desktop_exit_confirm_running_generic">कुछ डाउनलोड पूरे नहीं हुए हैं। बाहर निकलने से डाउनलोड रुक जाएंगे।</string>
 </resources>

@@ -9,4 +9,7 @@
     <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
     <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
+    <string name="desktop_exit_confirm_title">Daxistinên dakêşanê raweste û derkeve?</string>
+    <string name="desktop_exit_confirm_running_count">Karên daxistinê %1$d di derbasbûnê de ne. Derketin dê daxistinê qut bike.</string>
+    <string name="desktop_exit_confirm_running_generic">Karên daxistinê nehatine temamkirin. Derketin dê daxistinê qut bike.</string>
 </resources>

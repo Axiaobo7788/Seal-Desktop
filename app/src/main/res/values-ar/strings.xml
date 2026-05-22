@@ -461,4 +461,7 @@
     <string name="desktop_download_detail_exit_code">رمز الخروج</string>
     <string name="desktop_download_detail_args">وسيطات الأمر</string>
     <string name="desktop_download_detail_error">تفاصيل الخطأ</string>
+    <string name="desktop_exit_confirm_title">إنهاء التنزيلات والخروج؟</string>
+    <string name="desktop_exit_confirm_running_count">هناك %1$d مهمة تنزيل قيد التشغيل. سيؤدي الخروج إلى مقاطعة التنزيلات.</string>
+    <string name="desktop_exit_confirm_running_generic">هناك مهام تنزيل غير مكتملة. سيؤدي الخروج إلى مقاطعة التنزيلات.</string>
 </resources>

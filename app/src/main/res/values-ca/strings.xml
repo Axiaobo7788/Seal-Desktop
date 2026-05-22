@@ -411,4 +411,7 @@
     <string name="desktop_download_detail_exit_code">Codi de sortida</string>
     <string name="desktop_download_detail_args">"Arguments de l'ordre"</string>
     <string name="desktop_download_detail_error">"Detalls de l'error"</string>
+    <string name="desktop_exit_confirm_title">Aturar les baixades i sortir?</string>
+    <string name="desktop_exit_confirm_running_count">Hi ha %1$d tasca de baixada en curs. En sortir, les baixades es interrompran.</string>
+    <string name="desktop_exit_confirm_running_generic">Hi ha tasques de baixada pendents. En sortir, les baixades es interrompran.</string>
 </resources>

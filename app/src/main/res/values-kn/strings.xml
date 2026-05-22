@@ -120,4 +120,7 @@
     <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
     <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
+    <string name="desktop_exit_confirm_title">ಡೌನ್‌ಲೋಡ್‌ಗಳನ್ನು ನಿಲ್ಲಿಸಿ ಹೊರಬರಬೇಕೆ?</string>
+    <string name="desktop_exit_confirm_running_count">ಈಗ %1$d ಡೌನ್‌ಲೋಡ್ ಕೆಲಸಗಳು ನಡೆಯುತ್ತಿವೆ. ಹೊರಬಂದರೆ ಡೌನ್‌ಲೋಡ್‌ಗಳು ಸ್ಥಗಿತವಾಗುತ್ತವೆ.</string>
+    <string name="desktop_exit_confirm_running_generic">ಪೂರ್ಣಗೊಳ್ಳದ ಡೌನ್‌ಲೋಡ್ ಕೆಲಸಗಳಿವೆ. ಹೊರಬಂದರೆ ಡೌನ್‌ಲೋಡ್‌ಗಳು ಸ್ಥಗಿತವಾಗುತ್ತವೆ.</string>
 </resources>

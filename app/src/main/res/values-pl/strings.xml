@@ -430,4 +430,7 @@
     <string name="desktop_download_detail_exit_code">Kod zakończenia</string>
     <string name="desktop_download_detail_args">Argumenty polecenia</string>
     <string name="desktop_download_detail_error">Szczegóły błędu</string>
+    <string name="desktop_exit_confirm_title">Zatrzymać pobieranie i zamknąć?</string>
+    <string name="desktop_exit_confirm_running_count">Trwa %1$d zadanie pobierania. Wyjście przerwie pobieranie.</string>
+    <string name="desktop_exit_confirm_running_generic">Są nieukończone pobierania. Wyjście przerwie pobieranie.</string>
 </resources>

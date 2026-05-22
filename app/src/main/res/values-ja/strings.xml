@@ -445,4 +445,7 @@
     <string name="desktop_download_detail_exit_code">終了コード</string>
     <string name="desktop_download_detail_args">コマンド引数</string>
     <string name="desktop_download_detail_error">エラー詳細</string>
+    <string name="desktop_exit_confirm_title">ダウンロードを終了して退出しますか？</string>
+    <string name="desktop_exit_confirm_running_count">%1$d 件のダウンロードが実行中です。退出するとダウンロードが中断されます。</string>
+    <string name="desktop_exit_confirm_running_generic">未完了のダウンロードがあります。退出するとダウンロードが中断されます。</string>
 </resources>

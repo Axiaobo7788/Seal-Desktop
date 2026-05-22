@@ -445,4 +445,7 @@
     <string name="desktop_download_detail_exit_code">รหัสออก</string>
     <string name="desktop_download_detail_args">อาร์กิวเมนต์คำสั่ง</string>
     <string name="desktop_download_detail_error">รายละเอียดข้อผิดพลาด</string>
+    <string name="desktop_exit_confirm_title">หยุดการดาวน์โหลดและออกจากแอป?</string>
+    <string name="desktop_exit_confirm_running_count">มีงานดาวน์โหลด %1$d รายการกำลังทำงานอยู่ การออกจากแอปจะทำให้การดาวน์โหลดถูกขัดจังหวะ</string>
+    <string name="desktop_exit_confirm_running_generic">มีงานดาวน์โหลดที่ยังไม่เสร็จ การออกจากแอปจะทำให้การดาวน์โหลดถูกขัดจังหวะ</string>
 </resources>

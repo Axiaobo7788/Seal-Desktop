@@ -213,9 +213,9 @@ fun main() = application {
                 val ongoingCount = downloadController.ongoingTaskCount()
                 val exitMessage =
                     if (ongoingCount > 0) {
-                        "当前有 $ongoingCount 个下载任务正在运行，退出将中断下载。"
+                        stringResource(Res.string.desktop_exit_confirm_running_count, ongoingCount)
                     } else {
-                        "当前仍有下载任务未完成，退出将中断下载。"
+                        stringResource(Res.string.desktop_exit_confirm_running_generic)
                     }
 
                 AnimatedAlertDialog(
@@ -225,7 +225,7 @@ fun main() = application {
                             showExitConfirmDialog = false
                         }
                     },
-                    title = { Text("结束下载并退出？") },
+                    title = { Text(stringResource(Res.string.desktop_exit_confirm_title)) },
                     text = { Text(exitMessage) },
                     dismissButton = {
                         TextButton(

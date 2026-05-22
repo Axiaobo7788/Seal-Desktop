@@ -433,4 +433,7 @@
     <string name="desktop_download_detail_exit_code">Mã thoát</string>
     <string name="desktop_download_detail_args">Tham số lệnh</string>
     <string name="desktop_download_detail_error">Chi tiết lỗi</string>
+    <string name="desktop_exit_confirm_title">Dừng tải xuống và thoát?</string>
+    <string name="desktop_exit_confirm_running_count">Có %1$d tác vụ tải xuống đang chạy. Thoát sẽ làm gián đoạn tải xuống.</string>
+    <string name="desktop_exit_confirm_running_generic">Có tác vụ tải xuống chưa hoàn thành. Thoát sẽ làm gián đoạn tải xuống.</string>
 </resources>

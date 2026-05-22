@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">Code ng paglabas</string>
     <string name="desktop_download_detail_args">Mga argumento ng utos</string>
     <string name="desktop_download_detail_error">Mga detalye ng error</string>
+    <string name="desktop_exit_confirm_title">Itigil ang mga download at lumabas?</string>
+    <string name="desktop_exit_confirm_running_count">May %1$d na download task na tumatakbo. Kapag lumabas, mahihinto ang mga download.</string>
+    <string name="desktop_exit_confirm_running_generic">May mga hindi pa tapos na download. Kapag lumabas, mahihinto ang mga download.</string>
 </resources>

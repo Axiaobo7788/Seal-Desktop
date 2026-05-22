@@ -456,4 +456,7 @@
     <string name="desktop_download_detail_exit_code">Излазни код</string>
     <string name="desktop_download_detail_args">Аргументи команде</string>
     <string name="desktop_download_detail_error">Детаљи грешке</string>
+    <string name="desktop_exit_confirm_title">Прекинути преузимања и изаћи?</string>
+    <string name="desktop_exit_confirm_running_count">У току је %1$d задатак преузимања. Излаз ће прекинути преузимања.</string>
+    <string name="desktop_exit_confirm_running_generic">Постоје недовршена преузимања. Излаз ће прекинути преузимања.</string>
 </resources>

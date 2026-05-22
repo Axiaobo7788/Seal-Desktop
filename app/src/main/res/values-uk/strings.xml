@@ -459,4 +459,7 @@
     <string name="desktop_download_detail_exit_code">Код виходу</string>
     <string name="desktop_download_detail_args">Аргументи команди</string>
     <string name="desktop_download_detail_error">Відомості про помилку</string>
+    <string name="desktop_exit_confirm_title">Зупинити завантаження і вийти?</string>
+    <string name="desktop_exit_confirm_running_count">Виконується %1$d завдання завантаження. Вихід перерве завантаження.</string>
+    <string name="desktop_exit_confirm_running_generic">Є незавершені завантаження. Вихід перерве завантаження.</string>
 </resources>

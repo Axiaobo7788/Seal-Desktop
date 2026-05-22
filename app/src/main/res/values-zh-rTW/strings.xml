@@ -478,4 +478,7 @@
     <string name="saved_urls">已儲存的連結</string>
     <string name="add_new_url">新增新連結</string>
     <string name="add_to">新增至 %1$s</string>
+    <string name="desktop_exit_confirm_title">結束下載並退出？</string>
+    <string name="desktop_exit_confirm_running_count">目前有 %1$d 個下載任務正在執行，退出將中斷下載。</string>
+    <string name="desktop_exit_confirm_running_generic">目前仍有下載任務未完成，退出將中斷下載。</string>
 </resources>

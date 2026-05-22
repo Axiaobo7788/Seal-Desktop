@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">Codice di uscita</string>
     <string name="desktop_download_detail_args">Argomenti del comando</string>
     <string name="desktop_download_detail_error">"Dettagli dell'errore"</string>
+    <string name="desktop_exit_confirm_title">Interrompere i download ed uscire?</string>
+    <string name="desktop_exit_confirm_running_count">Sono in corso %1$d attività di download. Uscendo si interromperanno i download.</string>
+    <string name="desktop_exit_confirm_running_generic">Ci sono download non completati. Uscendo si interromperanno i download.</string>
 </resources>

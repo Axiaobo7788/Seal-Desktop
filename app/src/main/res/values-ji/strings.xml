@@ -49,4 +49,7 @@
     <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
     <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
+    <string name="desktop_exit_confirm_title">אָפֿשטעלן אראפקלאָדס און אַרויסגיין?</string>
+    <string name="desktop_exit_confirm_running_count">עס לויפן %1$d אראפקלאָד־אַרבעט(ן). אַרויסגיין וועט אונטערברעכן די אראפקלאָדס.</string>
+    <string name="desktop_exit_confirm_running_generic">עס זענען ניט־ענדיקטע אראפקלאָד־אַרבעטן. אַרויסגיין וועט אונטערברעכן די אראפקלאָדס.</string>
 </resources>

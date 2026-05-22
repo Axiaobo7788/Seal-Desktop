@@ -450,4 +450,7 @@
     <string name="desktop_download_detail_exit_code">کد خروج</string>
     <string name="desktop_download_detail_args">آرگومان‌های فرمان</string>
     <string name="desktop_download_detail_error">جزئیات خطا</string>
+    <string name="desktop_exit_confirm_title">دانلودها را متوقف کرده و خارج می‌شوید؟</string>
+    <string name="desktop_exit_confirm_running_count">در حال حاضر %1$d وظیفه دانلود در حال اجراست. خروج باعث قطع دانلودها می‌شود.</string>
+    <string name="desktop_exit_confirm_running_generic">وظایف دانلود ناتمام وجود دارد. خروج باعث قطع دانلودها می‌شود.</string>
 </resources>

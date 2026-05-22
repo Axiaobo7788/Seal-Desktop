@@ -94,4 +94,7 @@
     <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
     <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
+    <string name="desktop_exit_confirm_title">Nutraukti atsisiuntimus ir išeiti?</string>
+    <string name="desktop_exit_confirm_running_count">Vyksta %1$d atsisiuntimo užduotis(-ys). Išeinant atsisiuntimai bus nutraukti.</string>
+    <string name="desktop_exit_confirm_running_generic">Yra nebaigtų atsisiuntimų. Išeinant atsisiuntimai bus nutraukti.</string>
 </resources>

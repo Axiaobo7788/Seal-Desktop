@@ -456,4 +456,7 @@
     <string name="desktop_download_detail_exit_code">Código de salida</string>
     <string name="desktop_download_detail_args">Argumentos del comando</string>
     <string name="desktop_download_detail_error">Detalles del error</string>
+    <string name="desktop_exit_confirm_title">¿Detener descargas y salir?</string>
+    <string name="desktop_exit_confirm_running_count">Hay %1$d tarea(s) de descarga en ejecución. Al salir se interrumpirán las descargas.</string>
+    <string name="desktop_exit_confirm_running_generic">Hay tareas de descarga sin terminar. Al salir se interrumpirán las descargas.</string>
 </resources>

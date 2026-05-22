@@ -450,4 +450,7 @@
     <string name="desktop_download_detail_exit_code">Çıkış kodu</string>
     <string name="desktop_download_detail_args">Komut argümanları</string>
     <string name="desktop_download_detail_error">Hata ayrıntıları</string>
+    <string name="desktop_exit_confirm_title">İndirmeleri durdurup çıkılsın mı?</string>
+    <string name="desktop_exit_confirm_running_count">%1$d indirme görevi çalışıyor. Çıkış yapmak indirmeleri keser.</string>
+    <string name="desktop_exit_confirm_running_generic">Tamamlanmamış indirme görevleri var. Çıkış yapmak indirmeleri keser.</string>
 </resources>
