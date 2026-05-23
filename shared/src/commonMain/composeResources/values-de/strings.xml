@@ -450,4 +450,7 @@
     <string name="desktop_download_detail_exit_code">Exit-Code</string>
     <string name="desktop_download_detail_args">Befehlsargumente</string>
     <string name="desktop_download_detail_error">Fehlerdetails</string>
+    <string name="desktop_exit_confirm_title">Downloads beenden und schließen?</string>
+    <string name="desktop_exit_confirm_running_count">Es laufen %1$d Download-Aufgabe(n). Beim Beenden werden die Downloads unterbrochen.</string>
+    <string name="desktop_exit_confirm_running_generic">Es gibt nicht abgeschlossene Downloads. Beim Beenden werden die Downloads unterbrochen.</string>
 </resources>

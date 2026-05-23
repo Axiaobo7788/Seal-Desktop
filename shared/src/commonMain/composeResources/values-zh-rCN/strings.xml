@@ -185,6 +185,9 @@
     <string name="desktop_action_failed_prefix">操作失败：%1$s</string>
     <string name="desktop_error_item_not_found">未找到该条目</string>
     <string name="desktop_error_link_empty">链接为空</string>
+    <string name="desktop_exit_confirm_title">结束下载并退出？</string>
+    <string name="desktop_exit_confirm_running_count">当前有 %1$d 个下载任务正在运行，退出将中断下载。</string>
+    <string name="desktop_exit_confirm_running_generic">当前仍有下载任务未完成，退出将中断下载。</string>
     <string name="restart">重新开始</string>
     <string name="status_error">发生错误</string>
     <string name="copy_link">复制链接</string>

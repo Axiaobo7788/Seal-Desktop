@@ -450,4 +450,7 @@
     <string name="desktop_download_detail_exit_code">എക്സിറ്റ് കോഡ്</string>
     <string name="desktop_download_detail_args">കമാൻഡ് ആർഗ്യുമെന്റുകൾ</string>
     <string name="desktop_download_detail_error">പിശക് വിശദാംശങ്ങൾ</string>
+    <string name="desktop_exit_confirm_title">ഡൗൺലോഡുകൾ നിർത്തി പുറത്തുകടക്കണോ?</string>
+    <string name="desktop_exit_confirm_running_count">ഇപ്പോൾ %1$d ഡൗൺലോഡ് ജോലികൾ പ്രവർത്തിക്കുന്നു. പുറത്തുകടന്നാൽ ഡൗൺലോഡുകൾ നിർത്തപ്പെടും.</string>
+    <string name="desktop_exit_confirm_running_generic">പൂർണ്ണമായിട്ടില്ലാത്ത ഡൗൺലോഡ് ജോലികൾ ഉണ്ട്. പുറത്തുകടന്നാൽ ഡൗൺലോഡുകൾ നിർത്തപ്പെടും.</string>
 </resources>

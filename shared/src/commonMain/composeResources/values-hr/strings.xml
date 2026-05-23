@@ -439,4 +439,7 @@
     <string name="desktop_download_detail_exit_code">Izlazni kod</string>
     <string name="desktop_download_detail_args">Argumenti naredbe</string>
     <string name="desktop_download_detail_error">Pojedinosti pogreške</string>
+    <string name="desktop_exit_confirm_title">Prekinuti preuzimanja i izaći?</string>
+    <string name="desktop_exit_confirm_running_count">U tijeku je %1$d zadatak preuzimanja. Izlazak će prekinuti preuzimanja.</string>
+    <string name="desktop_exit_confirm_running_generic">Postoje nedovršeni zadaci preuzimanja. Izlazak će prekinuti preuzimanja.</string>
 </resources>

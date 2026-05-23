@@ -443,4 +443,7 @@
     <string name="desktop_download_detail_exit_code">종료 코드</string>
     <string name="desktop_download_detail_args">명령 인수</string>
     <string name="desktop_download_detail_error">오류 세부정보</string>
+    <string name="desktop_exit_confirm_title">다운로드를 중단하고 종료할까요?</string>
+    <string name="desktop_exit_confirm_running_count">%1$d개의 다운로드 작업이 진행 중입니다. 종료하면 다운로드가 중단됩니다.</string>
+    <string name="desktop_exit_confirm_running_generic">완료되지 않은 다운로드 작업이 있습니다. 종료하면 다운로드가 중단됩니다.</string>
 </resources>

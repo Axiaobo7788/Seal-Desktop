@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">קוד יציאה</string>
     <string name="desktop_download_detail_args">ארגומנטים של הפקודה</string>
     <string name="desktop_download_detail_error">פרטי השגיאה</string>
+    <string name="desktop_exit_confirm_title">להפסיק הורדות ולצאת?</string>
+    <string name="desktop_exit_confirm_running_count">פועלות כעת %1$d משימות הורדה. היציאה תפסיק את ההורדות.</string>
+    <string name="desktop_exit_confirm_running_generic">יש משימות הורדה שלא הושלמו. היציאה תפסיק את ההורדות.</string>
 </resources>

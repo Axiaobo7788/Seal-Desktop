@@ -456,4 +456,7 @@
     <string name="desktop_download_detail_exit_code">Návratový kód</string>
     <string name="desktop_download_detail_args">Argumenty příkazu</string>
     <string name="desktop_download_detail_error">Podrobnosti chyby</string>
+    <string name="desktop_exit_confirm_title">Ukončit stahování a odejít?</string>
+    <string name="desktop_exit_confirm_running_count">Probíhá %1$d úloha stahování. Ukončení přeruší stahování.</string>
+    <string name="desktop_exit_confirm_running_generic">Jsou zde nedokončené úlohy stahování. Ukončení přeruší stahování.</string>
 </resources>

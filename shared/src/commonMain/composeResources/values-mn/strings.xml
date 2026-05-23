@@ -450,4 +450,7 @@
     <string name="desktop_download_detail_exit_code">Гарах код</string>
     <string name="desktop_download_detail_args">Тушаалын аргументууд</string>
     <string name="desktop_download_detail_error">Алдааны дэлгэрэнгүй</string>
+    <string name="desktop_exit_confirm_title">Таталтыг зогсоож гарах уу?</string>
+    <string name="desktop_exit_confirm_running_count">%1$d таталтын ажил явагдаж байна. Гарахад таталт тасалдана.</string>
+    <string name="desktop_exit_confirm_running_generic">Дуусаагүй таталт байна. Гарахад таталт тасалдана.</string>
 </resources>

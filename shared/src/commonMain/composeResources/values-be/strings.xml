@@ -414,4 +414,7 @@
     <string name="desktop_download_detail_exit_code">Код выхаду</string>
     <string name="desktop_download_detail_args">Аргументы каманды</string>
     <string name="desktop_download_detail_error">Падрабязнасці памылкі</string>
+    <string name="desktop_exit_confirm_title">Спыніць спампоўванні і выйсці?</string>
+    <string name="desktop_exit_confirm_running_count">Зараз выконваецца %1$d задача спампоўвання. Выхад перапыніць спампоўванні.</string>
+    <string name="desktop_exit_confirm_running_generic">Ёсць незавершаныя задачы спампоўвання. Выхад перапыніць спампоўванні.</string>
 </resources>

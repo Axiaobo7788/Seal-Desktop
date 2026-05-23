@@ -453,4 +453,7 @@
     <string name="desktop_download_detail_exit_code">Çıxış kodu</string>
     <string name="desktop_download_detail_args">Əmr arqumentləri</string>
     <string name="desktop_download_detail_error">Xəta təfərrüatları</string>
+    <string name="desktop_exit_confirm_title">Yükləmələri dayandırıb çıxmaq?</string>
+    <string name="desktop_exit_confirm_running_count">Hazırda %1$d yükləmə tapşırığı işləyir. Çıxış yükləmələri dayandıracaq.</string>
+    <string name="desktop_exit_confirm_running_generic">Tamamlanmamış yükləmə tapşırıqları var. Çıxış yükləmələri dayandıracaq.</string>
 </resources>

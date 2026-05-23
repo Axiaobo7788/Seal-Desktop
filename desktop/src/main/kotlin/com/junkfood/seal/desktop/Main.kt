@@ -90,6 +90,9 @@ import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.desktop_menu
 import com.junkfood.seal.shared.generated.resources.desktop_navigation
+import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_count
+import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_generic
+import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_title
 import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
 import com.junkfood.seal.shared.generated.resources.download_queue
 import com.junkfood.seal.shared.generated.resources.downloads_history
