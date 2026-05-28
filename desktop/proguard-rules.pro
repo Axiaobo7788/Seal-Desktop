@@ -1,0 +1,6 @@
+-dontwarn org.sqlite.**
+-dontwarn org.slf4j.**
+-dontwarn java.awt.**
+-dontwarn sun.font.**
+-dontwarn androidx.compose.**
+-dontwarn kotlinx.coroutines.**

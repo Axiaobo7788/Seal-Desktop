@@ -93,8 +93,10 @@ compose.desktop {
         buildTypes {
             release {
                 proguard {
-                    isEnabled.set(false)
+                    val isTestingUberJar = gradle.startParameter.taskNames.any { it.contains("packageUberJar", ignoreCase = true) }
+                    isEnabled.set(!isTestingUberJar)
                     version.set("7.6.0")
+                    configurationFiles.from(project.file("proguard-rules.pro"))
                 }
             }
         }
