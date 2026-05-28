@@ -15,7 +15,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            os: macos-15-intel
+            os: macos-13
             ffmpeg_url: https://evermeet.cx/ffmpeg/getrelease/zip
             ffprobe_url: https://evermeet.cx/ffprobe/getrelease/zip
           - arch: arm64
