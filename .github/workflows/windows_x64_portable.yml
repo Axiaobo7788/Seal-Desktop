@@ -88,7 +88,7 @@ jobs:
           }
 
           # Min (Uber-JAR)
-          $uberJar = Get-ChildItem -Path (Join-Path $desktopBuild "libs") -Filter "*-uber.jar" -File | Select-Object -First 1
+          $uberJar = Get-ChildItem -Path (Join-Path $desktopBuild "compose/jars") -Filter "*.jar" -File | Select-Object -First 1
           if (-not $uberJar) { throw "Cannot locate Uber-JAR" }
           $minDir = Join-Path $workspace "dist-min"
           New-Item -ItemType Directory -Force -Path $minDir | Out-Null

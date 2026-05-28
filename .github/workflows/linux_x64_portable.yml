@@ -85,7 +85,7 @@ jobs:
           fi
 
           # Min (Uber-JAR)
-          uber_jar=$(find "$desktop_build/libs" -type f -name "*-uber.jar" | head -n 1 || true)
+          uber_jar=$(find "$desktop_build/compose/jars" -type f -name "*.jar" | head -n 1 || true)
           if [ -z "$uber_jar" ]; then
             echo "Cannot locate Uber-JAR"
             exit 1

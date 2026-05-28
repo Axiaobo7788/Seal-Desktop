@@ -144,7 +144,7 @@ jobs:
           fi
 
           # Min (Uber-JAR)
-          uber_jar=$(find "$desktop_build/libs" -type f -name "*-uber.jar" | head -n 1 || true)
+          uber_jar=$(find "$desktop_build/compose/jars" -type f -name "*.jar" | head -n 1 || true)
           mkdir -p "$workspace/dist-min"
           if [ -n "$uber_jar" ] && [ -f "$uber_jar" ]; then
             cp "$uber_jar" "$workspace/dist-min/"
