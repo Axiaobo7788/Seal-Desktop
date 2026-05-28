@@ -68,12 +68,12 @@ jobs:
             chmod +x dist-bin/ffprobe
           fi
 
-      - name: Build portable (Linux)
+      - name: Build portable and uber-jar (Linux)
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
 
-      - name: Inject yt-dlp into distribution (Linux)
+      - name: Prepare Full, Lite, Min distributions (Linux)
         shell: bash
         run: |
           set -euo pipefail
@@ -84,6 +84,17 @@ jobs:
             exit 1
           fi
 
+          # Min (Uber-JAR)
+          uber_jar=$(find "$desktop_build/libs" -type f -name "*-uber.jar" | head -n 1 || true)
+          if [ -z "$uber_jar" ]; then
+            echo "Cannot locate Uber-JAR"
+            exit 1
+          fi
+          mkdir -p "$workspace/dist-min"
+          cp "$uber_jar" "$workspace/dist-min/"
+          echo "MIN_DIR=$workspace/dist-min" >> "$GITHUB_ENV"
+
+          # Locate app root
           binaries_root="$desktop_build/compose/binaries"
           if [ ! -d "$binaries_root" ]; then
             binaries_root=$(find "$desktop_build" -type d -name binaries | grep -m1 "compose/binaries" || true)
@@ -115,7 +126,17 @@ jobs:
           fi
 
           echo "Resolved app root: $app_root"
-          bin_dir="$app_root/bin"
+
+          # Lite (Without tools)
+          mkdir -p "$workspace/dist-lite"
+          cp -r "$app_root" "$workspace/dist-lite/app"
+          echo "LITE_DIR=$workspace/dist-lite/app" >> "$GITHUB_ENV"
+
+          # Full (With tools)
+          mkdir -p "$workspace/dist-full"
+          cp -r "$app_root" "$workspace/dist-full/app"
+          
+          bin_dir="$workspace/dist-full/app/bin"
           mkdir -p "$bin_dir"
           cp "$workspace/dist-bin/yt-dlp" "$bin_dir/yt-dlp"
           if [ -f "$workspace/dist-bin/ffmpeg" ]; then
@@ -124,17 +145,22 @@ jobs:
           if [ -f "$workspace/dist-bin/ffprobe" ]; then
             cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
           fi
+          echo "FULL_DIR=$workspace/dist-full/app" >> "$GITHUB_ENV"
 
-          launcher=$(find "$app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)
-          if [ -z "$launcher" ]; then
-            echo "No launcher found under app root: $app_root"
-            exit 1
-          fi
-
-          echo "PORTABLE_DIR=$app_root" >> "$GITHUB_ENV"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload Full artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: desktop-portable-linux-x64
-          path: ${{ env.PORTABLE_DIR }}
+          name: desktop-portable-linux-x64-full
+          path: ${{ env.FULL_DIR }}
+          
+      - name: Upload Lite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-linux-x64-lite
+          path: ${{ env.LITE_DIR }}
+          
+      - name: Upload Min artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-linux-x64-min
+          path: ${{ env.MIN_DIR }}

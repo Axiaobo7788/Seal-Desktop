@@ -73,12 +73,12 @@ jobs:
       # - name: Download yt-dlp (arm64)
       #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
 
-      - name: Build portable zip (Windows)
+      - name: Build portable and uber-jar (Windows)
         run: |
-          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
         shell: bash
 
-      - name: Inject yt-dlp into distribution (and locate app root)
+      - name: Prepare Full, Lite, Min distributions (Windows)
         shell: pwsh
         run: |
           $workspace = "$env:GITHUB_WORKSPACE"
@@ -87,6 +87,15 @@ jobs:
             throw "Build directory not found: $desktopBuild"
           }
 
+          # Min (Uber-JAR)
+          $uberJar = Get-ChildItem -Path (Join-Path $desktopBuild "libs") -Filter "*-uber.jar" -File | Select-Object -First 1
+          if (-not $uberJar) { throw "Cannot locate Uber-JAR" }
+          $minDir = Join-Path $workspace "dist-min"
+          New-Item -ItemType Directory -Force -Path $minDir | Out-Null
+          Copy-Item $uberJar.FullName -Destination $minDir -Force
+          "MIN_DIR=$minDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          # Locate app root
           $binariesRoot = Join-Path $workspace "desktop/build/compose/binaries"
           if (-not (Test-Path $binariesRoot)) {
             $binariesRoot = (Get-ChildItem $desktopBuild -Recurse -Directory -Filter binaries |
@@ -122,15 +131,22 @@ jobs:
 
           $appRootDir = Find-AppRoot $binariesRoot
           if (-not $appRootDir) {
-            Write-Host "Available directories under ${binariesRoot} (depth<=4):"
-            Get-ChildItem $binariesRoot -Directory -Recurse -Depth 4 | ForEach-Object { Write-Host "- $($_.FullName)" }
-            throw "Cannot locate Windows distributable app root (expected a directory containing both app/ and runtime/)"
+            throw "Cannot locate Windows distributable app root"
           }
-
           $appRoot = $appRootDir.FullName
-          Write-Host "Resolved app root: $appRoot"
 
-          $binDir = Join-Path $appRoot "bin"
+          # Lite
+          $liteDir = Join-Path $workspace "dist-lite\app"
+          New-Item -ItemType Directory -Force -Path $liteDir | Out-Null
+          Copy-Item "$appRoot\*" -Destination $liteDir -Recurse -Force
+          "LITE_DIR=$liteDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          # Full
+          $fullDir = Join-Path $workspace "dist-full\app"
+          New-Item -ItemType Directory -Force -Path $fullDir | Out-Null
+          Copy-Item "$appRoot\*" -Destination $fullDir -Recurse -Force
+          
+          $binDir = Join-Path $fullDir "bin"
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir "yt-dlp.exe") -Force
 
@@ -142,34 +158,22 @@ jobs:
           if (Test-Path $ffprobeSrc) {
             Copy-Item $ffprobeSrc -Destination (Join-Path $binDir "ffprobe.exe") -Force
           }
+          "FULL_DIR=$fullDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          $launcherExe = Get-ChildItem $appRoot -File -Filter *.exe -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -ne 'yt-dlp.exe' } |
-            Select-Object -First 1
-          if (-not $launcherExe) {
-            $launcherExe = Get-ChildItem $binDir -File -Filter *.exe -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -ne 'yt-dlp.exe' } |
-              Select-Object -First 1
-          }
-          if ($launcherExe) {
-            Write-Host "Launcher exe: $($launcherExe.FullName)"
-          } else {
-            $launcherBat = Get-ChildItem $appRoot -File -Filter *.bat -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($launcherBat) {
-              Write-Host "No launcher .exe found; launcher bat: $($launcherBat.FullName)"
-            } else {
-              Write-Host "Files at app root:" 
-              Get-ChildItem $appRoot -File | ForEach-Object { Write-Host "- $($_.Name)" }
-              Write-Host "Files at app root/bin:" 
-              Get-ChildItem $binDir -File | ForEach-Object { Write-Host "- $($_.Name)" }
-              throw "No launcher (.exe/.bat) found in distributable; packaging root is likely wrong"
-            }
-          }
-
-          "PORTABLE_DIR=$appRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload Full artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: desktop-portable-win-x64
-          path: ${{ env.PORTABLE_DIR }}
+          name: desktop-portable-win-x64-full
+          path: ${{ env.FULL_DIR }}
+
+      - name: Upload Lite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-win-x64-lite
+          path: ${{ env.LITE_DIR }}
+
+      - name: Upload Min artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-win-x64-min
+          path: ${{ env.MIN_DIR }}

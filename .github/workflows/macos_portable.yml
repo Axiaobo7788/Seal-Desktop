@@ -108,10 +108,10 @@ jobs:
 
           rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
 
-      - name: Build distributable (macOS ${{ matrix.arch }})
+      - name: Build distributable and uber-jar (macOS ${{ matrix.arch }})
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
 
       - name: Print jpackage logs on failure
         if: failure()
@@ -131,7 +131,7 @@ jobs:
             echo "No jpackage log directory found: $log_dir"
           fi
 
-      - name: Inject tools into .app bundle
+      - name: Prepare Full, Lite, Min distributions (macOS ${{ matrix.arch }})
         shell: bash
         run: |
           set -euo pipefail
@@ -143,14 +143,36 @@ jobs:
             exit 1
           fi
 
+          # Min (Uber-JAR)
+          uber_jar=$(find "$desktop_build/libs" -type f -name "*-uber.jar" | head -n 1 || true)
+          mkdir -p "$workspace/dist-min"
+          if [ -n "$uber_jar" ] && [ -f "$uber_jar" ]; then
+            cp "$uber_jar" "$workspace/dist-min/"
+          else
+            echo "Cannot locate Uber-JAR"
+            exit 1
+          fi
+          echo "MIN_DIR=$workspace/dist-min" >> "$GITHUB_ENV"
+
+          # Locate app bundle
           app_bundle=$(find "$desktop_build/compose/binaries" -type d -name "*.app" | head -n 1 || true)
           if [ -z "$app_bundle" ] || [ ! -d "$app_bundle" ]; then
             echo "Cannot locate macOS .app bundle under $desktop_build/compose/binaries"
             exit 1
           fi
-          
           echo "Resolved app bundle: $app_bundle"
-          bin_dir="$app_bundle/Contents/bin"
+          
+          # Lite (Without tools)
+          mkdir -p "$workspace/dist-lite"
+          cp -R "$app_bundle" "$workspace/dist-lite/"
+          echo "LITE_DIR=$workspace/dist-lite" >> "$GITHUB_ENV"
+          
+          # Full (With tools)
+          mkdir -p "$workspace/dist-full"
+          cp -R "$app_bundle" "$workspace/dist-full/"
+          
+          full_app_bundle=$(find "$workspace/dist-full" -type d -name "*.app" | head -n 1 || true)
+          bin_dir="$full_app_bundle/Contents/bin"
           mkdir -p "$bin_dir"
           
           cp "$workspace/dist-bin/yt-dlp_macos" "$bin_dir/yt-dlp_macos"
@@ -161,10 +183,22 @@ jobs:
             cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
           fi
 
-          echo "PORTABLE_DIR=$app_bundle" >> "$GITHUB_ENV"
+          echo "FULL_DIR=$workspace/dist-full" >> "$GITHUB_ENV"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload Full artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: desktop-portable-macos-${{ matrix.arch }}
-          path: ${{ env.PORTABLE_DIR }}
+          name: desktop-portable-macos-${{ matrix.arch }}-full
+          path: ${{ env.FULL_DIR }}
+
+      - name: Upload Lite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-macos-${{ matrix.arch }}-lite
+          path: ${{ env.LITE_DIR }}
+
+      - name: Upload Min artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-portable-macos-${{ matrix.arch }}-min
+          path: ${{ env.MIN_DIR }}

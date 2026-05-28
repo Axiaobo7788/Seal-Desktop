@@ -95,17 +95,31 @@ jobs:
 
             const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
             const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
-            const macosRunId = await findLatestSuccessfulRun("macos_x64_portable.yml");
-            const linuxArtifactId = await findArtifactId(linuxRunId, "desktop-portable-linux-x64");
-            const windowsArtifactId = await findArtifactId(windowsRunId, "desktop-portable-win-x64");
-            const macosArtifactId = await findArtifactId(macosRunId, "desktop-portable-macos");
+            const macosRunId = await findLatestSuccessfulRun("macos_portable.yml");
 
-            core.setOutput("linux_run_id", linuxRunId);
-            core.setOutput("windows_run_id", windowsRunId);
-            core.setOutput("macos_run_id", macosRunId);
-            core.setOutput("linux_artifact_id", linuxArtifactId);
-            core.setOutput("windows_artifact_id", windowsArtifactId);
-            core.setOutput("macos_artifact_id", macosArtifactId);
+            async function safeFindArtifactId(runId, artifactName) {
+              try { return await findArtifactId(runId, artifactName); } catch (e) { return null; }
+            }
+
+            const artifactsToFind = [
+              { runId: linuxRunId, name: "desktop-portable-linux-x64-full", out: "linux_full" },
+              { runId: linuxRunId, name: "desktop-portable-linux-x64-lite", out: "linux_lite" },
+              { runId: linuxRunId, name: "desktop-portable-linux-x64-min", out: "linux_min" },
+              { runId: windowsRunId, name: "desktop-portable-win-x64-full", out: "win_full" },
+              { runId: windowsRunId, name: "desktop-portable-win-x64-lite", out: "win_lite" },
+              { runId: windowsRunId, name: "desktop-portable-win-x64-min", out: "win_min" },
+              { runId: macosRunId, name: "desktop-portable-macos-x64-full", out: "mac_x64_full" },
+              { runId: macosRunId, name: "desktop-portable-macos-x64-lite", out: "mac_x64_lite" },
+              { runId: macosRunId, name: "desktop-portable-macos-x64-min", out: "mac_x64_min" },
+              { runId: macosRunId, name: "desktop-portable-macos-arm64-full", out: "mac_arm64_full" },
+              { runId: macosRunId, name: "desktop-portable-macos-arm64-lite", out: "mac_arm64_lite" },
+              { runId: macosRunId, name: "desktop-portable-macos-arm64-min", out: "mac_arm64_min" }
+            ];
+
+            for (const a of artifactsToFind) {
+              const id = await safeFindArtifactId(a.runId, a.name);
+              if (id) core.setOutput(a.out, id);
+            }
 
       - name: Download raw artifact zips (no repack)
         shell: bash
@@ -115,23 +129,36 @@ jobs:
           set -euo pipefail
           mkdir -p release-assets
 
-          curl -L \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.linux_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-linux-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
+          download_artifact() {
+            local id="$1"
+            local name="$2"
+            if [ -n "$id" ]; then
+              curl -L \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+                -o "release-assets/${name}.zip"
+            fi
+          }
 
-          curl -L \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.windows_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-windows-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
-
-          curl -L \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${{ steps.resolve_runs.outputs.macos_artifact_id }}/zip" \
-            -o "release-assets/seal-desktop-macos-x64-portable-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}.zip"
+          v="${{ steps.release_meta.outputs.version }}"
+          r="${{ steps.release_meta.outputs.release_type }}"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.linux_full }}" "seal-desktop-linux-x64-full-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_lite }}" "seal-desktop-linux-x64-lite-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_min }}" "seal-desktop-linux-x64-min-v${v}-${r}"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.win_full }}" "seal-desktop-windows-x64-full-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.win_lite }}" "seal-desktop-windows-x64-lite-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.win_min }}" "seal-desktop-windows-x64-min-v${v}-${r}"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full }}" "seal-desktop-macos-x64-full-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite }}" "seal-desktop-macos-x64-lite-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_min }}" "seal-desktop-macos-x64-min-v${v}-${r}"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full }}" "seal-desktop-macos-arm64-full-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite }}" "seal-desktop-macos-arm64-lite-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_min }}" "seal-desktop-macos-arm64-min-v${v}-${r}"
 
       - name: Publish to GitHub Release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
