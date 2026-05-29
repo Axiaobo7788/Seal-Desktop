@@ -71,7 +71,8 @@ jobs:
       - name: Build portable and uber-jar (Linux)
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
 
       - name: Prepare Full, Lite, Min distributions (Linux)
         shell: bash
@@ -148,19 +149,19 @@ jobs:
           echo "FULL_DIR=$workspace/dist-full/app" >> "$GITHUB_ENV"
 
       - name: Upload Full artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-linux-x64-full
           path: ${{ env.FULL_DIR }}
           
       - name: Upload Lite artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-linux-x64-lite
           path: ${{ env.LITE_DIR }}
           
       - name: Upload Min artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-linux-x64-min
           path: ${{ env.MIN_DIR }}

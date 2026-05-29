@@ -111,7 +111,8 @@ jobs:
       - name: Build distributable and uber-jar (macOS ${{ matrix.arch }})
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
 
       - name: Print jpackage logs on failure
         if: failure()
@@ -186,19 +187,19 @@ jobs:
           echo "FULL_DIR=$workspace/dist-full" >> "$GITHUB_ENV"
 
       - name: Upload Full artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-macos-${{ matrix.arch }}-full
           path: ${{ env.FULL_DIR }}
 
       - name: Upload Lite artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-macos-${{ matrix.arch }}-lite
           path: ${{ env.LITE_DIR }}
 
       - name: Upload Min artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-macos-${{ matrix.arch }}-min
           path: ${{ env.MIN_DIR }}

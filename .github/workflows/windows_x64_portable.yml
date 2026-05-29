@@ -75,7 +75,8 @@ jobs:
 
       - name: Build portable and uber-jar (Windows)
         run: |
-          ./gradlew :desktop:createReleaseDistributable :desktop:packageUberJarForCurrentOS --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
         shell: bash
 
       - name: Prepare Full, Lite, Min distributions (Windows)
@@ -161,19 +162,19 @@ jobs:
           "FULL_DIR=$fullDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Upload Full artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-win-x64-full
           path: ${{ env.FULL_DIR }}
 
       - name: Upload Lite artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-win-x64-lite
           path: ${{ env.LITE_DIR }}
 
       - name: Upload Min artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-win-x64-min
           path: ${{ env.MIN_DIR }}
