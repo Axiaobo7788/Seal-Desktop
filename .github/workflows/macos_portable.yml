@@ -16,12 +16,12 @@ jobs:
         include:
           - arch: x64
             os: macos-13
-            ffmpeg_url: https://evermeet.cx/ffmpeg/getrelease/zip
-            ffprobe_url: https://evermeet.cx/ffprobe/getrelease/zip
+            ffmpeg_url: https://www.osxexperts.net/ffmpeg80intel.zip
+            ffprobe_url: https://www.osxexperts.net/ffprobe80intel.zip
           - arch: arm64
             os: macos-15
-            ffmpeg_url: https://www.osxexperts.net/ffmpeg711arm.zip
-            ffprobe_url: https://www.osxexperts.net/ffprobe711arm.zip
+            ffmpeg_url: https://www.osxexperts.net/ffmpeg81arm.zip
+            ffprobe_url: https://www.osxexperts.net/ffprobe81arm.zip
             
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
