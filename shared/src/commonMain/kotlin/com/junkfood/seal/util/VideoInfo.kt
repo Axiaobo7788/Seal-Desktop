@@ -11,7 +11,7 @@ data class VideoInfo(
     val id: String = "",
     val title: String = "",
     val formats: List<Format>? = emptyList(),
-    //    val thumbnails: List<Thumbnail> = emptyList(),
+    val thumbnails: List<Thumbnail>? = emptyList(),
     val thumbnail: String? = null,
     val description: String? = null,
     val uploader: String? = null,
@@ -71,7 +71,11 @@ data class VideoInfo(
     @SerialName("requested_formats") val requestedFormats: List<Format>? = null,
     val filename: String? = null,
     @SerialName("_type") val type: String? = null,
-) : YoutubeDLInfo
+) : YoutubeDLInfo {
+    fun getBestThumbnailUrl(): String? {
+        return thumbnails?.lastOrNull()?.url ?: thumbnail
+    }
+}
 
 @Serializable
 data class Format(

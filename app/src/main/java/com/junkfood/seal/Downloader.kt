@@ -261,7 +261,7 @@ object Downloader {
             uploader = uploader ?: channel ?: uploaderId.toString(),
             duration = duration?.roundToInt() ?: 0,
             taskId = id + preferencesHash,
-            thumbnailUrl = thumbnail.toHttpsUrl(),
+            thumbnailUrl = getBestThumbnailUrl().toHttpsUrl(),
             fileSizeApprox = fileSize ?: fileSizeApprox ?: .0,
             playlistIndex = playlistIndex,
         )

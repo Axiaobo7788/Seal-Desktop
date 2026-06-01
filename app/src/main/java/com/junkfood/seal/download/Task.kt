@@ -153,7 +153,7 @@ data class Task(
                     uploader = info.uploader ?: info.channel ?: info.uploaderId.toString(),
                     extractorKey = info.extractorKey,
                     duration = info.duration?.roundToInt() ?: 0,
-                    thumbnailUrl = info.thumbnail.toHttpsUrl(),
+                    thumbnailUrl = info.getBestThumbnailUrl().toHttpsUrl(),
                     fileSizeApprox = info.fileSize ?: info.fileSizeApprox ?: .0,
                     videoFormats = videoFormats,
                     audioOnlyFormats = audioOnlyFormats,

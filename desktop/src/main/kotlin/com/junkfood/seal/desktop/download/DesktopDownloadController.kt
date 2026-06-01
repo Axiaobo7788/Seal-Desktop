@@ -434,7 +434,7 @@ class DesktopDownloadController(
                 it.copy(
                     title = selection.videoInfo.title.ifBlank { trimmed },
                     author = selection.videoInfo.uploader.orEmpty(),
-                    thumbnailUrl = selection.videoInfo.thumbnail,
+                    thumbnailUrl = selection.videoInfo.getBestThumbnailUrl(),
                     durationSeconds = selection.videoInfo.duration?.toInt(),
                     fileSizeApproxBytes = selection.videoInfo.fileSize ?: selection.videoInfo.fileSizeApprox,
                     extractorKey = selection.videoInfo.extractorKey,
@@ -627,7 +627,7 @@ class DesktopDownloadController(
                 it.copy(
                     title = videoInfo.title.ifBlank { trimmed },
                     author = videoInfo.uploader.orEmpty(),
-                    thumbnailUrl = videoInfo.thumbnail,
+                    thumbnailUrl = videoInfo.getBestThumbnailUrl(),
                     durationSeconds = videoInfo.duration?.toInt(),
                     fileSizeApproxBytes = videoInfo.fileSize ?: videoInfo.fileSizeApprox,
                     extractorKey = videoInfo.extractorKey,
@@ -866,7 +866,7 @@ private fun VideoInfo.toHistoryEntry(
         mediaType = mediaType,
         platform = platform,
         extractor = extractorKey,
-        thumbnailUrl = thumbnail,
+        thumbnailUrl = getBestThumbnailUrl(),
         filePath = filePath,
         fileSizeBytes = fileSizeBytes,
     )

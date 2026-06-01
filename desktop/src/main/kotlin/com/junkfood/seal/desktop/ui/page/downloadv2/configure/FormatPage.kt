@@ -539,7 +539,7 @@ private fun FormatPageImpl(
 @Composable
 private fun FormatPreviewHeader(videoInfo: VideoInfo) {
     val uriHandler = LocalUriHandler.current
-    val thumbnailUrl = videoInfo.thumbnail.toHttpsUrl()
+    val thumbnailUrl = videoInfo.getBestThumbnailUrl().toHttpsUrl()
     val durationText = formatDuration(videoInfo.duration?.toInt() ?: 0)
     val creatorText = listOf(videoInfo.uploader, videoInfo.uploaderId).firstOrNull { !it.isNullOrBlank() }.orEmpty()
     val sourceUrl = videoInfo.webpageUrl?.takeIf { it.isNotBlank() } ?: videoInfo.originalUrl?.takeIf { it.isNotBlank() }
