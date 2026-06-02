@@ -60,14 +60,16 @@ English
 
 <div align="center">
 <div>
-<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/1.jpg" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/2.jpg" width="30%" />
+<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/1.png" width="45%" />
+<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/2.png" width="45%" />
+<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/5.png" width="45%" />
+<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/8.png" width="45%" />
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" width="30%" />
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/5.jpg" width="30%" />
+<!-- <img src="fastlane/metadata/android/en-US/images/desktopScreenshots/5.png" width="30%" /> -->
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.jpg" width="30%" />
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.jpg" width="30%" />
-<img src="fastlane/metadata/android/en-US/images/desktopScreenshots/8.jpg" width="30%" />
+<!-- <img src="fastlane/metadata/android/en-US/images/desktopScreenshots/8.png" width="30%" /> -->
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/9.jpg" width="30%" />
 </div>
 </div>
