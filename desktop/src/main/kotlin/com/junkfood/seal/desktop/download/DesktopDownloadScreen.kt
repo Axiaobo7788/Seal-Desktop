@@ -380,8 +380,18 @@ fun DesktopDownloadScreen(
                     DownloadSheetPage.Input ->
                         DownloadInputSheet(
                             url = inputUrl,
-                            onUrlChange = { inputUrl = it },
-                            onPasteIntoUrl = { pasted -> inputUrl = pasted },
+                            onUrlChange = { newValue ->
+                                val urls = com.junkfood.seal.util.findURLsFromString(newValue)
+                                if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - inputUrl.length) > 1) {
+                                    inputUrl = urls.joinToString("\n")
+                                } else {
+                                    inputUrl = newValue
+                                }
+                            },
+                            onPasteIntoUrl = { pasted ->
+                                val urls = com.junkfood.seal.util.findURLsFromString(pasted)
+                                inputUrl = if (urls.isNotEmpty()) urls.joinToString("\n") else pasted
+                            },
                             onDismissRequest = {
                                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                                     showSheet = false

@@ -8,8 +8,6 @@ import androidx.compose.ui.res.stringResource
 import com.junkfood.seal.App
 import com.junkfood.seal.App.Companion.applicationScope
 import com.junkfood.seal.App.Companion.context
-import com.junkfood.seal.R
-import java.util.regex.Pattern
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,9 +58,6 @@ fun Int.toDurationText(): String =
         else "%02d:%02d".format(this / 60, this % 60)
     }
 
-private const val URL_REGEX_PATTERN =
-    "(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?"
-
 fun ClosedFloatingPointRange<Float>.toIntRange() =
     IntRange(start.roundToInt(), endInclusive.roundToInt())
 
@@ -101,22 +96,6 @@ fun getErrorReport(th: Throwable, url: String): String =
 )
 fun matchUrlFromString(s: String, isMatchingMultiLink: Boolean = false): String =
     findURLsFromString(s, !isMatchingMultiLink).joinToString(separator = "\n")
-
-fun findURLsFromString(input: String, firstMatchOnly: Boolean = false): List<String> {
-    val result = mutableListOf<String>()
-    val pattern = Pattern.compile(URL_REGEX_PATTERN)
-
-    with(pattern.matcher(input)) {
-        if (!firstMatchOnly) {
-            while (find()) {
-                result += group()
-            }
-        } else {
-            if (find()) result += (group())
-        }
-    }
-    return result
-}
 
 fun connectWithBlank(s1: String, s2: String): String {
     val blank = if (s1.isEmpty() || s2.isEmpty()) "" else " "

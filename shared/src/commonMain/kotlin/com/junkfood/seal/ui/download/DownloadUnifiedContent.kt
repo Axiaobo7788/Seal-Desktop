@@ -200,7 +200,14 @@ private fun InputUrlShared(
     OutlinedTextField(
         value = url,
         isError = error,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            val urls = com.junkfood.seal.util.findURLsFromString(newValue)
+            if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - url.length) > 1) {
+                onValueChange(urls.joinToString("\n"))
+            } else {
+                onValueChange(newValue)
+            }
+        },
         label = { Text(videoUrlLabel) },
         modifier = Modifier.padding(0.dp, 16.dp).fillMaxWidth(),
         textStyle = MaterialTheme.typography.bodyLarge,

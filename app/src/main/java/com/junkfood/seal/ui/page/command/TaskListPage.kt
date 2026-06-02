@@ -280,9 +280,18 @@ fun ColumnScope.TaskCreatorDialogContent(
         modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 24.dp),
     )
 
+    val handleValueChange: (String) -> Unit = { newValue ->
+        val urls = com.junkfood.seal.util.findURLsFromString(newValue)
+        if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - url.length) > 1) {
+            onValueChange(urls.joinToString("\n"))
+        } else {
+            onValueChange(newValue)
+        }
+    }
+
     OutlinedTextField(
         value = url,
-        onValueChange = onValueChange,
+        onValueChange = handleValueChange,
         label = { Text(text = stringResource(id = R.string.video_url)) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 3,
@@ -291,7 +300,7 @@ fun ColumnScope.TaskCreatorDialogContent(
             if (url.isNotEmpty()) {
                 ClearButton { onValueChange("") }
             } else {
-                PasteFromClipBoardButton(onPaste = onValueChange)
+                PasteFromClipBoardButton(onPaste = handleValueChange)
             }
         },
         textStyle = LocalTextStyle.current.merge(fontFamily = FontFamily.Monospace),

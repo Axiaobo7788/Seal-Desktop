@@ -37,7 +37,15 @@ fun DownloadScreenShared(
     ) {
         OutlinedTextField(
             value = state.url,
-            onValueChange = { onEvent(DownloadEvent.UrlChanged(it)) },
+            onValueChange = { newValue ->
+                val urls = com.junkfood.seal.util.findURLsFromString(newValue)
+                val newUrl = if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - state.url.length) > 1) {
+                    urls.joinToString("\n")
+                } else {
+                    newValue
+                }
+                onEvent(DownloadEvent.UrlChanged(newUrl))
+            },
             label = { Text(stringResource(Res.string.video_url)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),

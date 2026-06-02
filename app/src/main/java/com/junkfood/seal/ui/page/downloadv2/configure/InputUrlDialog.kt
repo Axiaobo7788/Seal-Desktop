@@ -147,7 +147,14 @@ private fun InputUrlPageImpl(
         )
         OutlinedTextField(
             value = url,
-            onValueChange = { url = it },
+            onValueChange = { newValue ->
+                val urls = findURLsFromString(newValue)
+                if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - url.length) > 1) {
+                    url = urls.joinToString("\n")
+                } else {
+                    url = newValue
+                }
+            },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).padding(horizontal = 32.dp),
             label = { Text(stringResource(R.string.video_url)) },
             maxLines = 3,

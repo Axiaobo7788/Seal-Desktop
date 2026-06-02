@@ -24,3 +24,16 @@ fun String.isNumberInRange(range: IntRange): Boolean = isNumberInRange(range.fir
 /** Ensure URL uses https; returns empty string if null. */
 fun String?.toHttpsUrl(): String =
     this?.let { if (it.startsWith("http:")) it.replaceFirst("http", "https") else it } ?: ""
+
+private const val URL_REGEX_PATTERN =
+    "(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?"
+
+private val URL_REGEX by lazy { Regex(URL_REGEX_PATTERN) }
+
+fun findURLsFromString(input: String, firstMatchOnly: Boolean = false): List<String> {
+    return if (firstMatchOnly) {
+        URL_REGEX.find(input)?.value?.let { listOf(it) } ?: emptyList()
+    } else {
+        URL_REGEX.findAll(input).map { it.value }.toList()
+    }
+}

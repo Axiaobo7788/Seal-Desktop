@@ -472,14 +472,24 @@ private fun NewDownloadTaskDialog(
 
                 OutlinedTextField(
                     value = url,
-                    onValueChange = { url = it },
+                    onValueChange = { newValue ->
+                        val urls = com.junkfood.seal.util.findURLsFromString(newValue)
+                        if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - url.length) > 1) {
+                            url = urls.joinToString("\n")
+                        } else {
+                            url = newValue
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(Res.string.video_url)) },
                     minLines = 3,
                     maxLines = 4,
                     trailingIcon = {
                         androidx.compose.material3.IconButton(onClick = {
-                            clipboardManager?.getText()?.text?.let { url = it }
+                            clipboardManager?.getText()?.text?.let {
+                                val urls = com.junkfood.seal.util.findURLsFromString(it)
+                                url = if (urls.isNotEmpty()) urls.joinToString("\n") else it
+                            }
                         }) {
                             Icon(Icons.Outlined.ContentPasteGo, null)
                         }
