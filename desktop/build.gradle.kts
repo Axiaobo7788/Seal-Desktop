@@ -104,12 +104,13 @@ compose.desktop {
         nativeDistributions {
             val osName = System.getProperty("os.name").lowercase()
             val currentTargetFormats = when {
-                osName.contains("mac") -> arrayOf(TargetFormat.Dmg)
-                osName.contains("win") -> arrayOf(TargetFormat.Msi)
-                else -> arrayOf(TargetFormat.Deb)
+                osName.contains("mac") -> arrayOf(TargetFormat.Dmg, TargetFormat.Pkg)
+                osName.contains("win") -> arrayOf(TargetFormat.Msi, TargetFormat.Exe)
+                else -> arrayOf(TargetFormat.Deb, TargetFormat.Rpm)
             }
 
             targetFormats(*currentTargetFormats)
+            appResourcesRootDir.set(project.layout.projectDirectory.dir("appResources"))
             packageName = "Seal"
             packageVersion = desktopPackageVersion
             

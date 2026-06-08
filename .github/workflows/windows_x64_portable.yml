@@ -73,10 +73,31 @@ jobs:
       # - name: Download yt-dlp (arm64)
       #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
 
-      - name: Build portable and uber-jar (Windows)
+      - name: Build Lite installers (Windows)
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
+          
+          mkdir -p dist-installers-lite
+          cp desktop/build/compose/binaries/main/msi/*.msi dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main/exe/*.exe dist-installers-lite/ || true
+        shell: bash
+
+      - name: Inject tools for Full version
+        shell: bash
+        run: |
+          mkdir -p desktop/appResources
+          cp dist-bin/* desktop/appResources/ || true
+
+      - name: Build Full installers and portable (Windows)
+        run: |
+          ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --rerun-tasks --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
+          
+          mkdir -p dist-installers-full
+          cp desktop/build/compose/binaries/main/msi/*.msi dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main/exe/*.exe dist-installers-full/ || true
         shell: bash
 
       - name: Prepare Full, Lite, Min distributions (Windows)
@@ -88,13 +109,7 @@ jobs:
             throw "Build directory not found: $desktopBuild"
           }
 
-          # Min (Uber-JAR)
-          $uberJar = Get-ChildItem -Path (Join-Path $desktopBuild "compose/jars") -Filter "*.jar" -File | Select-Object -First 1
-          if (-not $uberJar) { throw "Cannot locate Uber-JAR" }
-          $minDir = Join-Path $workspace "dist-min"
-          New-Item -ItemType Directory -Force -Path $minDir | Out-Null
-          Copy-Item $uberJar.FullName -Destination $minDir -Force
-          "MIN_DIR=$minDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
 
           # Locate app root
           $binariesRoot = Join-Path $workspace "desktop/build/compose/binaries"
@@ -136,45 +151,38 @@ jobs:
           }
           $appRoot = $appRootDir.FullName
 
-          # Lite
-          $liteDir = Join-Path $workspace "dist-lite\app"
-          New-Item -ItemType Directory -Force -Path $liteDir | Out-Null
-          Copy-Item "$appRoot\*" -Destination $liteDir -Recurse -Force
-          "LITE_DIR=$liteDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          # Portable
+          $portableDir = Join-Path $workspace "dist-portable\app"
+          New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
+          Copy-Item "$appRoot\*" -Destination $portableDir -Recurse -Force
+          "PORTABLE_DIR=$portableDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          # Full
-          $fullDir = Join-Path $workspace "dist-full\app"
-          New-Item -ItemType Directory -Force -Path $fullDir | Out-Null
-          Copy-Item "$appRoot\*" -Destination $fullDir -Recurse -Force
-          
-          $binDir = Join-Path $fullDir "bin"
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          Copy-Item (Join-Path $workspace "dist-bin/yt-dlp.exe") -Destination (Join-Path $binDir "yt-dlp.exe") -Force
-
-          $ffmpegSrc = Join-Path $workspace "dist-bin/ffmpeg.exe"
-          if (Test-Path $ffmpegSrc) {
-            Copy-Item $ffmpegSrc -Destination (Join-Path $binDir "ffmpeg.exe") -Force
-          }
-          $ffprobeSrc = Join-Path $workspace "dist-bin/ffprobe.exe"
-          if (Test-Path $ffprobeSrc) {
-            Copy-Item $ffprobeSrc -Destination (Join-Path $binDir "ffprobe.exe") -Force
-          }
-          "FULL_DIR=$fullDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-      - name: Upload Full artifact
+      - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-win-x64-full
-          path: ${{ env.FULL_DIR }}
+          path: ${{ env.PORTABLE_DIR }}
 
-      - name: Upload Lite artifact
+      - name: Upload Lite MSI Installer artifact
         uses: actions/upload-artifact@v5
         with:
-          name: desktop-portable-win-x64-lite
-          path: ${{ env.LITE_DIR }}
+          name: desktop-installer-win-x64-lite-msi
+          path: dist-installers-lite/*.msi
 
-      - name: Upload Min artifact
+      - name: Upload Full MSI Installer artifact
         uses: actions/upload-artifact@v5
         with:
-          name: desktop-portable-win-x64-min
-          path: ${{ env.MIN_DIR }}
+          name: desktop-installer-win-x64-full-msi
+          path: dist-installers-full/*.msi
+
+      - name: Upload Lite EXE Installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: desktop-installer-win-x64-lite-exe
+          path: dist-installers-lite/*.exe
+
+      - name: Upload Full EXE Installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: desktop-installer-win-x64-full-exe
+          path: dist-installers-full/*.exe

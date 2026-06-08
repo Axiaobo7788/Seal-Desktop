@@ -60,6 +60,7 @@ class DesktopDownloadController(
     private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
     private val appSettingsProvider: () -> DesktopAppSettings = { DesktopAppSettings() },
 ) {
+    val environmentMissingEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     var filter by mutableStateOf(DownloadQueueFilter.All)
     var viewMode by mutableStateOf(DownloadQueueViewMode.Grid)
 
@@ -540,6 +541,17 @@ class DesktopDownloadController(
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
                 }
+            } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
+                appendLog("Error: ${e.message}")
+                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = DownloadQueueStatus.Error,
+                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                    )
+                }
+                environmentMissingEvent.tryEmit(Unit)
+                return@launchManagedDownload
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")
@@ -615,7 +627,18 @@ class DesktopDownloadController(
                             proxyUrl = runtimeProxy,
                         )
                     }
-                } catch (e: Exception) {
+                } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
+                appendLog("Error: ${e.message}")
+                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = DownloadQueueStatus.Error,
+                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                    )
+                }
+                environmentMissingEvent.tryEmit(Unit)
+                return@launchManagedDownload
+            } catch (e: Exception) {
                     appendLog("metadata failed: ${e.message}")
                     VideoInfo(originalUrl = trimmed, webpageUrl = trimmed, title = trimmed)
                 }
@@ -735,6 +758,17 @@ class DesktopDownloadController(
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
                 }
+            } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
+                appendLog("Error: ${e.message}")
+                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = DownloadQueueStatus.Error,
+                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                    )
+                }
+                environmentMissingEvent.tryEmit(Unit)
+                return@launchManagedDownload
             } catch (e: Exception) {
                 appendLog("download failed: ${e.message}")
                 appendItemLog(itemId, "[err] ${e.message}")

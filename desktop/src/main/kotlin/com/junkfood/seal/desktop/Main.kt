@@ -321,6 +321,18 @@ private fun DesktopApp(
 ) {
     var current by remember { mutableStateOf(Destination.DownloadQueue) }
     val settingsState = rememberDesktopSettingsState()
+    var showEnvSetupDialog by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(downloadController) {
+        downloadController.environmentMissingEvent.collect {
+            showEnvSetupDialog = true
+        }
+    }
+
+    com.junkfood.seal.desktop.ui.DesktopEnvironmentSetupDialog(
+        visible = showEnvSetupDialog,
+        onDismissRequest = { showEnvSetupDialog = false }
+    )
 
     androidx.compose.runtime.LaunchedEffect(appSettingsState, settingsState) {
         com.junkfood.seal.desktop.network.DesktopGlobalProxy.initialize(appSettingsState, settingsState, this)

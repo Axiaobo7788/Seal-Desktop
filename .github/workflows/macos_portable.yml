@@ -108,11 +108,32 @@ jobs:
 
           rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
 
-      - name: Build distributable and uber-jar (macOS ${{ matrix.arch }})
+      - name: Build Lite installers (macOS ${{ matrix.arch }})
         shell: bash
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
+          
+          mkdir -p dist-installers-lite
+          cp desktop/build/compose/binaries/main/dmg/*.dmg dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main/pkg/*.pkg dist-installers-lite/ || true
+
+      - name: Inject tools for Full version
+        shell: bash
+        run: |
+          mkdir -p desktop/appResources
+          cp dist-bin/* desktop/appResources/ || true
+
+      - name: Build Full installers and portable (macOS ${{ matrix.arch }})
+        shell: bash
+        run: |
+          ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --rerun-tasks --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
+          
+          mkdir -p dist-installers-full
+          cp desktop/build/compose/binaries/main/dmg/*.dmg dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main/pkg/*.pkg dist-installers-full/ || true
 
       - name: Print jpackage logs on failure
         if: failure()
@@ -144,16 +165,7 @@ jobs:
             exit 1
           fi
 
-          # Min (Uber-JAR)
-          uber_jar=$(find "$desktop_build/compose/jars" -type f -name "*.jar" | head -n 1 || true)
-          mkdir -p "$workspace/dist-min"
-          if [ -n "$uber_jar" ] && [ -f "$uber_jar" ]; then
-            cp "$uber_jar" "$workspace/dist-min/"
-          else
-            echo "Cannot locate Uber-JAR"
-            exit 1
-          fi
-          echo "MIN_DIR=$workspace/dist-min" >> "$GITHUB_ENV"
+
 
           # Locate app bundle
           app_bundle=$(find "$desktop_build/compose/binaries" -type d -name "*.app" | head -n 1 || true)
@@ -163,43 +175,37 @@ jobs:
           fi
           echo "Resolved app bundle: $app_bundle"
           
-          # Lite (Without tools)
-          mkdir -p "$workspace/dist-lite"
-          cp -R "$app_bundle" "$workspace/dist-lite/"
-          echo "LITE_DIR=$workspace/dist-lite" >> "$GITHUB_ENV"
-          
-          # Full (With tools)
-          mkdir -p "$workspace/dist-full"
-          cp -R "$app_bundle" "$workspace/dist-full/"
-          
-          full_app_bundle=$(find "$workspace/dist-full" -type d -name "*.app" | head -n 1 || true)
-          bin_dir="$full_app_bundle/Contents/bin"
-          mkdir -p "$bin_dir"
-          
-          cp "$workspace/dist-bin/yt-dlp_macos" "$bin_dir/yt-dlp_macos"
-          if [ -f "$workspace/dist-bin/ffmpeg" ]; then
-            cp "$workspace/dist-bin/ffmpeg" "$bin_dir/ffmpeg"
-          fi
-          if [ -f "$workspace/dist-bin/ffprobe" ]; then
-            cp "$workspace/dist-bin/ffprobe" "$bin_dir/ffprobe"
-          fi
+          # Portable
+          mkdir -p "$workspace/dist-portable"
+          cp -R "$app_bundle" "$workspace/dist-portable/"
+          echo "PORTABLE_DIR=$workspace/dist-portable" >> "$GITHUB_ENV"
 
-          echo "FULL_DIR=$workspace/dist-full" >> "$GITHUB_ENV"
-
-      - name: Upload Full artifact
+      - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v5
         with:
           name: desktop-portable-macos-${{ matrix.arch }}-full
-          path: ${{ env.FULL_DIR }}
+          path: ${{ env.PORTABLE_DIR }}
 
-      - name: Upload Lite artifact
+      - name: Upload Lite DMG Installer artifact
         uses: actions/upload-artifact@v5
         with:
-          name: desktop-portable-macos-${{ matrix.arch }}-lite
-          path: ${{ env.LITE_DIR }}
+          name: desktop-installer-macos-${{ matrix.arch }}-lite-dmg
+          path: dist-installers-lite/*.dmg
 
-      - name: Upload Min artifact
+      - name: Upload Full DMG Installer artifact
         uses: actions/upload-artifact@v5
         with:
-          name: desktop-portable-macos-${{ matrix.arch }}-min
-          path: ${{ env.MIN_DIR }}
+          name: desktop-installer-macos-${{ matrix.arch }}-full-dmg
+          path: dist-installers-full/*.dmg
+
+      - name: Upload Lite PKG Installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: desktop-installer-macos-${{ matrix.arch }}-lite-pkg
+          path: dist-installers-lite/*.pkg
+
+      - name: Upload Full PKG Installer artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: desktop-installer-macos-${{ matrix.arch }}-full-pkg
+          path: dist-installers-full/*.pkg

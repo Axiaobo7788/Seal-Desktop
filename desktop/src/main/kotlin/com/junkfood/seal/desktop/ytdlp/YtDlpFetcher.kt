@@ -1,83 +1,110 @@
 package com.junkfood.seal.desktop.ytdlp
 
-import java.io.BufferedInputStream
-import java.io.IOException
-import java.net.URL
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.isExecutable
 import kotlin.io.path.setPosixFilePermissions
 
+class EnvironmentMissingException(message: String) : Exception(message)
+
 /**
- * Fetch and cache yt-dlp binary per-platform. Keeps a pinned version for reproducibility.
+ * Locates yt-dlp binary either from the bundled resources or from the system PATH.
+ * Retains the name YtDlpFetcher for compatibility with existing codebase.
  */
 class YtDlpFetcher(
-    /**
-     * version: release tag (e.g. "2024.11.04") or "latest" to always use the newest asset.
-     */
-    private val version: String = DEFAULT_VERSION,
-    private val cacheRoot: Path = defaultCacheRoot(),
+    // Retained for API compatibility but unused in the new logic
+    private val version: String = "latest",
+    private val cacheRoot: Path? = null,
 ) {
     private val platform: Platform = detectPlatform()
 
     /**
-     * Returns the expected cache location for the configured [version] and detected platform.
-     * This does not check existence.
+     * Required for API compatibility with YtdlpUpdateCard.
+     * With the new architecture, we no longer maintain a standalone cache,
+     * so this always returns a dummy path or the system path if needed.
      */
-    fun cachedBinaryPath(): Path = cacheRoot.resolve(version).resolve(platform.binaryName)
+    fun cachedBinaryPath(): Path = Path.of("")
 
     /**
-     * Best-effort: returns an existing binary without triggering a download.
-     * Prefers bundled binaries, then cached binaries.
+     * Best-effort: returns an existing binary without throwing exceptions.
      */
     fun findExistingBinary(): Path? {
-        findBundledBinary()?.let { return it }
-        val cached = cachedBinaryPath()
-        return cached.takeIf { it.exists() }
+        return findBundledBinary() ?: findSystemBinary()
     }
 
     /**
-     * Deletes the cached binary (if any). Bundled binaries are never deleted.
+     * Required for API compatibility. Now a no-op because we don't manage caching anymore.
      */
     fun invalidateCachedBinary(): Boolean {
-        val cached = cachedBinaryPath()
-        return runCatching {
-            if (cached.exists()) Files.delete(cached)
-            true
-        }.getOrDefault(false)
+        return false
     }
 
+    /**
+     * Locates the binary or throws EnvironmentMissingException if not found.
+     */
     fun ensureBinary(): Path {
-        findBundledBinary()?.let { return it }
-        val target = cachedBinaryPath()
-        if (!target.exists()) {
-            target.parent.createDirectories()
-            val primaryUrl = platform.primaryDownloadUrl(version)
-            val fallbackUrl = platform.fallbackDownloadUrl(version)
-            runCatching { downloadBinary(target, primaryUrl) }
-                .recoverCatching { downloadBinary(target, fallbackUrl) }
-                .getOrElse { throw it }
-            markExecutable(target)
-        } else if (!target.isExecutable()) {
-            // Re-assert executable bit if cache was carried over from previous runs.
-            markExecutable(target)
-        }
-        return target
+        return findExistingBinary() ?: throw EnvironmentMissingException("yt-dlp is not bundled and not found in system PATH.")
     }
 
-    private fun downloadBinary(target: Path, url: String) {
-        try {
-            URL(url).openStream().use { input ->
-                BufferedInputStream(input).use { buffered ->
-                    Files.copy(buffered, target, StandardCopyOption.REPLACE_EXISTING)
-                }
-            }
-        } catch (ioe: IOException) {
-            throw IOException("Failed to download yt-dlp from $url", ioe)
+    private fun findBundledBinary(): Path? {
+        val candidates = mutableListOf<Path>()
+
+        // 1) Current working directory
+        runCatching {
+            candidates.add(Path.of(System.getProperty("user.dir")).resolve(platform.binaryName))
         }
+
+        // 1a) Common distributable layout
+        runCatching {
+            candidates.add(Path.of(System.getProperty("user.dir")).resolve("bin").resolve(platform.binaryName))
+        }
+
+        // 1b) Compose Desktop appResources
+        runCatching {
+            val resourcesDir = System.getProperty("compose.application.resources.dir")
+            if (resourcesDir != null) {
+                candidates.add(Path.of(resourcesDir).resolve(platform.binaryName))
+            }
+        }
+
+        // 2) Directory of the running code source
+        runCatching {
+            val location = YtDlpFetcher::class.java.protectionDomain.codeSource.location
+            val codePath = Path.of(location.toURI())
+            val baseDir = if (Files.isDirectory(codePath)) codePath else codePath.parent
+            if (baseDir != null) {
+                candidates.add(baseDir.resolve(platform.binaryName))
+                baseDir.parent?.resolve(platform.binaryName)?.let(candidates::add)
+                candidates.add(baseDir.resolve("bin").resolve(platform.binaryName))
+                baseDir.parent?.resolve("bin")?.resolve(platform.binaryName)?.let(candidates::add)
+            }
+        }
+
+        val found = candidates.firstOrNull { it.exists() }
+        if (found != null) {
+            if (!found.isExecutable()) {
+                markExecutable(found)
+            }
+            return found
+        }
+        return null
+    }
+
+    private fun findSystemBinary(): Path? {
+        val binaryName = if (System.getProperty("os.name").lowercase().contains("win")) "yt-dlp.exe" else "yt-dlp"
+        val pathEnv = System.getenv("PATH") ?: return null
+        val separator = File.pathSeparator
+        
+        val paths = pathEnv.split(separator)
+        for (dir in paths) {
+            val file = Path.of(dir).resolve(binaryName)
+            if (file.exists() && file.isExecutable()) {
+                return file
+            }
+        }
+        return null
     }
 
     private fun markExecutable(target: Path) {
@@ -94,74 +121,9 @@ class YtDlpFetcher(
                 java.nio.file.attribute.PosixFilePermission.OTHERS_READ,
             ))
         } catch (_: UnsupportedOperationException) {
-            // Fallback best-effort: ignore if filesystem doesn't support POSIX perms
         }
         if (!target.isExecutable()) {
             target.toFile().setExecutable(true, /*ownerOnly=*/false)
-        }
-    }
-
-    private fun findBundledBinary(): Path? {
-        val candidates = mutableListOf<Path>()
-
-        // 1) Current working directory (best-effort; not always the app dir on Windows).
-        runCatching {
-            candidates.add(Path.of(System.getProperty("user.dir")).resolve(platform.binaryName))
-        }
-
-        // 1a) Common distributable layout: <root>/bin/yt-dlp(.exe)
-        runCatching {
-            candidates.add(Path.of(System.getProperty("user.dir")).resolve("bin").resolve(platform.binaryName))
-        }
-
-        // 2) Directory of the running code source (works well for packaged distributions).
-        runCatching {
-            val location = YtDlpFetcher::class.java.protectionDomain.codeSource.location
-            val codePath = Path.of(location.toURI())
-            val baseDir = if (Files.isDirectory(codePath)) codePath else codePath.parent
-            if (baseDir != null) {
-                candidates.add(baseDir.resolve(platform.binaryName))
-                // common layout: app/<something>.jar, binary placed next to exe one level above
-                baseDir.parent?.resolve(platform.binaryName)?.let(candidates::add)
-
-                // distributable layout: <root>/app/lib/*.jar -> <root>/app/bin or <root>/bin
-                candidates.add(baseDir.resolve("bin").resolve(platform.binaryName))
-                baseDir.parent?.resolve("bin")?.resolve(platform.binaryName)?.let(candidates::add)
-            }
-        }
-
-        // 3) Fallback: inspect classpath entries and try their parents.
-        runCatching {
-            val classPath = System.getProperty("java.class.path") ?: return@runCatching
-            classPath.split(System.getProperty("path.separator") ?: ";")
-                .asSequence()
-                .mapNotNull { runCatching { Path.of(it) }.getOrNull() }
-                .mapNotNull { p -> if (Files.isDirectory(p)) p else p.parent }
-                .take(5)
-                .forEach { dir ->
-                    candidates.add(dir.resolve(platform.binaryName))
-                    dir.parent?.resolve(platform.binaryName)?.let(candidates::add)
-                }
-        }
-
-        val found = candidates.firstOrNull { it.exists() }
-        if (found != null) {
-            if (!found.isExecutable()) {
-                markExecutable(found)
-            }
-            return found
-        }
-        return null
-    }
-
-    companion object {
-        private const val DEFAULT_VERSION = "latest"
-
-        private fun defaultCacheRoot(): Path {
-            val base = System.getenv("XDG_CACHE_HOME")?.let { Path.of(it) }
-            if (base != null) return base.resolve("seal/yt-dlp")
-            val userHome = System.getProperty("user.home")
-            return Path.of(userHome, ".cache", "seal", "yt-dlp")
         }
     }
 }
@@ -173,32 +135,7 @@ private enum class Platform(val binaryName: String) {
     MacUniversal("yt-dlp_macos"),
     LinuxArm64("yt-dlp_linux_aarch64"),
     LinuxX64("yt-dlp_linux");
-
-    fun primaryDownloadUrl(version: String): String =
-        when (this) {
-            WindowsX64 -> assetUrl(version, "yt-dlp.exe")
-            WindowsX86 -> assetUrl(version, "yt-dlp_x86.exe")
-            WindowsArm64 -> assetUrl(version, "yt-dlp_arm64.exe")
-            MacUniversal -> assetUrl(version, "yt-dlp_macos")
-            LinuxArm64 -> assetUrl(version, "yt-dlp_linux_aarch64")
-            LinuxX64 -> assetUrl(version, "yt-dlp_linux")
-        }
-
-    fun fallbackDownloadUrl(version: String): String =
-        when (this) {
-            MacUniversal -> assetUrl(version, "yt-dlp_macos")
-            WindowsX64, WindowsX86, WindowsArm64 -> assetUrl(version, "yt-dlp.exe")
-            LinuxX64 -> assetUrl(version, "yt-dlp_linux")
-            LinuxArm64 -> assetUrl(version, "yt-dlp_linux_aarch64")
-        }
 }
-
-private fun assetUrl(version: String, asset: String): String =
-    if (version == "latest") {
-        "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$asset"
-    } else {
-        "https://github.com/yt-dlp/yt-dlp/releases/download/$version/$asset"
-    }
 
 private fun detectPlatform(): Platform {
     val os = System.getProperty("os.name").lowercase()

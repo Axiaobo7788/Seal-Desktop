@@ -102,18 +102,26 @@ jobs:
             }
 
             const artifactsToFind = [
-              { runId: linuxRunId, name: "desktop-portable-linux-x64-full", out: "linux_full" },
-              { runId: linuxRunId, name: "desktop-portable-linux-x64-lite", out: "linux_lite" },
-              { runId: linuxRunId, name: "desktop-portable-linux-x64-min", out: "linux_min" },
-              { runId: windowsRunId, name: "desktop-portable-win-x64-full", out: "win_full" },
-              { runId: windowsRunId, name: "desktop-portable-win-x64-lite", out: "win_lite" },
-              { runId: windowsRunId, name: "desktop-portable-win-x64-min", out: "win_min" },
-              { runId: macosRunId, name: "desktop-portable-macos-x64-full", out: "mac_x64_full" },
-              { runId: macosRunId, name: "desktop-portable-macos-x64-lite", out: "mac_x64_lite" },
-              { runId: macosRunId, name: "desktop-portable-macos-x64-min", out: "mac_x64_min" },
-              { runId: macosRunId, name: "desktop-portable-macos-arm64-full", out: "mac_arm64_full" },
-              { runId: macosRunId, name: "desktop-portable-macos-arm64-lite", out: "mac_arm64_lite" },
-              { runId: macosRunId, name: "desktop-portable-macos-arm64-min", out: "mac_arm64_min" }
+              { runId: linuxRunId, name: "desktop-portable-linux-x64-full", out: "linux_portable_full" },
+              { runId: windowsRunId, name: "desktop-portable-win-x64-full", out: "win_portable_full" },
+              { runId: macosRunId, name: "desktop-portable-macos-x64-full", out: "mac_x64_portable_full" },
+              { runId: macosRunId, name: "desktop-portable-macos-arm64-full", out: "mac_arm64_portable_full" },
+              { runId: linuxRunId, name: "desktop-installer-linux-x64-lite-deb", out: "linux_lite_deb" },
+              { runId: linuxRunId, name: "desktop-installer-linux-x64-full-deb", out: "linux_full_deb" },
+              { runId: linuxRunId, name: "desktop-installer-linux-x64-lite-rpm", out: "linux_lite_rpm" },
+              { runId: linuxRunId, name: "desktop-installer-linux-x64-full-rpm", out: "linux_full_rpm" },
+              { runId: windowsRunId, name: "desktop-installer-win-x64-lite-msi", out: "win_lite_msi" },
+              { runId: windowsRunId, name: "desktop-installer-win-x64-full-msi", out: "win_full_msi" },
+              { runId: windowsRunId, name: "desktop-installer-win-x64-lite-exe", out: "win_lite_exe" },
+              { runId: windowsRunId, name: "desktop-installer-win-x64-full-exe", out: "win_full_exe" },
+              { runId: macosRunId, name: "desktop-installer-macos-x64-lite-dmg", out: "mac_x64_lite_dmg" },
+              { runId: macosRunId, name: "desktop-installer-macos-x64-full-dmg", out: "mac_x64_full_dmg" },
+              { runId: macosRunId, name: "desktop-installer-macos-x64-lite-pkg", out: "mac_x64_lite_pkg" },
+              { runId: macosRunId, name: "desktop-installer-macos-x64-full-pkg", out: "mac_x64_full_pkg" },
+              { runId: macosRunId, name: "desktop-installer-macos-arm64-lite-dmg", out: "mac_arm64_lite_dmg" },
+              { runId: macosRunId, name: "desktop-installer-macos-arm64-full-dmg", out: "mac_arm64_full_dmg" },
+              { runId: macosRunId, name: "desktop-installer-macos-arm64-lite-pkg", out: "mac_arm64_lite_pkg" },
+              { runId: macosRunId, name: "desktop-installer-macos-arm64-full-pkg", out: "mac_arm64_full_pkg" }
             ];
 
             for (const a of artifactsToFind) {
@@ -144,21 +152,32 @@ jobs:
           v="${{ steps.release_meta.outputs.version }}"
           r="${{ steps.release_meta.outputs.release_type }}"
           
-          download_artifact "${{ steps.resolve_runs.outputs.linux_full }}" "seal-desktop-linux-x64-full-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.linux_lite }}" "seal-desktop-linux-x64-lite-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.linux_min }}" "seal-desktop-linux-x64-min-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_portable_full }}" "seal-desktop-linux-x64-portable-full-v${v}-${r}"
           
-          download_artifact "${{ steps.resolve_runs.outputs.win_full }}" "seal-desktop-windows-x64-full-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.win_lite }}" "seal-desktop-windows-x64-lite-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.win_min }}" "seal-desktop-windows-x64-min-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.win_portable_full }}" "seal-desktop-windows-x64-portable-full-v${v}-${r}"
           
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full }}" "seal-desktop-macos-x64-full-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite }}" "seal-desktop-macos-x64-lite-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_min }}" "seal-desktop-macos-x64-min-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_portable_full }}" "seal-desktop-macos-x64-portable-full-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_portable_full }}" "seal-desktop-macos-arm64-portable-full-v${v}-${r}"
+
+          download_artifact "${{ steps.resolve_runs.outputs.linux_lite_deb }}" "seal-desktop-linux-x64-installer-lite-v${v}-${r}-deb"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_full_deb }}" "seal-desktop-linux-x64-installer-full-v${v}-${r}-deb"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_lite_rpm }}" "seal-desktop-linux-x64-installer-lite-v${v}-${r}-rpm"
+          download_artifact "${{ steps.resolve_runs.outputs.linux_full_rpm }}" "seal-desktop-linux-x64-installer-full-v${v}-${r}-rpm"
           
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full }}" "seal-desktop-macos-arm64-full-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite }}" "seal-desktop-macos-arm64-lite-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_min }}" "seal-desktop-macos-arm64-min-v${v}-${r}"
+          download_artifact "${{ steps.resolve_runs.outputs.win_lite_msi }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-msi"
+          download_artifact "${{ steps.resolve_runs.outputs.win_full_msi }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-msi"
+          download_artifact "${{ steps.resolve_runs.outputs.win_lite_exe }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-exe"
+          download_artifact "${{ steps.resolve_runs.outputs.win_full_exe }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-exe"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite_dmg }}" "seal-desktop-macos-x64-installer-lite-v${v}-${r}-dmg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full_dmg }}" "seal-desktop-macos-x64-installer-full-v${v}-${r}-dmg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite_pkg }}" "seal-desktop-macos-x64-installer-lite-v${v}-${r}-pkg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full_pkg }}" "seal-desktop-macos-x64-installer-full-v${v}-${r}-pkg"
+          
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_dmg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-dmg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_dmg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-dmg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_pkg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-pkg"
+          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_pkg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-pkg"
 
       - name: Publish to GitHub Release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}

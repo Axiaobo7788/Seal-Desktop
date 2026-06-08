@@ -109,6 +109,7 @@ class DownloadPlanExecutor(
 
     private fun launchProcess(plan: DownloadPlan, config: ExecutionConfig): Process {
         val binary = fetcher.ensureBinary()
+        ensureFfmpegAvailable(binary)
         val command = buildCommand(binary, plan, config)
         val builder = ProcessBuilder(command)
         builder.redirectErrorStream(config.redirectError)
@@ -121,6 +122,7 @@ class DownloadPlanExecutor(
 
     private fun launchProcessForArgs(args: List<String>, config: CommandExecutionConfig): Process {
         val binary = fetcher.ensureBinary()
+        ensureFfmpegAvailable(binary)
         val command = buildRawCommand(binary, args)
         val builder = ProcessBuilder(command)
         builder.redirectErrorStream(config.redirectError)
@@ -178,6 +180,27 @@ class DownloadPlanExecutor(
         val dir = ytDlpBinary.parent ?: return null
         val ffmpeg = dir.resolve(ffmpegName)
         return if (Files.exists(ffmpeg)) dir else null
+    }
+
+    private fun ensureFfmpegAvailable(ytDlpBinary: Path) {
+        if (findBundledFfmpegLocation(ytDlpBinary) != null) return
+
+        val isWindows = System.getProperty("os.name")?.lowercase()?.contains("win") == true
+        val ffmpegName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
+        val pathEnv = System.getenv("PATH") ?: throw EnvironmentMissingException("ffmpeg is not bundled and not found in system PATH.")
+        val separator = java.io.File.pathSeparator
+
+        val found = pathEnv.split(separator).any { dir ->
+            try {
+                val file = Path.of(dir).resolve(ffmpegName)
+                Files.exists(file) && Files.isExecutable(file)
+            } catch (e: Exception) {
+                false
+            }
+        }
+        if (!found) {
+            throw EnvironmentMissingException("ffmpeg is not bundled and not found in system PATH.")
+        }
     }
 
     private fun streamLines(
