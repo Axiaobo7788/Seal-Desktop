@@ -115,8 +115,8 @@ jobs:
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           
           mkdir -p dist-installers-lite
-          cp desktop/build/compose/binaries/main/dmg/*.dmg dist-installers-lite/ || true
-          cp desktop/build/compose/binaries/main/pkg/*.pkg dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main-release/dmg/*.dmg dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-lite/ || true
 
       - name: Inject tools for Full version
         shell: bash
@@ -132,8 +132,8 @@ jobs:
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          cp desktop/build/compose/binaries/main/dmg/*.dmg dist-installers-full/ || true
-          cp desktop/build/compose/binaries/main/pkg/*.pkg dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main-release/dmg/*.dmg dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-full/ || true
 
       - name: Print jpackage logs on failure
         if: failure()

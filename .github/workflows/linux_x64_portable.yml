@@ -75,8 +75,8 @@ jobs:
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           
           mkdir -p dist-installers-lite
-          cp desktop/build/compose/binaries/main/deb/*.deb dist-installers-lite/ || true
-          cp desktop/build/compose/binaries/main/rpm/*.rpm dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main-release/deb/*.deb dist-installers-lite/ || true
+          cp desktop/build/compose/binaries/main-release/rpm/*.rpm dist-installers-lite/ || true
 
       - name: Inject tools for Full version
         shell: bash
@@ -92,8 +92,8 @@ jobs:
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          cp desktop/build/compose/binaries/main/deb/*.deb dist-installers-full/ || true
-          cp desktop/build/compose/binaries/main/rpm/*.rpm dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main-release/deb/*.deb dist-installers-full/ || true
+          cp desktop/build/compose/binaries/main-release/rpm/*.rpm dist-installers-full/ || true
 
       - name: Prepare Full, Lite, Min distributions (Linux)
         shell: bash
