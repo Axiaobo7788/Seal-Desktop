@@ -59,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -266,14 +267,22 @@ internal fun DownloadOptionsSheet(
         }
     }
 
-    val isPresetDialogVisible =
+    val isVideoPresetDialogVisible =
         showPresetDialog &&
             !isCustomCommandMode &&
             downloadType != DesktopDownloadType.Audio
+
+    val isAudioPresetDialogVisible =
+        showPresetDialog &&
+            !isCustomCommandMode &&
+            downloadType == DesktopDownloadType.Audio
+
     var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
     var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
+    var customAudioPreset by remember(preferences) { mutableStateOf(preferences.useCustomAudioPreset) }
+
     VideoPresetDialog(
-        visible = isPresetDialogVisible,
+        visible = isVideoPresetDialogVisible,
         videoResolution = resolution,
         videoFormatPreference = format,
         onResolutionSelect = { resolution = it },
@@ -284,6 +293,20 @@ internal fun DownloadOptionsSheet(
                 preferences.copy(
                     videoResolution = resolution,
                     videoFormat = format,
+                ),
+            )
+        },
+    )
+
+    AudioPresetDialog(
+        visible = isAudioPresetDialogVisible,
+        useCustomAudioPreset = customAudioPreset,
+        onPresetSelect = { customAudioPreset = it },
+        onDismissRequest = { showPresetDialog = false },
+        onSave = {
+            onPreferencesChange(
+                preferences.copy(
+                    useCustomAudioPreset = customAudioPreset,
                 ),
             )
         },
@@ -395,10 +418,11 @@ private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (D
                             RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp)
                         else -> RoundedCornerShape(0.dp)
                     }
-                val background = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent
-                val contentColor =
+                val background by androidx.compose.animation.animateColorAsState(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
+                val contentColor by androidx.compose.animation.animateColorAsState(
                     if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
                     else MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Box(
                     modifier = Modifier
@@ -410,9 +434,11 @@ private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (D
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        if (isSelected) {
-                            Icon(Icons.Outlined.Check, contentDescription = null, tint = contentColor)
-                            Spacer(Modifier.width(6.dp))
+                        androidx.compose.animation.AnimatedVisibility(visible = isSelected) {
+                            Row {
+                                Icon(Icons.Outlined.Check, contentDescription = null, tint = contentColor)
+                                Spacer(Modifier.width(6.dp))
+                            }
                         }
                         Icon(icon, contentDescription = null, tint = contentColor)
                         Spacer(Modifier.width(6.dp))
@@ -451,15 +477,17 @@ private fun FormatSelectionSection(
                 Icon(Icons.Outlined.SettingsSuggest, contentDescription = null)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(Res.string.preset), style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    androidx.compose.animation.AnimatedContent(targetState = summary, label = "summary") { targetSummary ->
+                        Text(
+                            targetSummary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
-                if (showEdit) {
+                androidx.compose.animation.AnimatedVisibility(visible = showEdit) {
                     Icon(
                         Icons.Outlined.MoreVert,
                         contentDescription = null,
@@ -474,9 +502,10 @@ private fun FormatSelectionSection(
             tonalElevation = 0.dp,
             shape = MaterialTheme.shapes.large,
             onClick = onCustomClick,
+            enabled = showEdit,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).alpha(if (!showEdit) 0.32f else 1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -664,3 +693,55 @@ private fun audioQualityLabel(code: Int): String =
         4 -> "Very low"
         else -> stringResource(Res.string.auto)
     }
+
+@Composable
+private fun AudioPresetDialog(
+    visible: Boolean,
+    useCustomAudioPreset: Boolean,
+    onPresetSelect: (Boolean) -> Unit,
+    onSave: () -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    AnimatedAlertDialog(
+        visible = visible,
+        onDismissRequest = onDismissRequest,
+        title = { Text(stringResource(Res.string.edit_preset)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().clickable { onPresetSelect(false) },
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        RadioButton(selected = !useCustomAudioPreset, onClick = { onPresetSelect(false) })
+                        Text(stringResource(Res.string.best_quality), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().clickable { onPresetSelect(true) },
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        RadioButton(selected = useCustomAudioPreset, onClick = { onPresetSelect(true) })
+                        Text(stringResource(Res.string.custom), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave()
+                onDismissRequest()
+            }) { Text(stringResource(Res.string.save)) }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) { Text(stringResource(Res.string.cancel)) }
+        },
+    )
+}

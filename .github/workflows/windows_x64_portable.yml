@@ -85,8 +85,8 @@ jobs:
       - name: Inject tools for Full version
         shell: bash
         run: |
-          mkdir -p desktop/appResources
-          cp dist-bin/* desktop/appResources/ || true
+          mkdir -p desktop/appResources/windows
+          cp dist-bin/* desktop/appResources/windows/ || true
           rm -rf desktop/build/compose/binaries desktop/build/compose/tmp
 
       - name: Build Full installers and portable (Windows)
