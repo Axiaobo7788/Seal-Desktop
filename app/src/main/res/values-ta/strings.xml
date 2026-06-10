@@ -115,4 +115,28 @@
     <string name="desktop_exit_confirm_title">பதிவிறக்கங்களை நிறுத்தி வெளியேறவா?</string>
     <string name="desktop_exit_confirm_running_count">தற்போது %1$d பதிவிறக்க பணிகள் நடந்து கொண்டிருக்கின்றன. வெளியேறினால் பதிவிறக்கங்கள் நிறுத்தப்படும்.</string>
     <string name="desktop_exit_confirm_running_generic">முடிக்கப்படாத பதிவிறக்க பணிகள் உள்ளன. வெளியேறினால் பதிவிறக்கங்கள் நிறுத்தப்படும்.</string>
+    <string name="env_preference">சுற்றுச்சூழல் சார்பு கட்டமைப்பு</string>
+    <string name="env_preference_desc">yt-dlp மற்றும் ffmpeg பைனரிகளை எவ்வாறு தேடுவது மற்றும் கண்டறிவது என்பதை உள்ளமைக்கவும்</string>
+    <string name="env_pref_auto">தானாக கண்டறிதல்</string>
+    <string name="env_pref_bundled">பயன்பாடு தனிப்பட்டது</string>
+    <string name="env_pref_system">அமைப்பு குளோபல் பாதை</string>
+    <string name="env_setup_missing">சுற்றுச்சூழல் காணவில்லை</string>
+    <string name="env_setup_missing_desc">சீல் சரியாக வேலை செய்ய yt-dlp மற்றும் ffmpeg தேவை. நிறுவல் முறையைத் தேர்ந்தெடுக்கவும்:</string>
+    <string name="env_setup_installing">சார்புகளை உள்ளமைக்கிறது...</string>
+    <string name="env_setup_success">சூழல் வெற்றிகரமாக உள்ளமைக்கப்பட்டது</string>
+    <string name="env_setup_failed">சுற்றுச்சூழல் உள்ளமைவு தோல்வியடைந்தது</string>
+    <string name="env_setup_sys_title">தொகுப்பு மேலாளர் வழியாக நிறுவவும் (பரிந்துரைக்கப்படுகிறது)</string>
+    <string name="env_setup_sys_desc_win">விங்கட் பயன்படுத்தவும். நிலையானது மற்றும் பிற பயன்பாடுகளுடன் பகிரலாம்.</string>
+    <string name="env_setup_sys_desc_mac">கஷாயம் பயன்படுத்தவும். நிலையானது மற்றும் பிற பயன்பாடுகளுடன் பகிரலாம்.</string>
+    <string name="env_setup_port_title">போர்ட்டபிள் சார்புகளை சீலுக்கு மட்டும் பதிவிறக்கவும்</string>
+    <string name="env_setup_port_desc">கணினியை மாசுபடுத்தாமல், தனிப்பட்ட கோப்பகத்தில் கையடக்க பதிப்பைப் பதிவிறக்கவும்.</string>
+    <string name="env_setup_success_msg">சுற்றுச்சூழல் கட்டமைப்பு முடிந்தது! நடைமுறைக்கு வர, பயன்பாட்டை மறுதொடக்கம் செய்யவும்.</string>
+    <string name="env_setup_failed_msg">தானியங்கி நிறுவலின் போது பிழை ஏற்பட்டது. பின்வரும் கட்டளைகளை கைமுறையாக இயக்க முயற்சி செய்யலாம்:</string>
+    <string name="env_setup_btn_install">ஒரே கிளிக்கில் நிறுவவும் &amp; கட்டமைக்கவும்</string>
+    <string name="env_setup_btn_installing">நிறுவுகிறது...</string>
+    <string name="env_setup_btn_done">முடிந்தது</string>
+    <string name="env_setup_btn_close">மூடு</string>
+    <string name="env_setup_btn_later">பின்னர்</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">डाउनलोड रोककर बाहर निकलें?</string>
     <string name="desktop_exit_confirm_running_count">अभी %1$d डाउनलोड कार्य चल रहा है। बाहर निकलने से डाउनलोड रुक जाएंगे।</string>
     <string name="desktop_exit_confirm_running_generic">कुछ डाउनलोड पूरे नहीं हुए हैं। बाहर निकलने से डाउनलोड रुक जाएंगे।</string>
+    <string name="env_preference">पर्यावरण निर्भरता विन्यास</string>
+    <string name="env_preference_desc">yt-dlp और ffmpeg बायनेरिज़ को खोजने और ढूंढने का तरीका कॉन्फ़िगर करें</string>
+    <string name="env_pref_auto">स्वतः पता लगाएं</string>
+    <string name="env_pref_bundled">ऐप प्राइवेट बंडल</string>
+    <string name="env_pref_system">सिस्टम वैश्विक पथ</string>
+    <string name="env_setup_missing">लापता पर्यावरण</string>
+    <string name="env_setup_missing_desc">सील को ठीक से काम करने के लिए yt-dlp और ffmpeg की आवश्यकता होती है। कृपया एक इंस्टालेशन विधि चुनें:</string>
+    <string name="env_setup_installing">निर्भरताएँ कॉन्फ़िगर करना...</string>
+    <string name="env_setup_success">पर्यावरण सफलतापूर्वक कॉन्फ़िगर किया गया</string>
+    <string name="env_setup_failed">पर्यावरण विन्यास विफल</string>
+    <string name="env_setup_sys_title">पैकेज प्रबंधक के माध्यम से स्थापित करें (अनुशंसित)</string>
+    <string name="env_setup_sys_desc_win">विंगेट का प्रयोग करें. स्थिर और अन्य ऐप्स के साथ साझा किया जा सकता है।</string>
+    <string name="env_setup_sys_desc_mac">काढ़ा का प्रयोग करें. स्थिर और अन्य ऐप्स के साथ साझा किया जा सकता है।</string>
+    <string name="env_setup_port_title">केवल सील के लिए पोर्टेबल निर्भरताएँ डाउनलोड करें</string>
+    <string name="env_setup_port_desc">सिस्टम को प्रदूषित किए बिना ऐप निजी निर्देशिका में पोर्टेबल संस्करण डाउनलोड करें।</string>
+    <string name="env_setup_success_msg">पर्यावरण विन्यास पूरा हुआ! कृपया प्रभावी होने के लिए एप्लिकेशन को पुनरारंभ करें।</string>
+    <string name="env_setup_failed_msg">स्वचालित स्थापना के दौरान एक त्रुटि उत्पन्न हुई. आप निम्न आदेशों को मैन्युअल रूप से निष्पादित करने का प्रयास कर सकते हैं:</string>
+    <string name="env_setup_btn_install">एक-क्लिक स्थापित करें और कॉन्फ़िगर करें</string>
+    <string name="env_setup_btn_installing">इंस्टाल किया जा रहा है...</string>
+    <string name="env_setup_btn_done">हो गया</string>
+    <string name="env_setup_btn_close">बंद करें</string>
+    <string name="env_setup_btn_later">बाद में</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

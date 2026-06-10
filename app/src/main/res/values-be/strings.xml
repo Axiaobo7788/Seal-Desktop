@@ -417,4 +417,28 @@
     <string name="desktop_exit_confirm_title">Спыніць спампоўванні і выйсці?</string>
     <string name="desktop_exit_confirm_running_count">Зараз выконваецца %1$d задача спампоўвання. Выхад перапыніць спампоўванні.</string>
     <string name="desktop_exit_confirm_running_generic">Ёсць незавершаныя задачы спампоўвання. Выхад перапыніць спампоўванні.</string>
+    <string name="env_preference">Канфігурацыя залежнасці ад асяроддзя</string>
+    <string name="env_preference_desc">Наладзьце, як шукаць і знаходзіць бінарныя файлы yt-dlp і ffmpeg</string>
+    <string name="env_pref_auto">Аўтаматычнае вызначэнне</string>
+    <string name="env_pref_bundled">Праграма ў прыватным камплекце</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Адсутнічае асяроддзе</string>
+    <string name="env_setup_missing_desc">Для належнай працы Seal патрабуюцца yt-dlp і ffmpeg. Выберыце спосаб усталёўкі:</string>
+    <string name="env_setup_installing">Наладжванне залежнасцей...</string>
+    <string name="env_setup_success">Асяроддзе наладжана паспяхова</string>
+    <string name="env_setup_failed">Збой канфігурацыі асяроддзя</string>
+    <string name="env_setup_sys_title">Усталяваць праз дыспетчар пакетаў (рэкамендуецца)</string>
+    <string name="env_setup_sys_desc_win">Выкарыстоўвайце крыло. Стабільны і можа выкарыстоўвацца ў іншых праграмах.</string>
+    <string name="env_setup_sys_desc_mac">Выкарыстоўвайце брагу. Стабільны і можа выкарыстоўвацца ў іншых праграмах.</string>
+    <string name="env_setup_port_title">Спампуйце партатыўныя залежнасці толькі для Seal</string>
+    <string name="env_setup_port_desc">Спампуйце партатыўную версію ў прыватны каталог праграмы, не забруджваючы сістэму.</string>
+    <string name="env_setup_success_msg">Канфігурацыя асяроддзя завершана! Перазапусціце прыкладанне, каб яно ўступіла ў сілу.</string>
+    <string name="env_setup_failed_msg">Адбылася памылка падчас аўтаматычнай устаноўкі. Вы можаце паспрабаваць выканаць наступныя каманды ўручную:</string>
+    <string name="env_setup_btn_install">Усталяваць і наладзіць у адзін клік</string>
+    <string name="env_setup_btn_installing">Усталяванне...</string>
+    <string name="env_setup_btn_done">Гатова</string>
+    <string name="env_setup_btn_close">Блізка</string>
+    <string name="env_setup_btn_later">Пазней</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

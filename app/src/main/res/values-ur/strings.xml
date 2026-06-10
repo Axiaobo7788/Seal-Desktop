@@ -28,4 +28,28 @@
     <string name="desktop_exit_confirm_title">ڈاؤن لوڈز روک کر باہر نکلیں؟</string>
     <string name="desktop_exit_confirm_running_count">اس وقت %1$d ڈاؤن لوڈ کام چل رہا ہے۔ باہر نکلنے سے ڈاؤن لوڈز رک جائیں گے۔</string>
     <string name="desktop_exit_confirm_running_generic">نامکمل ڈاؤن لوڈ کام موجود ہیں۔ باہر نکلنے سے ڈاؤن لوڈز رک جائیں گے۔</string>
+    <string name="env_preference">ماحولیاتی انحصار کنفیگریشن</string>
+    <string name="env_preference_desc">yt-dlp اور ffmpeg بائنریز کو تلاش اور تلاش کرنے کا طریقہ ترتیب دیں</string>
+    <string name="env_pref_auto">آٹو ڈیٹیکٹ</string>
+    <string name="env_pref_bundled">ایپ پرائیویٹ بنڈل</string>
+    <string name="env_pref_system">سسٹم گلوبل PATH</string>
+    <string name="env_setup_missing">لاپتہ ماحول</string>
+    <string name="env_setup_missing_desc">سیل کو صحیح طریقے سے کام کرنے کے لیے yt-dlp اور ffmpeg کی ضرورت ہے۔ براہ کرم انسٹالیشن کا طریقہ منتخب کریں:</string>
+    <string name="env_setup_installing">انحصار کنفیگر کرنا...</string>
+    <string name="env_setup_success">ماحول کامیابی کے ساتھ ترتیب دیا گیا</string>
+    <string name="env_setup_failed">ماحولیاتی ترتیب ناکام ہو گئی</string>
+    <string name="env_setup_sys_title">پیکیج مینیجر کے ذریعے انسٹال کریں (تجویز کردہ)</string>
+    <string name="env_setup_sys_desc_win">ونگٹ استعمال کریں۔ مستحکم اور دیگر ایپس کے ساتھ اشتراک کیا جا سکتا ہے۔</string>
+    <string name="env_setup_sys_desc_mac">مرکب استعمال کریں۔ مستحکم اور دیگر ایپس کے ساتھ اشتراک کیا جا سکتا ہے۔</string>
+    <string name="env_setup_port_title">صرف سیل کے لیے پورٹیبل انحصار ڈاؤن لوڈ کریں</string>
+    <string name="env_setup_port_desc">سسٹم کو آلودہ کیے بغیر ایپ پرائیویٹ ڈائرکٹری میں پورٹیبل ورژن ڈاؤن لوڈ کریں۔</string>
+    <string name="env_setup_success_msg">ماحولیاتی ترتیب مکمل! براہ کرم اثر انداز ہونے کے لیے ایپلیکیشن کو دوبارہ شروع کریں۔</string>
+    <string name="env_setup_failed_msg">خودکار تنصیب کے دوران ایک خرابی پیش آگئی۔ آپ درج ذیل کمانڈز کو دستی طور پر چلانے کی کوشش کر سکتے ہیں:</string>
+    <string name="env_setup_btn_install">ایک کلک انسٹال اور کنفیگر کریں</string>
+    <string name="env_setup_btn_installing">انسٹال ہو رہا ہے...</string>
+    <string name="env_setup_btn_done">ہو گیا</string>
+    <string name="env_setup_btn_close">بند کریں</string>
+    <string name="env_setup_btn_later">بعد میں</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

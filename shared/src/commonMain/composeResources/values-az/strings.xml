@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">Yükləmələri dayandırıb çıxmaq?</string>
     <string name="desktop_exit_confirm_running_count">Hazırda %1$d yükləmə tapşırığı işləyir. Çıxış yükləmələri dayandıracaq.</string>
     <string name="desktop_exit_confirm_running_generic">Tamamlanmamış yükləmə tapşırıqları var. Çıxış yükləmələri dayandıracaq.</string>
+    <string name="env_preference">Ətraf Mühitdən Asılılıq Konfiqurasiyası</string>
+    <string name="env_preference_desc">yt-dlp və ffmpeg ikili fayllarını necə axtarmağı və tapmağı konfiqurasiya edin</string>
+    <string name="env_pref_auto">Avtomatik aşkarlama</string>
+    <string name="env_pref_bundled">Proqram Şəxsi Paket</string>
+    <string name="env_pref_system">Sistem Qlobal PATH</string>
+    <string name="env_setup_missing">Eksik Ətraf</string>
+    <string name="env_setup_missing_desc">Seal düzgün işləməsi üçün yt-dlp və ffmpeg tələb edir. Zəhmət olmasa quraşdırma metodunu seçin:</string>
+    <string name="env_setup_installing">Asılılıqlar konfiqurasiya edilir...</string>
+    <string name="env_setup_success">Mühit uğurla konfiqurasiya edildi</string>
+    <string name="env_setup_failed">Ətraf mühitin konfiqurasiyası uğursuz oldu</string>
+    <string name="env_setup_sys_title">Paket meneceri vasitəsilə quraşdırın (tövsiyə olunur)</string>
+    <string name="env_setup_sys_desc_win">Winget istifadə edin. Stabil və digər proqramlarla paylaşıla bilər.</string>
+    <string name="env_setup_sys_desc_mac">Dərman istifadə edin. Stabil və digər proqramlarla paylaşıla bilər.</string>
+    <string name="env_setup_port_title">Yalnız Seal üçün portativ asılılıqları endirin</string>
+    <string name="env_setup_port_desc">Sistemi çirkləndirmədən tətbiqin şəxsi kataloquna portativ versiyanı endirin.</string>
+    <string name="env_setup_success_msg">Ətraf mühit konfiqurasiyası tamamlandı! Lütfən, qüvvəyə minmək üçün tətbiqi yenidən başladın.</string>
+    <string name="env_setup_failed_msg">Avtomatik quraşdırma zamanı xəta baş verdi. Aşağıdakı əmrləri əl ilə yerinə yetirməyə cəhd edə bilərsiniz:</string>
+    <string name="env_setup_btn_install">Bir kliklə Quraşdır və Konfiqurasiya edin</string>
+    <string name="env_setup_btn_installing">Quraşdırılır...</string>
+    <string name="env_setup_btn_done">Bitdi</string>
+    <string name="env_setup_btn_close">Bağlayın</string>
+    <string name="env_setup_btn_later">Daha sonra</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

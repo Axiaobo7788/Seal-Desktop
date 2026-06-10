@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">Parar downloads e sair?</string>
     <string name="desktop_exit_confirm_running_count">Há %1$d tarefa(s) de download em execução. Sair vai interromper os downloads.</string>
     <string name="desktop_exit_confirm_running_generic">Há downloads não concluídos. Sair vai interromper os downloads.</string>
+    <string name="env_preference">Configuração de dependência de ambiente</string>
+    <string name="env_preference_desc">Configure como pesquisar e localizar os binários yt-dlp e ffmpeg</string>
+    <string name="env_pref_auto">Detecção automática</string>
+    <string name="env_pref_bundled">Pacote privado de aplicativo</string>
+    <string name="env_pref_system">CAMINHO Global do Sistema</string>
+    <string name="env_setup_missing">Ambiente ausente</string>
+    <string name="env_setup_missing_desc">O Seal requer que yt-dlp e ffmpeg funcionem corretamente. Selecione um método de instalação:</string>
+    <string name="env_setup_installing">Configurando dependências...</string>
+    <string name="env_setup_success">Ambiente configurado com sucesso</string>
+    <string name="env_setup_failed">Falha na configuração do ambiente</string>
+    <string name="env_setup_sys_title">Instalar via Gerenciador de Pacotes (Recomendado)</string>
+    <string name="env_setup_sys_desc_win">Use asa. Estável e pode ser compartilhado com outros aplicativos.</string>
+    <string name="env_setup_sys_desc_mac">Use cerveja. Estável e pode ser compartilhado com outros aplicativos.</string>
+    <string name="env_setup_port_title">Baixe dependências portáteis apenas para Seal</string>
+    <string name="env_setup_port_desc">Baixe a versão portátil para o diretório privado do aplicativo sem poluir o sistema.</string>
+    <string name="env_setup_success_msg">Configuração do ambiente concluída! Reinicie o aplicativo para que tenha efeito.</string>
+    <string name="env_setup_failed_msg">Ocorreu um erro durante a instalação automática. Você pode tentar executar os seguintes comandos manualmente:</string>
+    <string name="env_setup_btn_install">Instalar e configurar com um clique</string>
+    <string name="env_setup_btn_installing">Instalando...</string>
+    <string name="env_setup_btn_done">Feito</string>
+    <string name="env_setup_btn_close">Fechar</string>
+    <string name="env_setup_btn_later">Mais tarde</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -453,4 +453,28 @@
     <string name="desktop_exit_confirm_title">İndirmeleri durdurup çıkılsın mı?</string>
     <string name="desktop_exit_confirm_running_count">%1$d indirme görevi çalışıyor. Çıkış yapmak indirmeleri keser.</string>
     <string name="desktop_exit_confirm_running_generic">Tamamlanmamış indirme görevleri var. Çıkış yapmak indirmeleri keser.</string>
+    <string name="env_preference">Ortam Bağımlılığı Yapılandırması</string>
+    <string name="env_preference_desc">Yt-dlp ve ffmpeg ikili dosyalarının nasıl aranacağını ve bulunacağını yapılandırın</string>
+    <string name="env_pref_auto">Otomatik Algıla</string>
+    <string name="env_pref_bundled">Uygulama Özel Paketli</string>
+    <string name="env_pref_system">Sistem Genel YOL</string>
+    <string name="env_setup_missing">Eksik Ortam</string>
+    <string name="env_setup_missing_desc">Seal\'in düzgün çalışması için yt-dlp ve ffmpeg gerekir. Lütfen bir kurulum yöntemi seçin:</string>
+    <string name="env_setup_installing">Bağımlılıklar yapılandırılıyor...</string>
+    <string name="env_setup_success">Ortam başarıyla yapılandırıldı</string>
+    <string name="env_setup_failed">Ortam yapılandırması başarısız oldu</string>
+    <string name="env_setup_sys_title">Paket Yöneticisi aracılığıyla yükleyin (Önerilir)</string>
+    <string name="env_setup_sys_desc_win">Kanat kullanın. Kararlı ve diğer uygulamalarla paylaşılabilir.</string>
+    <string name="env_setup_sys_desc_mac">Demleme kullanın. Kararlı ve diğer uygulamalarla paylaşılabilir.</string>
+    <string name="env_setup_port_title">Yalnızca Seal için taşınabilir bağımlılıkları indirin</string>
+    <string name="env_setup_port_desc">Sistemi kirletmeden taşınabilir sürümü uygulamanın özel dizinine indirin.</string>
+    <string name="env_setup_success_msg">Ortam yapılandırması tamamlandı! Etkinleşmesi için lütfen uygulamayı yeniden başlatın.</string>
+    <string name="env_setup_failed_msg">Otomatik kurulum sırasında bir hata oluştu. Aşağıdaki komutları manuel olarak çalıştırmayı deneyebilirsiniz:</string>
+    <string name="env_setup_btn_install">Tek Tıklamayla Kur ve Yapılandır</string>
+    <string name="env_setup_btn_installing">Yükleniyor...</string>
+    <string name="env_setup_btn_done">Bitti</string>
+    <string name="env_setup_btn_close">Kapat</string>
+    <string name="env_setup_btn_later">Daha sonra</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

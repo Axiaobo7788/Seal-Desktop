@@ -462,4 +462,28 @@
     <string name="desktop_exit_confirm_title">Зупинити завантаження і вийти?</string>
     <string name="desktop_exit_confirm_running_count">Виконується %1$d завдання завантаження. Вихід перерве завантаження.</string>
     <string name="desktop_exit_confirm_running_generic">Є незавершені завантаження. Вихід перерве завантаження.</string>
+    <string name="env_preference">Конфігурація залежності середовища</string>
+    <string name="env_preference_desc">Налаштувати спосіб пошуку та визначення місцезнаходження двійкових файлів yt-dlp і ffmpeg</string>
+    <string name="env_pref_auto">Автоматичне визначення</string>
+    <string name="env_pref_bundled">Приватний пакет додатків</string>
+    <string name="env_pref_system">Системний Глобальний ШЛЯХ</string>
+    <string name="env_setup_missing">Відсутнє середовище</string>
+    <string name="env_setup_missing_desc">Для належної роботи Seal потрібні yt-dlp і ffmpeg. Виберіть спосіб встановлення:</string>
+    <string name="env_setup_installing">Налаштування залежностей...</string>
+    <string name="env_setup_success">Середовище налаштовано успішно</string>
+    <string name="env_setup_failed">Помилка налаштування середовища</string>
+    <string name="env_setup_sys_title">Встановити через менеджер пакунків (рекомендовано)</string>
+    <string name="env_setup_sys_desc_win">Використовуйте крило. Стабільний, ним можна ділитися з іншими програмами.</string>
+    <string name="env_setup_sys_desc_mac">Використовуйте заварку. Стабільний, ним можна ділитися з іншими програмами.</string>
+    <string name="env_setup_port_title">Завантажити портативні залежності лише для Seal</string>
+    <string name="env_setup_port_desc">Завантажте портативну версію до приватного каталогу програми, не забруднюючи систему.</string>
+    <string name="env_setup_success_msg">Налаштування середовища завершено! Перезапустіть програму, щоб вона почала діяти.</string>
+    <string name="env_setup_failed_msg">Під час автоматичного встановлення сталася помилка. Ви можете спробувати виконати наступні команди вручну:</string>
+    <string name="env_setup_btn_install">Встановити та налаштувати одним клацанням</string>
+    <string name="env_setup_btn_installing">Встановлення...</string>
+    <string name="env_setup_btn_done">Виконано</string>
+    <string name="env_setup_btn_close">Закрити</string>
+    <string name="env_setup_btn_later">Пізніше</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

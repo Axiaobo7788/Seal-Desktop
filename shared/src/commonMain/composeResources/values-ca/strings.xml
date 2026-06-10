@@ -414,4 +414,28 @@
     <string name="desktop_exit_confirm_title">Aturar les baixades i sortir?</string>
     <string name="desktop_exit_confirm_running_count">Hi ha %1$d tasca de baixada en curs. En sortir, les baixades es interrompran.</string>
     <string name="desktop_exit_confirm_running_generic">Hi ha tasques de baixada pendents. En sortir, les baixades es interrompran.</string>
+    <string name="env_preference">Configuració de dependència de l\'entorn</string>
+    <string name="env_preference_desc">Configureu com cercar i localitzar els binaris yt-dlp i ffmpeg</string>
+    <string name="env_pref_auto">Detecció automàtica</string>
+    <string name="env_pref_bundled">Paquet privat d\'aplicacions</string>
+    <string name="env_pref_system">Sistema Global PATH</string>
+    <string name="env_setup_missing">Falta l\'entorn</string>
+    <string name="env_setup_missing_desc">Seal requereix yt-dlp i ffmpeg per funcionar correctament. Seleccioneu un mètode d\'instal·lació:</string>
+    <string name="env_setup_installing">Configurant dependències...</string>
+    <string name="env_setup_success">L\'entorn s\'ha configurat correctament</string>
+    <string name="env_setup_failed">La configuració de l\'entorn ha fallat</string>
+    <string name="env_setup_sys_title">Instal·lar mitjançant el gestor de paquets (recomanat)</string>
+    <string name="env_setup_sys_desc_win">Utilitzeu winget. Estable i es pot compartir amb altres aplicacions.</string>
+    <string name="env_setup_sys_desc_mac">Utilitzeu cervesa. Estable i es pot compartir amb altres aplicacions.</string>
+    <string name="env_setup_port_title">Baixeu dependències portàtils només per a Seal</string>
+    <string name="env_setup_port_desc">Baixeu la versió portàtil al directori privat de l\'aplicació sense contaminar el sistema.</string>
+    <string name="env_setup_success_msg">Configuració de l\'entorn completada! Si us plau, reinicieu l\'aplicació perquè tingui efecte.</string>
+    <string name="env_setup_failed_msg">S\'ha produït un error durant la instal·lació automàtica. Podeu provar d\'executar les ordres següents manualment:</string>
+    <string name="env_setup_btn_install">Instal·la i configura amb un sol clic</string>
+    <string name="env_setup_btn_installing">S\'està instal·lant...</string>
+    <string name="env_setup_btn_done">Fet</string>
+    <string name="env_setup_btn_close">Tancar</string>
+    <string name="env_setup_btn_later">Més tard</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

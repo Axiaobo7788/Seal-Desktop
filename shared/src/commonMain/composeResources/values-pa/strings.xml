@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">ਡਾਊਨਲੋਡ ਰੋਕ ਕੇ ਬਾਹਰ ਨਿਕਲਣਾ ਹੈ?</string>
     <string name="desktop_exit_confirm_running_count">ਹੁਣ %1$d ਡਾਊਨਲੋਡ ਕੰਮ ਚੱਲ ਰਿਹਾ ਹੈ। ਬਾਹਰ ਨਿਕਲਣ ਨਾਲ ਡਾਊਨਲੋਡ ਰੁਕ ਜਾਣਗੇ।</string>
     <string name="desktop_exit_confirm_running_generic">ਅਧੂਰੇ ਡਾਊਨਲੋਡ ਕੰਮ ਹਨ। ਬਾਹਰ ਨਿਕਲਣ ਨਾਲ ਡਾਊਨਲੋਡ ਰੁਕ ਜਾਣਗੇ।</string>
+    <string name="env_preference">ਵਾਤਾਵਰਣ ਨਿਰਭਰਤਾ ਸੰਰਚਨਾ</string>
+    <string name="env_preference_desc">yt-dlp ਅਤੇ ffmpeg ਬਾਈਨਰੀਆਂ ਨੂੰ ਕਿਵੇਂ ਖੋਜਣਾ ਹੈ ਅਤੇ ਉਹਨਾਂ ਦਾ ਪਤਾ ਲਗਾਉਣਾ ਹੈ</string>
+    <string name="env_pref_auto">ਆਟੋ ਡਿਟੈਕਟ</string>
+    <string name="env_pref_bundled">ਐਪ ਪ੍ਰਾਈਵੇਟ ਬੰਡਲ</string>
+    <string name="env_pref_system">ਸਿਸਟਮ ਗਲੋਬਲ PATH</string>
+    <string name="env_setup_missing">ਗੁੰਮ ਵਾਤਾਵਰਨ</string>
+    <string name="env_setup_missing_desc">ਸੀਲ ਨੂੰ ਸਹੀ ਢੰਗ ਨਾਲ ਕੰਮ ਕਰਨ ਲਈ yt-dlp ਅਤੇ ffmpeg ਦੀ ਲੋੜ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਇੰਸਟਾਲੇਸ਼ਨ ਵਿਧੀ ਚੁਣੋ:</string>
+    <string name="env_setup_installing">ਨਿਰਭਰਤਾ ਨੂੰ ਕੌਂਫਿਗਰ ਕਰਨਾ...</string>
+    <string name="env_setup_success">ਵਾਤਾਵਰਣ ਨੂੰ ਸਫਲਤਾਪੂਰਵਕ ਸੰਰਚਿਤ ਕੀਤਾ ਗਿਆ</string>
+    <string name="env_setup_failed">ਵਾਤਾਵਰਣ ਸੰਰਚਨਾ ਅਸਫਲ</string>
+    <string name="env_setup_sys_title">ਪੈਕੇਜ ਮੈਨੇਜਰ ਦੁਆਰਾ ਸਥਾਪਿਤ ਕਰੋ (ਸਿਫਾਰਸ਼ੀ)</string>
+    <string name="env_setup_sys_desc_win">ਵਿੰਗੇਟ ਦੀ ਵਰਤੋਂ ਕਰੋ। ਸਥਿਰ ਹੈ ਅਤੇ ਹੋਰ ਐਪਾਂ ਨਾਲ ਸਾਂਝਾ ਕੀਤਾ ਜਾ ਸਕਦਾ ਹੈ।</string>
+    <string name="env_setup_sys_desc_mac">ਬਰਿਊ ਦੀ ਵਰਤੋਂ ਕਰੋ. ਸਥਿਰ ਹੈ ਅਤੇ ਹੋਰ ਐਪਾਂ ਨਾਲ ਸਾਂਝਾ ਕੀਤਾ ਜਾ ਸਕਦਾ ਹੈ।</string>
+    <string name="env_setup_port_title">ਸਿਰਫ਼ ਸੀਲ ਲਈ ਪੋਰਟੇਬਲ ਨਿਰਭਰਤਾ ਡਾਊਨਲੋਡ ਕਰੋ</string>
+    <string name="env_setup_port_desc">ਸਿਸਟਮ ਨੂੰ ਪ੍ਰਦੂਸ਼ਿਤ ਕੀਤੇ ਬਿਨਾਂ ਐਪ ਪ੍ਰਾਈਵੇਟ ਡਾਇਰੈਕਟਰੀ ਵਿੱਚ ਪੋਰਟੇਬਲ ਸੰਸਕਰਣ ਡਾਉਨਲੋਡ ਕਰੋ।</string>
+    <string name="env_setup_success_msg">ਵਾਤਾਵਰਣ ਸੰਰਚਨਾ ਪੂਰੀ ਹੋਈ! ਕਿਰਪਾ ਕਰਕੇ ਲਾਗੂ ਕਰਨ ਲਈ ਐਪਲੀਕੇਸ਼ਨ ਨੂੰ ਮੁੜ ਚਾਲੂ ਕਰੋ।</string>
+    <string name="env_setup_failed_msg">ਆਟੋਮੈਟਿਕ ਇੰਸਟਾਲੇਸ਼ਨ ਦੌਰਾਨ ਇੱਕ ਤਰੁੱਟੀ ਆਈ ਹੈ। ਤੁਸੀਂ ਹੇਠਾਂ ਦਿੱਤੀਆਂ ਕਮਾਂਡਾਂ ਨੂੰ ਹੱਥੀਂ ਚਲਾਉਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਸਕਦੇ ਹੋ:</string>
+    <string name="env_setup_btn_install">ਇੱਕ-ਕਲਿੱਕ ਇੰਸਟਾਲ ਅਤੇ ਕੌਂਫਿਗਰ ਕਰੋ</string>
+    <string name="env_setup_btn_installing">ਇੰਸਟਾਲ ਕਰ ਰਿਹਾ ਹੈ...</string>
+    <string name="env_setup_btn_done">ਹੋ ਗਿਆ</string>
+    <string name="env_setup_btn_close">ਬੰਦ ਕਰੋ</string>
+    <string name="env_setup_btn_later">ਬਾਅਦ ਵਿੱਚ</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

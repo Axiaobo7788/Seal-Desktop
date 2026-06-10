@@ -201,4 +201,28 @@
     <string name="desktop_exit_confirm_title">Downloads stoppen en afsluiten?</string>
     <string name="desktop_exit_confirm_running_count">Er draaien %1$d downloadtaak(en). Afsluiten onderbreekt de downloads.</string>
     <string name="desktop_exit_confirm_running_generic">Er zijn onvoltooide downloads. Afsluiten onderbreekt de downloads.</string>
+    <string name="env_preference">Configuratie van omgevingsafhankelijkheid</string>
+    <string name="env_preference_desc">Configureer hoe u yt-dlp- en ffmpeg-binaire bestanden</string>
+    <string name="env_pref_auto">zoekt en lokaliseert Automatische detectie</string>
+    <string name="env_pref_bundled">App privé gebundeld</string>
+    <string name="env_pref_system">Systeem Globaal PATH</string>
+    <string name="env_setup_missing">Ontbrekende omgeving</string>
+    <string name="env_setup_missing_desc">Seal vereist dat yt-dlp en ffmpeg goed werken. Selecteer een installatiemethode:</string>
+    <string name="env_setup_installing">Afhankelijkheden configureren...</string>
+    <string name="env_setup_success">Omgeving succesvol geconfigureerd</string>
+    <string name="env_setup_failed">Omgevingsconfiguratie mislukt</string>
+    <string name="env_setup_sys_title">Installeer via Pakketbeheer (aanbevolen)</string>
+    <string name="env_setup_sys_desc_win">Gebruik vleugeltjes. Stabiel en kan worden gedeeld met andere apps.</string>
+    <string name="env_setup_sys_desc_mac">Gebruik brouwsel. Stabiel en kan worden gedeeld met andere apps.</string>
+    <string name="env_setup_port_title">Download draagbare afhankelijkheden alleen voor Seal</string>
+    <string name="env_setup_port_desc">Download de draagbare versie naar de privémap van de app zonder het systeem te vervuilen.</string>
+    <string name="env_setup_success_msg">Omgevingsconfiguratie voltooid! Start de applicatie opnieuw om van kracht te worden.</string>
+    <string name="env_setup_failed_msg">Er is een fout opgetreden tijdens de automatische installatie. U kunt proberen de volgende opdrachten handmatig uit te voeren:</string>
+    <string name="env_setup_btn_install">Met één klik Installeren en configureren</string>
+    <string name="env_setup_btn_installing">Installeren...</string>
+    <string name="env_setup_btn_done">Klaar</string>
+    <string name="env_setup_btn_close">Sluit</string>
+    <string name="env_setup_btn_later">Later</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -140,4 +140,28 @@
     <string name="desktop_exit_confirm_title">Avbryta nedladdningar och avsluta?</string>
     <string name="desktop_exit_confirm_running_count">Det pågår %1$d nedladdningsuppgift(er). Avslutning avbryter nedladdningarna.</string>
     <string name="desktop_exit_confirm_running_generic">Det finns oavslutade nedladdningar. Avslutning avbryter nedladdningarna.</string>
+    <string name="env_preference">Konfiguration av miljöberoende</string>
+    <string name="env_preference_desc">Konfigurera hur du söker och lokaliserar yt-dlp och ffmpeg binärer</string>
+    <string name="env_pref_auto">Autoavkänning</string>
+    <string name="env_pref_bundled">App privat paketerad</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Saknad miljö</string>
+    <string name="env_setup_missing_desc">Seal kräver yt-dlp och ffmpeg för att fungera korrekt. Välj en installationsmetod:</string>
+    <string name="env_setup_installing">Konfigurerar beroenden...</string>
+    <string name="env_setup_success">Miljö konfigurerad framgångsrikt</string>
+    <string name="env_setup_failed">Miljökonfiguration misslyckades</string>
+    <string name="env_setup_sys_title">Installera via Package Manager (rekommenderas)</string>
+    <string name="env_setup_sys_desc_win">Använd vinget. Stabil och kan delas med andra appar.</string>
+    <string name="env_setup_sys_desc_mac">Använd brygg. Stabil och kan delas med andra appar.</string>
+    <string name="env_setup_port_title">Ladda ner bärbara beroenden endast för Seal</string>
+    <string name="env_setup_port_desc">Ladda ner bärbar version till appens privata katalog utan att förorena systemet.</string>
+    <string name="env_setup_success_msg">Miljökonfigurationen är klar! Starta om programmet för att träda i kraft.</string>
+    <string name="env_setup_failed_msg">Ett fel uppstod under automatisk installation. Du kan prova att utföra följande kommandon manuellt:</string>
+    <string name="env_setup_btn_install">Ett klick Installera och konfigurera</string>
+    <string name="env_setup_btn_installing">Installerar...</string>
+    <string name="env_setup_btn_done">Klar</string>
+    <string name="env_setup_btn_close">Stäng</string>
+    <string name="env_setup_btn_later">Senare</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

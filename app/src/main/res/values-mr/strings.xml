@@ -102,4 +102,28 @@
     <string name="desktop_exit_confirm_title">डाउनलोड थांबवून बाहेर पडायचे आहे का?</string>
     <string name="desktop_exit_confirm_running_count">सध्या %1$d डाउनलोड कार्य चालू आहे. बाहेर पडल्यास डाउनलोड थांबतील.</string>
     <string name="desktop_exit_confirm_running_generic">अपूर्ण डाउनलोड कार्ये आहेत. बाहेर पडल्यास डाउनलोड थांबतील.</string>
+    <string name="env_preference">पर्यावरण अवलंबित्व कॉन्फिगरेशन</string>
+    <string name="env_preference_desc">yt-dlp आणि ffmpeg बायनरी कसे शोधायचे आणि कसे शोधायचे ते कॉन्फिगर करा</string>
+    <string name="env_pref_auto">ऑटो डिटेक्ट</string>
+    <string name="env_pref_bundled">ॲप खाजगी बंडल</string>
+    <string name="env_pref_system">सिस्टम ग्लोबल PATH</string>
+    <string name="env_setup_missing">हरवलेले पर्यावरण</string>
+    <string name="env_setup_missing_desc">योग्यरित्या कार्य करण्यासाठी सीलला yt-dlp आणि ffmpeg आवश्यक आहे. कृपया स्थापना पद्धत निवडा:</string>
+    <string name="env_setup_installing">अवलंबित्व कॉन्फिगर करत आहे...</string>
+    <string name="env_setup_success">पर्यावरण यशस्वीरित्या कॉन्फिगर केले</string>
+    <string name="env_setup_failed">पर्यावरण कॉन्फिगरेशन अयशस्वी</string>
+    <string name="env_setup_sys_title">पॅकेज मॅनेजर द्वारे स्थापित करा (शिफारस केलेले)</string>
+    <string name="env_setup_sys_desc_win">विंगेट वापरा. स्थिर आणि इतर ॲप्ससह सामायिक केले जाऊ शकते.</string>
+    <string name="env_setup_sys_desc_mac">ब्रू वापरा. स्थिर आणि इतर ॲप्ससह सामायिक केले जाऊ शकते.</string>
+    <string name="env_setup_port_title">केवळ सीलसाठी पोर्टेबल अवलंबन डाउनलोड करा</string>
+    <string name="env_setup_port_desc">सिस्टम प्रदूषित न करता ॲप खाजगी निर्देशिकेत पोर्टेबल आवृत्ती डाउनलोड करा.</string>
+    <string name="env_setup_success_msg">पर्यावरण कॉन्फिगरेशन पूर्ण झाले! कृपया प्रभावी होण्यासाठी अनुप्रयोग रीस्टार्ट करा.</string>
+    <string name="env_setup_failed_msg">स्वयंचलित स्थापनेदरम्यान एक त्रुटी आली. तुम्ही खालील आदेश स्वहस्ते अंमलात आणण्याचा प्रयत्न करू शकता:</string>
+    <string name="env_setup_btn_install">एक-क्लिक इन्स्टॉल आणि कॉन्फिगर करा</string>
+    <string name="env_setup_btn_installing">स्थापित करत आहे...</string>
+    <string name="env_setup_btn_done">झाले</string>
+    <string name="env_setup_btn_close">बंद करा</string>
+    <string name="env_setup_btn_later">नंतर</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

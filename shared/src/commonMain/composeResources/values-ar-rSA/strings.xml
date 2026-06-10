@@ -63,4 +63,28 @@
     <string name="desktop_exit_confirm_title">إنهاء التنزيلات والخروج؟</string>
     <string name="desktop_exit_confirm_running_count">هناك %1$d مهمة تنزيل قيد التشغيل. سيؤدي الخروج إلى مقاطعة التنزيلات.</string>
     <string name="desktop_exit_confirm_running_generic">هناك مهام تنزيل غير مكتملة. سيؤدي الخروج إلى مقاطعة التنزيلات.</string>
+    <string name="env_preference">تكوين تبعية البيئة</string>
+    <string name="env_preference_desc">قم بتكوين كيفية البحث وتحديد موقع الثنائيات yt-dlp وffmpeg</string>
+    <string name="env_pref_auto">الكشف التلقائي</string>
+    <string name="env_pref_bundled">التطبيق الخاص المجمعة</string>
+    <string name="env_pref_system">المسار العالمي للنظام</string>
+    <string name="env_setup_missing">البيئة المفقودة</string>
+    <string name="env_setup_missing_desc">يتطلب الختم yt-dlp وffmpeg للعمل بشكل صحيح. الرجاء تحديد طريقة التثبيت:</string>
+    <string name="env_setup_installing">تكوين التبعيات...</string>
+    <string name="env_setup_success">تم تكوين البيئة بنجاح</string>
+    <string name="env_setup_failed">فشل تكوين البيئة</string>
+    <string name="env_setup_sys_title">التثبيت عبر مدير الحزم (مستحسن)</string>
+    <string name="env_setup_sys_desc_win">استخدم وينجيت. مستقر ويمكن مشاركته مع تطبيقات أخرى.</string>
+    <string name="env_setup_sys_desc_mac">استخدم المشروب. مستقر ويمكن مشاركته مع تطبيقات أخرى.</string>
+    <string name="env_setup_port_title">قم بتنزيل التبعيات المحمولة لـ Seal فقط</string>
+    <string name="env_setup_port_desc">قم بتنزيل النسخة المحمولة إلى الدليل الخاص للتطبيق دون تلويث النظام.</string>
+    <string name="env_setup_success_msg">اكتمل تكوين البيئة! يرجى إعادة تشغيل التطبيق ليصبح ساري المفعول.</string>
+    <string name="env_setup_failed_msg">حدث خطأ أثناء التثبيت التلقائي. يمكنك تجربة تنفيذ الأوامر التالية يدويًا:</string>
+    <string name="env_setup_btn_install">بنقرة واحدة التثبيت والتكوين</string>
+    <string name="env_setup_btn_installing">جارٍ التثبيت...</string>
+    <string name="env_setup_btn_done">منتهي</string>
+    <string name="env_setup_btn_close">يغلق</string>
+    <string name="env_setup_btn_later">لاحقاً</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

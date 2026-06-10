@@ -423,4 +423,28 @@
     <string name="desktop_exit_confirm_title">ডাউনলোড বন্ধ করে বের হতে চান?</string>
     <string name="desktop_exit_confirm_running_count">বর্তমানে %1$dটি ডাউনলোড টাস্ক চলছে। বের হলে ডাউনলোড বন্ধ হয়ে যাবে।</string>
     <string name="desktop_exit_confirm_running_generic">অসমাপ্ত ডাউনলোড টাস্ক আছে। বের হলে ডাউনলোড বন্ধ হয়ে যাবে।</string>
+    <string name="env_preference">পরিবেশ নির্ভরতা কনফিগারেশন</string>
+    <string name="env_preference_desc">কিভাবে yt-dlp এবং ffmpeg বাইনারি অনুসন্ধান এবং সনাক্ত করতে কনফিগার করুন</string>
+    <string name="env_pref_auto">অটো ডিটেক্ট</string>
+    <string name="env_pref_bundled">অ্যাপ প্রাইভেট বান্ডিল</string>
+    <string name="env_pref_system">সিস্টেম গ্লোবাল PATH</string>
+    <string name="env_setup_missing">হারিয়ে যাওয়া পরিবেশ</string>
+    <string name="env_setup_missing_desc">সিলের সঠিকভাবে কাজ করার জন্য yt-dlp এবং ffmpeg প্রয়োজন। অনুগ্রহ করে একটি ইনস্টলেশন পদ্ধতি নির্বাচন করুন:</string>
+    <string name="env_setup_installing">নির্ভরতা কনফিগার করা হচ্ছে...</string>
+    <string name="env_setup_success">পরিবেশ সফলভাবে কনফিগার করা হয়েছে</string>
+    <string name="env_setup_failed">পরিবেশ কনফিগারেশন ব্যর্থ হয়েছে</string>
+    <string name="env_setup_sys_title">প্যাকেজ ম্যানেজারের মাধ্যমে ইনস্টল করুন (প্রস্তাবিত)</string>
+    <string name="env_setup_sys_desc_win">উইনগেট ব্যবহার করুন। স্থিতিশীল এবং অন্যান্য অ্যাপের সাথে শেয়ার করা যায়।</string>
+    <string name="env_setup_sys_desc_mac">চোলাই ব্যবহার করুন। স্থিতিশীল এবং অন্যান্য অ্যাপের সাথে শেয়ার করা যায়।</string>
+    <string name="env_setup_port_title">শুধুমাত্র সিলের জন্য পোর্টেবল নির্ভরতা ডাউনলোড করুন</string>
+    <string name="env_setup_port_desc">সিস্টেমকে দূষিত না করে অ্যাপ ব্যক্তিগত ডিরেক্টরিতে পোর্টেবল সংস্করণ ডাউনলোড করুন।</string>
+    <string name="env_setup_success_msg">পরিবেশ কনফিগারেশন সম্পন্ন! প্রয়োগ করতে অনুগ্রহ করে পুনরায় আরম্ভ করুন.</string>
+    <string name="env_setup_failed_msg">স্বয়ংক্রিয় ইনস্টলেশনের সময় একটি ত্রুটি ঘটেছে৷ আপনি ম্যানুয়ালি নিম্নলিখিত কমান্ডগুলি চালানোর চেষ্টা করতে পারেন:</string>
+    <string name="env_setup_btn_install">এক-ক্লিক ইনস্টল এবং কনফিগার করুন</string>
+    <string name="env_setup_btn_installing">ইনস্টল করা হচ্ছে...</string>
+    <string name="env_setup_btn_done">সম্পন্ন</string>
+    <string name="env_setup_btn_close">বন্ধ করুন</string>
+    <string name="env_setup_btn_later">পরে</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

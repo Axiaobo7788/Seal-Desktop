@@ -97,4 +97,28 @@
     <string name="desktop_exit_confirm_title">Nutraukti atsisiuntimus ir išeiti?</string>
     <string name="desktop_exit_confirm_running_count">Vyksta %1$d atsisiuntimo užduotis(-ys). Išeinant atsisiuntimai bus nutraukti.</string>
     <string name="desktop_exit_confirm_running_generic">Yra nebaigtų atsisiuntimų. Išeinant atsisiuntimai bus nutraukti.</string>
+    <string name="env_preference">Aplinkos priklausomybės konfigūracija</string>
+    <string name="env_preference_desc">Konfigūruokite, kaip ieškoti ir rasti yt-dlp ir ffmpeg dvejetainius failus</string>
+    <string name="env_pref_auto">Automatinis aptikimas</string>
+    <string name="env_pref_bundled">Privati ​​programa</string>
+    <string name="env_pref_system">Sistema Global PATH</string>
+    <string name="env_setup_missing">Trūksta aplinkos</string>
+    <string name="env_setup_missing_desc">„Seal“ reikia, kad tinkamai veiktų yt-dlp ir ffmpeg. Pasirinkite diegimo būdą:</string>
+    <string name="env_setup_installing">Konfigūruojamos priklausomybės...</string>
+    <string name="env_setup_success">Aplinka sėkmingai sukonfigūruota</string>
+    <string name="env_setup_failed">Nepavyko konfigūruoti aplinkos</string>
+    <string name="env_setup_sys_title">Įdiegti per paketų tvarkyklę (rekomenduojama)</string>
+    <string name="env_setup_sys_desc_win">Naudokite winget. Stabilus ir gali būti bendrinamas su kitomis programomis.</string>
+    <string name="env_setup_sys_desc_mac">Naudokite užvirinti. Stabilus ir gali būti bendrinamas su kitomis programomis.</string>
+    <string name="env_setup_port_title">Atsisiųskite nešiojamąsias priklausomybes, skirtas tik „Seal“</string>
+    <string name="env_setup_port_desc">Atsisiųskite nešiojamą versiją į privatų programos katalogą, neteršdami sistemos.</string>
+    <string name="env_setup_success_msg">Aplinkos konfigūracija baigta! Kad įsigaliotų, paleiskite programą iš naujo.</string>
+    <string name="env_setup_failed_msg">Automatinio diegimo metu įvyko klaida. Galite pabandyti rankiniu būdu vykdyti šias komandas:</string>
+    <string name="env_setup_btn_install">Įdiegti ir konfigūruoti vienu spustelėjimu</string>
+    <string name="env_setup_btn_installing">Diegiama...</string>
+    <string name="env_setup_btn_done">Atlikta</string>
+    <string name="env_setup_btn_close">Uždaryti</string>
+    <string name="env_setup_btn_later">Vėliau</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

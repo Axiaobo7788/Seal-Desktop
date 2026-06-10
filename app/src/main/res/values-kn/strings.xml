@@ -123,4 +123,28 @@
     <string name="desktop_exit_confirm_title">ಡೌನ್‌ಲೋಡ್‌ಗಳನ್ನು ನಿಲ್ಲಿಸಿ ಹೊರಬರಬೇಕೆ?</string>
     <string name="desktop_exit_confirm_running_count">ಈಗ %1$d ಡೌನ್‌ಲೋಡ್ ಕೆಲಸಗಳು ನಡೆಯುತ್ತಿವೆ. ಹೊರಬಂದರೆ ಡೌನ್‌ಲೋಡ್‌ಗಳು ಸ್ಥಗಿತವಾಗುತ್ತವೆ.</string>
     <string name="desktop_exit_confirm_running_generic">ಪೂರ್ಣಗೊಳ್ಳದ ಡೌನ್‌ಲೋಡ್ ಕೆಲಸಗಳಿವೆ. ಹೊರಬಂದರೆ ಡೌನ್‌ಲೋಡ್‌ಗಳು ಸ್ಥಗಿತವಾಗುತ್ತವೆ.</string>
+    <string name="env_preference">ಪರಿಸರ ಅವಲಂಬನೆಯ ಸಂರಚನೆ</string>
+    <string name="env_preference_desc">yt-dlp ಮತ್ತು ffmpeg ಬೈನರಿಗಳನ್ನು ಹೇಗೆ ಹುಡುಕುವುದು ಮತ್ತು ಪತ್ತೆ ಮಾಡುವುದು ಎಂಬುದನ್ನು ಕಾನ್ಫಿಗರ್ ಮಾಡಿ</string>
+    <string name="env_pref_auto">ಸ್ವಯಂ ಪತ್ತೆ</string>
+    <string name="env_pref_bundled">ಅಪ್ಲಿಕೇಶನ್ ಖಾಸಗಿ ಬಂಡಲ್</string>
+    <string name="env_pref_system">ಸಿಸ್ಟಮ್ ಗ್ಲೋಬಲ್ ಪಾಥ್</string>
+    <string name="env_setup_missing">ಕಾಣೆಯಾದ ಪರಿಸರ</string>
+    <string name="env_setup_missing_desc">ಸೀಲ್ ಸರಿಯಾಗಿ ಕೆಲಸ ಮಾಡಲು yt-dlp ಮತ್ತು ffmpeg ಅಗತ್ಯವಿದೆ. ದಯವಿಟ್ಟು ಅನುಸ್ಥಾಪನ ವಿಧಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ:</string>
+    <string name="env_setup_installing">ಅವಲಂಬನೆಗಳನ್ನು ಕಾನ್ಫಿಗರ್ ಮಾಡಲಾಗುತ್ತಿದೆ...</string>
+    <string name="env_setup_success">ಪರಿಸರವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಕಾನ್ಫಿಗರ್ ಮಾಡಲಾಗಿದೆ</string>
+    <string name="env_setup_failed">ಪರಿಸರ ಕಾನ್ಫಿಗರೇಶನ್ ವಿಫಲವಾಗಿದೆ</string>
+    <string name="env_setup_sys_title">ಪ್ಯಾಕೇಜ್ ಮ್ಯಾನೇಜರ್ ಮೂಲಕ ಸ್ಥಾಪಿಸಿ (ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ)</string>
+    <string name="env_setup_sys_desc_win">ವಿಂಗೆಟ್ ಬಳಸಿ. ಸ್ಥಿರ ಮತ್ತು ಇತರ ಅಪ್ಲಿಕೇಶನ್‌ಗಳೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಬಹುದು.</string>
+    <string name="env_setup_sys_desc_mac">ಬ್ರೂ ಬಳಸಿ. ಸ್ಥಿರ ಮತ್ತು ಇತರ ಅಪ್ಲಿಕೇಶನ್‌ಗಳೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಬಹುದು.</string>
+    <string name="env_setup_port_title">ಸೀಲ್‌ಗಾಗಿ ಮಾತ್ರ ಪೋರ್ಟಬಲ್ ಅವಲಂಬನೆಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ</string>
+    <string name="env_setup_port_desc">ಸಿಸ್ಟಮ್ ಅನ್ನು ಮಾಲಿನ್ಯಗೊಳಿಸದೆಯೇ ಅಪ್ಲಿಕೇಶನ್ ಖಾಸಗಿ ಡೈರೆಕ್ಟರಿಗೆ ಪೋರ್ಟಬಲ್ ಆವೃತ್ತಿಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.</string>
+    <string name="env_setup_success_msg">ಪರಿಸರ ಕಾನ್ಫಿಗರೇಶನ್ ಪೂರ್ಣಗೊಂಡಿದೆ! ಕಾರ್ಯರೂಪಕ್ಕೆ ಬರಲು ದಯವಿಟ್ಟು ಅಪ್ಲಿಕೇಶನ್ ಅನ್ನು ಮರುಪ್ರಾರಂಭಿಸಿ.</string>
+    <string name="env_setup_failed_msg">ಸ್ವಯಂಚಾಲಿತ ಅನುಸ್ಥಾಪನೆಯ ಸಮಯದಲ್ಲಿ ದೋಷ ಸಂಭವಿಸಿದೆ. ಕೆಳಗಿನ ಆಜ್ಞೆಗಳನ್ನು ಹಸ್ತಚಾಲಿತವಾಗಿ ಕಾರ್ಯಗತಗೊಳಿಸಲು ನೀವು ಪ್ರಯತ್ನಿಸಬಹುದು:</string>
+    <string name="env_setup_btn_install">ಒಂದು ಕ್ಲಿಕ್ ಇನ್‌ಸ್ಟಾಲ್ &amp; ಕಾನ್ಫಿಗರ್ ಮಾಡಿ</string>
+    <string name="env_setup_btn_installing">ಸ್ಥಾಪಿಸಲಾಗುತ್ತಿದೆ...</string>
+    <string name="env_setup_btn_done">ಮುಗಿದಿದೆ</string>
+    <string name="env_setup_btn_close">ಮುಚ್ಚಿ</string>
+    <string name="env_setup_btn_later">ನಂತರ</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

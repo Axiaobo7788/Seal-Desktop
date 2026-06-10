@@ -433,4 +433,28 @@
     <string name="desktop_exit_confirm_title">Zatrzymać pobieranie i zamknąć?</string>
     <string name="desktop_exit_confirm_running_count">Trwa %1$d zadanie pobierania. Wyjście przerwie pobieranie.</string>
     <string name="desktop_exit_confirm_running_generic">Są nieukończone pobierania. Wyjście przerwie pobieranie.</string>
+    <string name="env_preference">Konfiguracja zależności środowiska</string>
+    <string name="env_preference_desc">Skonfiguruj sposób wyszukiwania i lokalizowania plików binarnych yt-dlp i ffmpeg</string>
+    <string name="env_pref_auto">Automatyczne wykrywanie</string>
+    <string name="env_pref_bundled">Aplikacja prywatna w pakiecie</string>
+    <string name="env_pref_system">Globalna ŚCIEŻKA systemu</string>
+    <string name="env_setup_missing">Brakujące środowisko</string>
+    <string name="env_setup_missing_desc">Pieczęć wymaga poprawnego działania yt-dlp i ffmpeg. Proszę wybrać metodę instalacji:</string>
+    <string name="env_setup_installing">Konfigurowanie zależności...</string>
+    <string name="env_setup_success">Środowisko skonfigurowane pomyślnie</string>
+    <string name="env_setup_failed">Konfiguracja środowiska nie powiodła się</string>
+    <string name="env_setup_sys_title">Zainstaluj za pomocą Menedżera pakietów (zalecane)</string>
+    <string name="env_setup_sys_desc_win">Użyj wingeta. Stabilny i można go udostępniać innym aplikacjom.</string>
+    <string name="env_setup_sys_desc_mac">Użyj naparu. Stabilny i można go udostępniać innym aplikacjom.</string>
+    <string name="env_setup_port_title">Pobierz przenośne zależności tylko dla Seala</string>
+    <string name="env_setup_port_desc">Pobierz wersję przenośną do prywatnego katalogu aplikacji bez zanieczyszczania systemu.</string>
+    <string name="env_setup_success_msg">Konfiguracja środowiska zakończona! Aby zastosować zmiany, uruchom ponownie aplikację.</string>
+    <string name="env_setup_failed_msg">Wystąpił błąd podczas instalacji automatycznej. Możesz spróbować ręcznie wykonać następujące polecenia:</string>
+    <string name="env_setup_btn_install">Zainstaluj i skonfiguruj jednym kliknięciem</string>
+    <string name="env_setup_btn_installing">Instaluję...</string>
+    <string name="env_setup_btn_done">Gotowe</string>
+    <string name="env_setup_btn_close">Zamknij</string>
+    <string name="env_setup_btn_later">Później</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

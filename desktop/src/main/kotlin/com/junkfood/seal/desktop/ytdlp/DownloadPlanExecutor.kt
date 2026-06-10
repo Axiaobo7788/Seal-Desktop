@@ -187,7 +187,7 @@ class DownloadPlanExecutor(
 
         val isWindows = System.getProperty("os.name")?.lowercase()?.contains("win") == true
         val ffmpegName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
-        val pathEnv = System.getenv("PATH") ?: throw EnvironmentMissingException("ffmpeg is not bundled and not found in system PATH.")
+        val pathEnv = System.getenv("PATH") ?: throw EnvironmentMissingException("ffmpeg is not bundled and not found in system or auxiliary paths.")
         val separator = java.io.File.pathSeparator
 
         val found = pathEnv.split(separator).any { dir ->
@@ -199,7 +199,7 @@ class DownloadPlanExecutor(
             }
         }
         if (!found) {
-            throw EnvironmentMissingException("ffmpeg is not bundled and not found in system PATH.")
+            throw EnvironmentMissingException("ffmpeg is not bundled and not found in system or auxiliary paths.")
         }
     }
 

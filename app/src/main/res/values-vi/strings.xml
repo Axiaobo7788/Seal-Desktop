@@ -436,4 +436,28 @@
     <string name="desktop_exit_confirm_title">Dừng tải xuống và thoát?</string>
     <string name="desktop_exit_confirm_running_count">Có %1$d tác vụ tải xuống đang chạy. Thoát sẽ làm gián đoạn tải xuống.</string>
     <string name="desktop_exit_confirm_running_generic">Có tác vụ tải xuống chưa hoàn thành. Thoát sẽ làm gián đoạn tải xuống.</string>
+    <string name="env_preference">Cấu hình phụ thuộc môi trường</string>
+    <string name="env_preference_desc">Định cấu hình cách tìm kiếm và định vị các tệp nhị phân yt-dlp và ffmpeg</string>
+    <string name="env_pref_auto">Tự động phát hiện</string>
+    <string name="env_pref_bundled">Gói ứng dụng riêng tư</string>
+    <string name="env_pref_system">ĐƯỜNG DẪN Toàn cầu của Hệ thống</string>
+    <string name="env_setup_missing">Thiếu môi trường</string>
+    <string name="env_setup_missing_desc">Seal yêu cầu yt-dlp và ffmpeg để hoạt động bình thường. Vui lòng chọn phương pháp cài đặt:</string>
+    <string name="env_setup_installing">Định cấu hình các phần phụ thuộc...</string>
+    <string name="env_setup_success">Môi trường được cấu hình thành công</string>
+    <string name="env_setup_failed">Cấu hình môi trường không thành công</string>
+    <string name="env_setup_sys_title">Cài đặt qua Trình quản lý gói (Được khuyến nghị)</string>
+    <string name="env_setup_sys_desc_win">Sử dụng cánh. Ổn định và có thể chia sẻ với các ứng dụng khác.</string>
+    <string name="env_setup_sys_desc_mac">Sử dụng bia. Ổn định và có thể chia sẻ với các ứng dụng khác.</string>
+    <string name="env_setup_port_title">Tải xuống các phần phụ thuộc di động chỉ dành cho Seal</string>
+    <string name="env_setup_port_desc">Tải xuống phiên bản di động vào thư mục riêng của ứng dụng mà không gây ô nhiễm hệ thống.</string>
+    <string name="env_setup_success_msg">Cấu hình môi trường đã hoàn tất! Vui lòng khởi động lại ứng dụng để có hiệu lực.</string>
+    <string name="env_setup_failed_msg">Đã xảy ra lỗi trong quá trình cài đặt tự động. Bạn có thể thử thực hiện các lệnh sau theo cách thủ công:</string>
+    <string name="env_setup_btn_install">Cài đặt và định cấu hình bằng một cú nhấp chuột</string>
+    <string name="env_setup_btn_installing">Đang cài đặt...</string>
+    <string name="env_setup_btn_done">Xong</string>
+    <string name="env_setup_btn_close">Đóng</string>
+    <string name="env_setup_btn_later">Sau</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

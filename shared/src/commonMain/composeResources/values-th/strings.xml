@@ -448,4 +448,28 @@
     <string name="desktop_exit_confirm_title">หยุดการดาวน์โหลดและออกจากแอป?</string>
     <string name="desktop_exit_confirm_running_count">มีงานดาวน์โหลด %1$d รายการกำลังทำงานอยู่ การออกจากแอปจะทำให้การดาวน์โหลดถูกขัดจังหวะ</string>
     <string name="desktop_exit_confirm_running_generic">มีงานดาวน์โหลดที่ยังไม่เสร็จ การออกจากแอปจะทำให้การดาวน์โหลดถูกขัดจังหวะ</string>
+    <string name="env_preference">การกำหนดค่าการพึ่งพาสภาพแวดล้อม</string>
+    <string name="env_preference_desc">กำหนดค่าวิธีค้นหาและค้นหาไบนารี yt-dlp และ ffmpeg</string>
+    <string name="env_pref_auto">ตรวจจับอัตโนมัติ</string>
+    <string name="env_pref_bundled">รวมแอปส่วนตัว</string>
+    <string name="env_pref_system">เส้นทางทั่วโลกของระบบ</string>
+    <string name="env_setup_missing">สภาพแวดล้อมที่ขาดหายไป</string>
+    <string name="env_setup_missing_desc">Seal ต้องใช้ yt-dlp และ ffmpeg เพื่อให้ทำงานได้อย่างถูกต้อง โปรดเลือกวิธีการติดตั้ง:</string>
+    <string name="env_setup_installing">กำลังกำหนดค่าการขึ้นต่อกัน...</string>
+    <string name="env_setup_success">กำหนดค่าสภาพแวดล้อมสำเร็จแล้ว</string>
+    <string name="env_setup_failed">การกำหนดค่าสภาพแวดล้อมล้มเหลว</string>
+    <string name="env_setup_sys_title">ติดตั้งผ่าน Package Manager (แนะนำ)</string>
+    <string name="env_setup_sys_desc_win">ใช้วิงเก็ต. มีเสถียรภาพและสามารถแชร์กับแอปอื่นได้</string>
+    <string name="env_setup_sys_desc_mac">ใช้ชง. มีเสถียรภาพและสามารถแชร์กับแอปอื่นได้</string>
+    <string name="env_setup_port_title">ดาวน์โหลดการพึ่งพาแบบพกพาสำหรับ Seal เท่านั้น</string>
+    <string name="env_setup_port_desc">ดาวน์โหลดเวอร์ชันพกพาไปยังไดเร็กทอรีส่วนตัวของแอปโดยไม่ทำให้ระบบเสียหาย</string>
+    <string name="env_setup_success_msg">การกำหนดค่าสภาพแวดล้อมเสร็จสมบูรณ์! โปรดรีสตาร์ทแอปพลิเคชันเพื่อให้มีผล</string>
+    <string name="env_setup_failed_msg">เกิดข้อผิดพลาดระหว่างการติดตั้งอัตโนมัติ คุณสามารถลองใช้คำสั่งต่อไปนี้ด้วยตนเอง:</string>
+    <string name="env_setup_btn_install">คลิกเดียวติดตั้งและกำหนดค่า</string>
+    <string name="env_setup_btn_installing">กำลังติดตั้ง...</string>
+    <string name="env_setup_btn_done">เสร็จแล้ว</string>
+    <string name="env_setup_btn_close">ปิด</string>
+    <string name="env_setup_btn_later">ต่อมา</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

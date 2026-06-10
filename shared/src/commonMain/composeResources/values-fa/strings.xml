@@ -453,4 +453,28 @@
     <string name="desktop_exit_confirm_title">دانلودها را متوقف کرده و خارج می‌شوید؟</string>
     <string name="desktop_exit_confirm_running_count">در حال حاضر %1$d وظیفه دانلود در حال اجراست. خروج باعث قطع دانلودها می‌شود.</string>
     <string name="desktop_exit_confirm_running_generic">وظایف دانلود ناتمام وجود دارد. خروج باعث قطع دانلودها می‌شود.</string>
+    <string name="env_preference">پیکربندی وابستگی محیط</string>
+    <string name="env_preference_desc">پیکربندی نحوه جستجو و مکان یابی باینری های yt-dlp و ffmpeg</string>
+    <string name="env_pref_auto">تشخیص خودکار</string>
+    <string name="env_pref_bundled">برنامه خصوصی همراه</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">محیط گمشده</string>
+    <string name="env_setup_missing_desc">Seal برای درست کار کردن به yt-dlp و ffmpeg نیاز دارد. لطفاً یک روش نصب را انتخاب کنید:</string>
+    <string name="env_setup_installing">پیکربندی وابستگی ها...</string>
+    <string name="env_setup_success">محیط با موفقیت پیکربندی شد</string>
+    <string name="env_setup_failed">پیکربندی محیط ناموفق</string>
+    <string name="env_setup_sys_title">نصب از طریق Package Manager (توصیه می شود)</string>
+    <string name="env_setup_sys_desc_win">از winget استفاده کنید. پایدار است و می تواند با برنامه های دیگر به اشتراک گذاشته شود.</string>
+    <string name="env_setup_sys_desc_mac">از دم کرده استفاده کنید. پایدار است و می تواند با برنامه های دیگر به اشتراک گذاشته شود.</string>
+    <string name="env_setup_port_title">دانلود وابستگی های قابل حمل فقط برای Seal</string>
+    <string name="env_setup_port_desc">دانلود نسخه قابل حمل در فهرست خصوصی برنامه بدون آلودگی سیستم.</string>
+    <string name="env_setup_success_msg">پیکربندی محیط تکمیل شد! لطفاً برنامه را مجدداً راه اندازی کنید تا اعمال شود.</string>
+    <string name="env_setup_failed_msg">هنگام نصب خودکار خطایی روی داد. می توانید دستورات زیر را به صورت دستی اجرا کنید:</string>
+    <string name="env_setup_btn_install">با یک کلیک Install &amp; Configure</string>
+    <string name="env_setup_btn_installing">در حال نصب...</string>
+    <string name="env_setup_btn_done">انجام شد</string>
+    <string name="env_setup_btn_close">بستن</string>
+    <string name="env_setup_btn_later">بعدا</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">Interrompere i download ed uscire?</string>
     <string name="desktop_exit_confirm_running_count">Sono in corso %1$d attività di download. Uscendo si interromperanno i download.</string>
     <string name="desktop_exit_confirm_running_generic">Ci sono download non completati. Uscendo si interromperanno i download.</string>
+    <string name="env_preference">Configurazione della dipendenza dell\'ambiente</string>
+    <string name="env_preference_desc">Configura come cercare e individuare i binari yt-dlp e ffmpeg</string>
+    <string name="env_pref_auto">Rilevamento automatico</string>
+    <string name="env_pref_bundled">App privata in bundle</string>
+    <string name="env_pref_system">PERCORSO globale del sistema</string>
+    <string name="env_setup_missing">Ambiente mancante</string>
+    <string name="env_setup_missing_desc">Seal richiede yt-dlp e ffmpeg per funzionare correttamente. Seleziona un metodo di installazione:</string>
+    <string name="env_setup_installing">Configurazione delle dipendenze...</string>
+    <string name="env_setup_success">Ambiente configurato correttamente</string>
+    <string name="env_setup_failed">Configurazione dell\'ambiente non riuscita</string>
+    <string name="env_setup_sys_title">Installazione tramite Gestione pacchetti (consigliato)</string>
+    <string name="env_setup_sys_desc_win">Usa l\'ala. Stabile e può essere condiviso con altre app.</string>
+    <string name="env_setup_sys_desc_mac">Usa la birra. Stabile e può essere condiviso con altre app.</string>
+    <string name="env_setup_port_title">Scarica le dipendenze portatili solo per Seal</string>
+    <string name="env_setup_port_desc">Scarica la versione portatile nella directory privata dell\'app senza inquinare il sistema.</string>
+    <string name="env_setup_success_msg">Configurazione dell\'ambiente completata! Riavviare l\'applicazione affinché abbia effetto.</string>
+    <string name="env_setup_failed_msg">Si è verificato un errore durante l\'installazione automatica. Puoi provare a eseguire manualmente i seguenti comandi:</string>
+    <string name="env_setup_btn_install">Installa e configura con un clic</string>
+    <string name="env_setup_btn_installing">Installazione...</string>
+    <string name="env_setup_btn_done">Fatto</string>
+    <string name="env_setup_btn_close">Chiudi</string>
+    <string name="env_setup_btn_later">Più tardi</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -183,4 +183,28 @@
     <string name="desktop_exit_confirm_title">داگرتنەکان بوەستێنێت و دەرچیت؟</string>
     <string name="desktop_exit_confirm_running_count">%1$d کارى داگرتن لە کاردایە. دەرچوون داگرتنەکان دەوەستێنێت.</string>
     <string name="desktop_exit_confirm_running_generic">کارى داگرتن هێشتا تەواو نەبوون. دەرچوون داگرتنەکان دەوەستێنێت.</string>
+    <string name="env_preference">ڕێکخستنی وابەستەیی ژینگە</string>
+    <string name="env_preference_desc">ڕێکخستنی چۆنیەتی گەڕان و دیاریکردنی شوێنی دووانەی yt-dlp و ffmpeg</string>
+    <string name="env_pref_auto">ئۆتۆ دیتێکت</string>
+    <string name="env_pref_bundled">ئەپی تایبەت باندڵ</string>
+    <string name="env_pref_system">سیستەمی جیهانی PATH</string>
+    <string name="env_setup_missing">ژینگەی ونبوو</string>
+    <string name="env_setup_missing_desc">سیل پێویستی بە yt-dlp و ffmpeg هەیە بۆ ئەوەی بە باشی کار بکات. تکایە شێوازێکی دامەزراندن هەڵبژێرە:</string>
+    <string name="env_setup_installing">ڕێکخستنی وابەستەییەکان...</string>
+    <string name="env_setup_success">ژینگە بە سەرکەوتوویی ڕێکخراوە</string>
+    <string name="env_setup_failed">ڕێکخستنی ژینگە شکستی هێنا</string>
+    <string name="env_setup_sys_title">دامەزراندن لە ڕێگەی بەڕێوەبەری پاکێجەوە (پێشنیارکراوە)</string>
+    <string name="env_setup_sys_desc_win">پەنجەرە بەکاربهێنە. جێگیرە و دەتوانرێت لەگەڵ ئەپەکانی تردا هاوبەش بکرێت.</string>
+    <string name="env_setup_sys_desc_mac">بریو بەکاربهێنە. جێگیرە و دەتوانرێت لەگەڵ ئەپەکانی تردا هاوبەش بکرێت.</string>
+    <string name="env_setup_port_title">داگرتنی وابەستەییە پۆرتەبڵەکان تەنها بۆ سیل</string>
+    <string name="env_setup_port_desc">دابەزاندنی وەشانی پۆرتەبڵ بۆ ئەپ دایرێکتۆری تایبەت بەبێ ئەوەی سیستەمەکە پیس بکەیت.</string>
+    <string name="env_setup_success_msg">ڕێکخستنی ژینگە تەواو بوو! تکایە بەرنامەکە دووبارە دابمەزرێنەرەوە بۆ ئەوەی کاری پێبکرێت.</string>
+    <string name="env_setup_failed_msg">هەڵەیەک لە کاتی دامەزراندنی ئۆتۆماتیکیدا ڕوویدا. دەتوانیت هەوڵبدەیت ئەم فرمانانەی خوارەوە بە دەستی جێبەجێ بکەیت:</string>
+    <string name="env_setup_btn_install">یەک کلیک بکە Install &amp; Configure</string>
+    <string name="env_setup_btn_installing">دامەزراندنی...</string>
+    <string name="env_setup_btn_done">تەواو بوو</string>
+    <string name="env_setup_btn_close">داخستنی</string>
+    <string name="env_setup_btn_later">دواتر</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

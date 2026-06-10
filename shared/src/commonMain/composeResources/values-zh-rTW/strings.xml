@@ -481,4 +481,27 @@
     <string name="desktop_exit_confirm_title">結束下載並退出？</string>
     <string name="desktop_exit_confirm_running_count">目前有 %1$d 個下載任務正在執行，退出將中斷下載。</string>
     <string name="desktop_exit_confirm_running_generic">目前仍有下載任務未完成，退出將中斷下載。</string>
+    <string name="env_preference">執行環境依賴</string>
+    <string name="env_preference_desc">設定 yt-dlp 和 ffmpeg 核心依賴的呼叫優先級</string>
+    <string name="env_pref_auto">智慧偵測 (應用內建 &gt; 系統全域)</string>
+    <string name="env_pref_bundled">僅使用應用內建</string>
+    <string name="env_pref_system">僅使用系統全域 PATH</string>
+    <string name="env_setup_missing">遺失執行環境</string>
+    <string name="env_setup_missing_desc">Seal 需要 yt-dlp 和 ffmpeg 才能正常運作，請選擇安裝方式：</string>
+    <string name="env_setup_installing">正在設定依賴...</string>
+    <string name="env_setup_success">環境設定成功</string>
+    <string name="env_setup_failed">環境設定失敗</string>
+    <string name="env_setup_sys_title">使用系統套件管理工具全域安裝 (推薦)</string>
+    <string name="env_setup_sys_desc_win">使用 winget，穩定且可與其他軟體共用。</string>
+    <string name="env_setup_sys_desc_mac">使用 brew，穩定且可與其他軟體共用。</string>
+    <string name="env_setup_port_title">僅為 Seal 下載全自動解壓縮可攜版</string>
+    <string name="env_setup_port_desc">一鍵下載可攜版至應用程式私有目錄，不污染系統環境。</string>
+    <string name="env_setup_success_msg">環境設定已全部完成！請重新啟動應用程式以生效。</string>
+    <string name="env_setup_failed_msg">自動安裝過程中發生錯誤，您可以嘗試手動執行以下指令：</string>
+    <string name="env_setup_btn_install">一鍵安裝 &amp; 設定</string>
+    <string name="env_setup_btn_installing">安裝中...</string>
+    <string name="env_setup_btn_done">完成</string>
+    <string name="env_setup_btn_close">關閉</string>
+    <string name="env_setup_btn_later">稍後再說</string>
+    <string name="env_setup_log_start">開始環境設定...\n</string>
 </resources>

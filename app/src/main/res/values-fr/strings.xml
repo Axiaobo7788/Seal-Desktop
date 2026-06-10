@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">Arrêter les téléchargements et quitter ?</string>
     <string name="desktop_exit_confirm_running_count">Il y a %1$d tâche(s) de téléchargement en cours. Quitter interrompra les téléchargements.</string>
     <string name="desktop_exit_confirm_running_generic">Il y a des téléchargements non terminés. Quitter interrompra les téléchargements.</string>
+    <string name="env_preference">Configuration des dépendances d\'environnement</string>
+    <string name="env_preference_desc">Configurer comment rechercher et localiser les binaires yt-dlp et ffmpeg</string>
+    <string name="env_pref_auto">Détection automatique</string>
+    <string name="env_pref_bundled">Application privée groupée</string>
+    <string name="env_pref_system">CHEMIN Global du système</string>
+    <string name="env_setup_missing">Environnement manquant</string>
+    <string name="env_setup_missing_desc">Seal nécessite yt-dlp et ffmpeg pour fonctionner correctement. Veuillez sélectionner une méthode d\'installation :</string>
+    <string name="env_setup_installing">Configuration des dépendances...</string>
+    <string name="env_setup_success">Environnement configuré avec succès</string>
+    <string name="env_setup_failed">Échec de la configuration de l\'environnement</string>
+    <string name="env_setup_sys_title">Installer via le gestionnaire de packages (recommandé)</string>
+    <string name="env_setup_sys_desc_win">Utilisez Winget. Stable et peut être partagé avec d\'autres applications.</string>
+    <string name="env_setup_sys_desc_mac">Utilisez de l\'infusion. Stable et peut être partagé avec d\'autres applications.</string>
+    <string name="env_setup_port_title">Téléchargez les dépendances portables pour Seal uniquement</string>
+    <string name="env_setup_port_desc">Téléchargez la version portable dans le répertoire privé de l\'application sans polluer le système.</string>
+    <string name="env_setup_success_msg">Configuration de l\'environnement terminée ! Veuillez redémarrer l\'application pour prendre effet.</string>
+    <string name="env_setup_failed_msg">Une erreur s\'est produite lors de l\'installation automatique. Vous pouvez essayer d\'exécuter les commandes suivantes manuellement :</string>
+    <string name="env_setup_btn_install">Installer et configurer en un clic</string>
+    <string name="env_setup_btn_installing">Installation...</string>
+    <string name="env_setup_btn_done">Terminé</string>
+    <string name="env_setup_btn_close">Fermer</string>
+    <string name="env_setup_btn_later">Plus tard</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -63,4 +63,28 @@
     <string name="desktop_exit_confirm_title">Ukončiť sťahovania a zavrieť?</string>
     <string name="desktop_exit_confirm_running_count">Prebieha %1$d úloha sťahovania. Ukončenie preruší sťahovania.</string>
     <string name="desktop_exit_confirm_running_generic">Existujú nedokončené sťahovania. Ukončenie preruší sťahovania.</string>
+    <string name="env_preference">Konfigurácia závislosti prostredia</string>
+    <string name="env_preference_desc">Nakonfigurujte spôsob vyhľadávania a lokalizácie binárnych súborov yt-dlp a ffmpeg</string>
+    <string name="env_pref_auto">Automatická detekcia</string>
+    <string name="env_pref_bundled">Súkromný balík aplikácií</string>
+    <string name="env_pref_system">Globálna cesta systému</string>
+    <string name="env_setup_missing">Chýbajúce prostredie</string>
+    <string name="env_setup_missing_desc">Seal vyžaduje na správne fungovanie yt-dlp a ffmpeg. Vyberte spôsob inštalácie:</string>
+    <string name="env_setup_installing">Konfigurácia závislostí...</string>
+    <string name="env_setup_success">Prostredie bolo úspešne nakonfigurované</string>
+    <string name="env_setup_failed">Konfigurácia prostredia zlyhala</string>
+    <string name="env_setup_sys_title">Inštalovať cez správcu balíkov (odporúča sa)</string>
+    <string name="env_setup_sys_desc_win">Použite winget. Stabilné a možno ho zdieľať s inými aplikáciami.</string>
+    <string name="env_setup_sys_desc_mac">Použite zápar. Stabilné a možno ho zdieľať s inými aplikáciami.</string>
+    <string name="env_setup_port_title">Stiahnite si prenosné závislosti iba pre Seal</string>
+    <string name="env_setup_port_desc">Stiahnite si prenosnú verziu do súkromného adresára aplikácie bez znečistenia systému.</string>
+    <string name="env_setup_success_msg">Konfigurácia prostredia je dokončená! Reštartujte aplikáciu, aby sa prejavila.</string>
+    <string name="env_setup_failed_msg">Počas automatickej inštalácie sa vyskytla chyba. Môžete skúsiť vykonať nasledujúce príkazy manuálne:</string>
+    <string name="env_setup_btn_install">Inštalovať a konfigurovať jedným kliknutím</string>
+    <string name="env_setup_btn_installing">Inštaluje sa...</string>
+    <string name="env_setup_btn_done">Hotovo</string>
+    <string name="env_setup_btn_close">Zavrieť</string>
+    <string name="env_setup_btn_later">Neskôr</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

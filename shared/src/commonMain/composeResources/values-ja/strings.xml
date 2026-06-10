@@ -448,4 +448,28 @@
     <string name="desktop_exit_confirm_title">ダウンロードを終了して退出しますか？</string>
     <string name="desktop_exit_confirm_running_count">%1$d 件のダウンロードが実行中です。退出するとダウンロードが中断されます。</string>
     <string name="desktop_exit_confirm_running_generic">未完了のダウンロードがあります。退出するとダウンロードが中断されます。</string>
+    <string name="env_preference">環境依存関係の構成</string>
+    <string name="env_preference_desc">yt-dlp および ffmpeg バイナリを検索して見つける方法を構成する</string>
+    <string name="env_pref_auto">自動検出</string>
+    <string name="env_pref_bundled">アプリのプライベート バンドル</string>
+    <string name="env_pref_system">システム グローバル パス</string>
+    <string name="env_setup_missing">環境がありません</string>
+    <string name="env_setup_missing_desc">Seal が正しく動作するには、yt-dlp と ffmpeg が必要です。インストール方法を選択してください:</string>
+    <string name="env_setup_installing">依存関係を構成しています...</string>
+    <string name="env_setup_success">環境は正常に構成されました</string>
+    <string name="env_setup_failed">環境設定に失敗しました</string>
+    <string name="env_setup_sys_title">パッケージ マネージャー経由でインストールする (推奨)</string>
+    <string name="env_setup_sys_desc_win">ウイングゲットを使います。安定しており、他のアプリと共有できます。</string>
+    <string name="env_setup_sys_desc_mac">醸造を使用します。安定しており、他のアプリと共有できます。</string>
+    <string name="env_setup_port_title">Seal のみの移植可能な依存関係をダウンロード</string>
+    <string name="env_setup_port_desc">システムを汚染することなく、ポータブル版をアプリのプライベートディレクトリにダウンロードします。</string>
+    <string name="env_setup_success_msg">環境構築が完了しました！有効にするには、アプリケーションを再起動してください。</string>
+    <string name="env_setup_failed_msg">自動インストール中にエラーが発生しました。次のコマンドを手動で実行してみてください。</string>
+    <string name="env_setup_btn_install">ワンクリックでインストールと構成</string>
+    <string name="env_setup_btn_installing">インストール中...</string>
+    <string name="env_setup_btn_done">完了</string>
+    <string name="env_setup_btn_close">閉じる</string>
+    <string name="env_setup_btn_later">後で</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

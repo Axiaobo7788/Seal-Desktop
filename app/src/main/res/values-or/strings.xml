@@ -43,4 +43,28 @@
     <string name="desktop_exit_confirm_title">ଡାଉନଲୋଡ୍ ବନ୍ଦ କରି ବାହାରିବେ?</string>
     <string name="desktop_exit_confirm_running_count">ବର୍ତ୍ତମାନ %1$d ଟି ଡାଉନଲୋଡ୍ କାମ ଚାଲିଛି। ବାହାରିଲେ ଡାଉନଲୋଡ୍ ବନ୍ଦ ହେବ।</string>
     <string name="desktop_exit_confirm_running_generic">ଅପୂର୍ଣ୍ଣ ଡାଉନଲୋଡ୍ କାମ ଅଛି। ବାହାରିଲେ ଡାଉନଲୋଡ୍ ବନ୍ଦ ହେବ।</string>
+    <string name="env_preference">ପରିବେଶ ନିର୍ଭରଶୀଳ ବିନ୍ୟାସ</string>
+    <string name="env_preference_desc">Yt-dlp ଏବଂ ffmpeg ବାଇନାରୀଗୁଡିକ କିପରି ସନ୍ଧାନ ଏବଂ ଖୋଜିବେ ବିନ୍ୟାସ କରନ୍ତୁ</string>
+    <string name="env_pref_auto">ଅଟୋ ଡିଟେକ୍ଟ</string>
+    <string name="env_pref_bundled">ଆପ୍ ପ୍ରାଇଭେଟ ବଣ୍ଡଲ୍</string>
+    <string name="env_pref_system">ସିଷ୍ଟମ୍ ଗ୍ଲୋବାଲ୍ ପାଥ୍</string>
+    <string name="env_setup_missing">ନିଖୋଜ ପରିବେଶ</string>
+    <string name="env_setup_missing_desc">ସଠିକ୍ ଭାବରେ କାମ କରିବା ପାଇଁ ସିଲ୍ yt-dlp ଏବଂ ffmpeg ଆବଶ୍ୟକ କରେ | ଦୟାକରି ଏକ ସ୍ଥାପନ ପଦ୍ଧତି ବାଛନ୍ତୁ:</string>
+    <string name="env_setup_installing">ନିର୍ଭରଶୀଳତାକୁ ବିନ୍ୟାସ କରୁଅଛି ...</string>
+    <string name="env_setup_success">ପରିବେଶ ସଫଳତାର ସହିତ ବିନ୍ୟାସିତ</string>
+    <string name="env_setup_failed">ପରିବେଶ ବିନ୍ୟାସ ବିଫଳ ହେଲା</string>
+    <string name="env_setup_sys_title">ପ୍ୟାକେଜ୍ ମ୍ୟାନେଜର୍ ମାଧ୍ୟମରେ ସଂସ୍ଥାପିତ (ସୁପାରିଶ)</string>
+    <string name="env_setup_sys_desc_win">ୱିଙ୍ଗେଟ୍ ବ୍ୟବହାର କରନ୍ତୁ | ସ୍ଥିର ଏବଂ ଅନ୍ୟ ଆପ୍ ସହିତ ଅଂଶୀଦାର ହୋଇପାରିବ |</string>
+    <string name="env_setup_sys_desc_mac">ବ୍ରୁ ବ୍ୟବହାର କରନ୍ତୁ | ସ୍ଥିର ଏବଂ ଅନ୍ୟ ଆପ୍ ସହିତ ଅଂଶୀଦାର ହୋଇପାରିବ |</string>
+    <string name="env_setup_port_title">କେବଳ ସିଲ୍ ପାଇଁ ପୋର୍ଟେବଲ୍ ନିର୍ଭରଶୀଳତା ଡାଉନଲୋଡ୍ କରନ୍ତୁ</string>
+    <string name="env_setup_port_desc">ସିଷ୍ଟମ୍ ପ୍ରଦୂଷଣ ନକରି ଆପ୍ ବ୍ୟକ୍ତିଗତ ଡିରେକ୍ଟୋରୀକୁ ପୋର୍ଟେବଲ୍ ସଂସ୍କରଣ ଡାଉନଲୋଡ୍ କରନ୍ତୁ |</string>
+    <string name="env_setup_success_msg">ପରିବେଶ ବିନ୍ୟାସ ସମାପ୍ତ! କାର୍ଯ୍ୟକାରୀ ହେବାକୁ ଦୟାକରି ଅନୁପ୍ରୟୋଗକୁ ପୁନ rest ଆରମ୍ଭ କରନ୍ତୁ |</string>
+    <string name="env_setup_failed_msg">ସ୍ୱୟଂଚାଳିତ ସ୍ଥାପନ ସମୟରେ ଏକ ତ୍ରୁଟି ଘଟିଲା | ଆପଣ ନିମ୍ନଲିଖିତ ନିର୍ଦ୍ଦେଶଗୁଡ଼ିକୁ ହସ୍ତକୃତ ଭାବରେ କାର୍ଯ୍ୟକାରୀ କରିବାକୁ ଚେଷ୍ଟା କରିପାରିବେ:</string>
+    <string name="env_setup_btn_install">ସଂସ୍ଥାପନ ଏବଂ ବିନ୍ୟାସ କରନ୍ତୁ ଗୋଟିଏ କ୍ଲିକ୍</string>
+    <string name="env_setup_btn_installing">ସଂସ୍ଥାପନ ...</string>
+    <string name="env_setup_btn_done">ସମାପ୍ତ</string>
+    <string name="env_setup_btn_close">ବନ୍ଦ</string>
+    <string name="env_setup_btn_later">ପରେ</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

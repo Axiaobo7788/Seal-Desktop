@@ -453,4 +453,28 @@
     <string name="desktop_exit_confirm_title">ഡൗൺലോഡുകൾ നിർത്തി പുറത്തുകടക്കണോ?</string>
     <string name="desktop_exit_confirm_running_count">ഇപ്പോൾ %1$d ഡൗൺലോഡ് ജോലികൾ പ്രവർത്തിക്കുന്നു. പുറത്തുകടന്നാൽ ഡൗൺലോഡുകൾ നിർത്തപ്പെടും.</string>
     <string name="desktop_exit_confirm_running_generic">പൂർണ്ണമായിട്ടില്ലാത്ത ഡൗൺലോഡ് ജോലികൾ ഉണ്ട്. പുറത്തുകടന്നാൽ ഡൗൺലോഡുകൾ നിർത്തപ്പെടും.</string>
+    <string name="env_preference">പരിസ്ഥിതി ആശ്രിതത്വ കോൺഫിഗറേഷൻ</string>
+    <string name="env_preference_desc">yt-dlp, ffmpeg ബൈനറികൾ എങ്ങനെ തിരയാമെന്നും കണ്ടെത്താമെന്നും കോൺഫിഗർ ചെയ്യുക</string>
+    <string name="env_pref_auto">സ്വയമേവ കണ്ടെത്തൽ</string>
+    <string name="env_pref_bundled">ആപ്പ് സ്വകാര്യ ബണ്ടിൽ</string>
+    <string name="env_pref_system">സിസ്റ്റം ഗ്ലോബൽ പാത്ത്</string>
+    <string name="env_setup_missing">പരിസ്ഥിതി കാണുന്നില്ല</string>
+    <string name="env_setup_missing_desc">സീൽ ശരിയായി പ്രവർത്തിക്കാൻ yt-dlp, ffmpeg എന്നിവ ആവശ്യമാണ്. ദയവായി ഒരു ഇൻസ്റ്റലേഷൻ രീതി തിരഞ്ഞെടുക്കുക:</string>
+    <string name="env_setup_installing">ഡിപൻഡൻസികൾ കോൺഫിഗർ ചെയ്യുന്നു...</string>
+    <string name="env_setup_success">പരിസ്ഥിതി വിജയകരമായി ക്രമീകരിച്ചു</string>
+    <string name="env_setup_failed">പരിസ്ഥിതി കോൺഫിഗറേഷൻ പരാജയപ്പെട്ടു</string>
+    <string name="env_setup_sys_title">പാക്കേജ് മാനേജർ വഴി ഇൻസ്റ്റാൾ ചെയ്യുക (ശുപാർശ ചെയ്യുന്നത്)</string>
+    <string name="env_setup_sys_desc_win">ചിറക് ഉപയോഗിക്കുക. സ്ഥിരതയുള്ളതും മറ്റ് ആപ്പുകളുമായി പങ്കിടാനും കഴിയും.</string>
+    <string name="env_setup_sys_desc_mac">ബ്രൂ ഉപയോഗിക്കുക. സ്ഥിരതയുള്ളതും മറ്റ് ആപ്പുകളുമായി പങ്കിടാനും കഴിയും.</string>
+    <string name="env_setup_port_title">സീലിനായി മാത്രം പോർട്ടബിൾ ഡിപൻഡൻസികൾ ഡൗൺലോഡ് ചെയ്യുക</string>
+    <string name="env_setup_port_desc">സിസ്റ്റം മലിനമാക്കാതെ ആപ്പ് സ്വകാര്യ ഡയറക്ടറിയിലേക്ക് പോർട്ടബിൾ പതിപ്പ് ഡൗൺലോഡ് ചെയ്യുക.</string>
+    <string name="env_setup_success_msg">പരിസ്ഥിതി കോൺഫിഗറേഷൻ പൂർത്തിയായി! പ്രാബല്യത്തിൽ വരാൻ ദയവായി അപ്ലിക്കേഷൻ പുനരാരംഭിക്കുക.</string>
+    <string name="env_setup_failed_msg">ഓട്ടോമാറ്റിക് ഇൻസ്റ്റാളേഷൻ സമയത്ത് ഒരു പിശക് സംഭവിച്ചു. നിങ്ങൾക്ക് ഇനിപ്പറയുന്ന കമാൻഡുകൾ സ്വമേധയാ നടപ്പിലാക്കാൻ ശ്രമിക്കാം:</string>
+    <string name="env_setup_btn_install">ഒറ്റ-ക്ലിക്ക് ഇൻസ്റ്റാൾ &amp; കോൺഫിഗർ ചെയ്യുക</string>
+    <string name="env_setup_btn_installing">ഇൻസ്റ്റാൾ ചെയ്യുന്നു...</string>
+    <string name="env_setup_btn_done">ചെയ്തു</string>
+    <string name="env_setup_btn_close">അടയ്ക്കുക</string>
+    <string name="env_setup_btn_later">പിന്നീട്</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

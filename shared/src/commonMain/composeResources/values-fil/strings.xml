@@ -456,4 +456,28 @@
     <string name="desktop_exit_confirm_title">Itigil ang mga download at lumabas?</string>
     <string name="desktop_exit_confirm_running_count">May %1$d na download task na tumatakbo. Kapag lumabas, mahihinto ang mga download.</string>
     <string name="desktop_exit_confirm_running_generic">May mga hindi pa tapos na download. Kapag lumabas, mahihinto ang mga download.</string>
+    <string name="env_preference">Environment Dependency Configuration</string>
+    <string name="env_preference_desc">Configure how to search and locate yt-dlp and ffmpeg binaries</string>
+    <string name="env_pref_auto">Auto Detect</string>
+    <string name="env_pref_bundled">App Private Bundled</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Missing Environment</string>
+    <string name="env_setup_missing_desc">Seal requires yt-dlp and ffmpeg to work properly. Please select an installation method:</string>
+    <string name="env_setup_installing">Configuring dependencies...</string>
+    <string name="env_setup_success">Environment configured successfully</string>
+    <string name="env_setup_failed">Environment configuration failed</string>
+    <string name="env_setup_sys_title">Install via Package Manager (Recommended)</string>
+    <string name="env_setup_sys_desc_win">Use winget. Stable and can be shared with other apps.</string>
+    <string name="env_setup_sys_desc_mac">Use brew. Stable and can be shared with other apps.</string>
+    <string name="env_setup_port_title">Download portable dependencies for Seal only</string>
+    <string name="env_setup_port_desc">Download portable version to app private directory without polluting the system.</string>
+    <string name="env_setup_success_msg">Environment configuration completed! Please restart the application to take effect.</string>
+    <string name="env_setup_failed_msg">An error occurred during automatic installation. You can try executing the following commands manually:</string>
+    <string name="env_setup_btn_install">One-click Install &amp; Configure</string>
+    <string name="env_setup_btn_installing">Installing...</string>
+    <string name="env_setup_btn_done">Done</string>
+    <string name="env_setup_btn_close">Close</string>
+    <string name="env_setup_btn_later">Later</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

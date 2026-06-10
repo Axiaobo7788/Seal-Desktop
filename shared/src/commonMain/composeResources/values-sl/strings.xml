@@ -17,4 +17,28 @@
     <string name="desktop_exit_confirm_title">Ustaviti prenose in zapreti?</string>
     <string name="desktop_exit_confirm_running_count">V teku je %1$d prenos. Zaprtje bo prekinilo prenose.</string>
     <string name="desktop_exit_confirm_running_generic">Obstajajo nedokončani prenosi. Zaprtje bo prekinilo prenose.</string>
+    <string name="env_preference">Konfiguracija odvisnosti od okolja</string>
+    <string name="env_preference_desc">Configure how to search and locate yt-dlp and ffmpeg binaries</string>
+    <string name="env_pref_auto">Auto Detect</string>
+    <string name="env_pref_bundled">App Private Bundled</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Missing Environment</string>
+    <string name="env_setup_missing_desc">Seal requires yt-dlp and ffmpeg to work properly. Izberite način namestitve:</string>
+    <string name="env_setup_installing">Konfiguriranje odvisnosti ...</string>
+    <string name="env_setup_success">Okolje uspešno konfigurirano</string>
+    <string name="env_setup_failed">Konfiguracija okolja ni uspela</string>
+    <string name="env_setup_sys_title">Namestite prek upravitelja paketov (priporočeno)</string>
+    <string name="env_setup_sys_desc_win">Use winget. Stabilen in ga je mogoče deliti z drugimi aplikacijami.</string>
+    <string name="env_setup_sys_desc_mac">Use brew. Stabilen in ga je mogoče deliti z drugimi aplikacijami.</string>
+    <string name="env_setup_port_title">Prenos prenosnih odvisnosti samo za Seal</string>
+    <string name="env_setup_port_desc">Download portable version to app private directory without polluting the system.</string>
+    <string name="env_setup_success_msg">Konfiguracija okolja je končana! Znova zaženite aplikacijo, da začne veljati.</string>
+    <string name="env_setup_failed_msg">Med samodejno namestitvijo je prišlo do napake. You can try executing the following commands manually:</string>
+    <string name="env_setup_btn_install">Namestite in konfigurirajte z enim klikom</string>
+    <string name="env_setup_btn_installing">Installing...</string>
+    <string name="env_setup_btn_done">Done</string>
+    <string name="env_setup_btn_close">Close</string>
+    <string name="env_setup_btn_later">Later</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

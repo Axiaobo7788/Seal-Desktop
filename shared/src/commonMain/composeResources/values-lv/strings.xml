@@ -17,4 +17,28 @@
     <string name="desktop_exit_confirm_title">Pārtraukt lejupielādes un iziet?</string>
     <string name="desktop_exit_confirm_running_count">Notiek %1$d lejupielādes uzdevums(-i). Izejot lejupielādes tiks pārtrauktas.</string>
     <string name="desktop_exit_confirm_running_generic">Ir nepabeigtas lejupielādes. Izejot lejupielādes tiks pārtrauktas.</string>
+    <string name="env_preference">Vides atkarības konfigurācija</string>
+    <string name="env_preference_desc">Konfigurējiet, kā meklēt un atrast yt-dlp un ffmpeg bināros failus</string>
+    <string name="env_pref_auto">Automātiskā noteikšana</string>
+    <string name="env_pref_bundled">App Private Bundled</string>
+    <string name="env_pref_system">Sistēmas globālais PATH</string>
+    <string name="env_setup_missing">Trūkst vides</string>
+    <string name="env_setup_missing_desc">Seal ir nepieciešams, lai yt-dlp un ffmpeg darbotos pareizi. Lūdzu, atlasiet instalēšanas metodi:</string>
+    <string name="env_setup_installing">Notiek atkarību konfigurēšana...</string>
+    <string name="env_setup_success">Vide veiksmīgi konfigurēta</string>
+    <string name="env_setup_failed">Vides konfigurēšana neizdevās</string>
+    <string name="env_setup_sys_title">Instalējiet, izmantojot pakotņu pārvaldnieku (ieteicams)</string>
+    <string name="env_setup_sys_desc_win">Izmantojiet winget. Stabils, un to var koplietot ar citām lietotnēm.</string>
+    <string name="env_setup_sys_desc_mac">Izmantojiet brūvēt. Stabils, un to var koplietot ar citām lietotnēm.</string>
+    <string name="env_setup_port_title">Lejupielādēt pārnēsājamās atkarības tikai Seal</string>
+    <string name="env_setup_port_desc">Lejupielādējiet portatīvo versiju lietotnes privātajā direktorijā, nepiesārņojot sistēmu.</string>
+    <string name="env_setup_success_msg">Vides konfigurēšana ir pabeigta! Lūdzu, restartējiet lietojumprogrammu, lai tā stātos spēkā.</string>
+    <string name="env_setup_failed_msg">Automātiskās instalēšanas laikā radās kļūda. Varat mēģināt manuāli izpildīt šādas komandas:</string>
+    <string name="env_setup_btn_install">Ar vienu klikšķi Install &amp; Configure</string>
+    <string name="env_setup_btn_installing">Notiek instalēšana...</string>
+    <string name="env_setup_btn_done">Gatavs</string>
+    <string name="env_setup_btn_close">Aizvērt</string>
+    <string name="env_setup_btn_later">Vēlāk</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

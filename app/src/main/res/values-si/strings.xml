@@ -227,4 +227,28 @@
     <string name="desktop_exit_confirm_title">බාගත කිරීම් නවතා ඉවත් වන්නද?</string>
     <string name="desktop_exit_confirm_running_count">දැනට %1$d බාගත කිරීමක් ක්‍රියාත්මකයි. ඉවත් වන්නේ නම් බාගත කිරීම් නවතනු ඇත.</string>
     <string name="desktop_exit_confirm_running_generic">අවසන් නොවූ බාගත කිරීම් ඇත. ඉවත් වන්නේ නම් බාගත කිරීම් නවතනු ඇත.</string>
+    <string name="env_preference">පරිසර යැපුම් වින්‍යාසය</string>
+    <string name="env_preference_desc">yt-dlp සහ ffmpeg ද්විමය සෙවීම සහ ස්ථානගත කරන ආකාරය වින්‍යාස කරන්න</string>
+    <string name="env_pref_auto">ස්වයංක්‍රීයව හඳුනාගැනීම</string>
+    <string name="env_pref_bundled">යෙදුම පුද්ගලික බණ්ඩල් කරන ලදී</string>
+    <string name="env_pref_system">පද්ධති ගෝලීය PATH</string>
+    <string name="env_setup_missing">අතුරුදහන් වූ පරිසරය</string>
+    <string name="env_setup_missing_desc">මුද්‍රාව නිවැරදිව ක්‍රියා කිරීමට yt-dlp සහ ffmpeg අවශ්‍ය වේ. කරුණාකර ස්ථාපන ක්‍රමයක් තෝරන්න:</string>
+    <string name="env_setup_installing">පරායත්තතා වින්‍යාස කරමින්...</string>
+    <string name="env_setup_success">පරිසරය සාර්ථකව වින්‍යාස කර ඇත</string>
+    <string name="env_setup_failed">පරිසර වින්‍යාසය අසාර්ථක විය</string>
+    <string name="env_setup_sys_title">පැකේජ කළමනාකරු හරහා ස්ථාපනය කරන්න (නිර්දේශිතයි)</string>
+    <string name="env_setup_sys_desc_win">Winget භාවිතා කරන්න. ස්ථාවර සහ වෙනත් යෙදුම් සමඟ බෙදා ගත හැක.</string>
+    <string name="env_setup_sys_desc_mac">බීර භාවිතා කරන්න. ස්ථාවර සහ වෙනත් යෙදුම් සමඟ බෙදා ගත හැක.</string>
+    <string name="env_setup_port_title">සීල් සඳහා පමණක් අතේ ගෙන යා හැකි පරායත්ත බාගන්න</string>
+    <string name="env_setup_port_desc">පද්ධතිය දූෂණය නොකර යෙදුම් පුද්ගලික නාමාවලිය වෙත අතේ ගෙන යා හැකි අනුවාදය බාගන්න.</string>
+    <string name="env_setup_success_msg">පරිසර වින්‍යාසය සම්පූර්ණයි! බලාත්මක වීමට කරුණාකර යෙදුම නැවත ආරම්භ කරන්න.</string>
+    <string name="env_setup_failed_msg">ස්වයංක්‍රීය ස්ථාපනය අතරතුර දෝෂයක් ඇති විය. ඔබට පහත විධානයන් අතින් ක්‍රියාත්මක කිරීමට උත්සාහ කළ හැකිය:</string>
+    <string name="env_setup_btn_install">Install &amp; Configure එක ක්ලික් කරන්න</string>
+    <string name="env_setup_btn_installing">ස්ථාපනය කරමින්...</string>
+    <string name="env_setup_btn_done">කළා</string>
+    <string name="env_setup_btn_close">වසන්න</string>
+    <string name="env_setup_btn_later">පසුව</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

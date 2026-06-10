@@ -406,4 +406,28 @@
     <string name="desktop_exit_confirm_title">Τερματισμός λήψεων και έξοδος;</string>
     <string name="desktop_exit_confirm_running_count">Υπάρχουν %1$d εργασίες λήψης σε εξέλιξη. Η έξοδος θα διακόψει τις λήψεις.</string>
     <string name="desktop_exit_confirm_running_generic">Υπάρχουν μη ολοκληρωμένες εργασίες λήψης. Η έξοδος θα διακόψει τις λήψεις.</string>
+    <string name="env_preference">Διαμόρφωση Εξάρτησης Περιβάλλοντος</string>
+    <string name="env_preference_desc">Διαμορφώστε τον τρόπο αναζήτησης και εντοπισμού των δυαδικών αρχείων yt-dlp και ffmpeg</string>
+    <string name="env_pref_auto">Αυτόματος εντοπισμός</string>
+    <string name="env_pref_bundled">Εφαρμογή Ιδιωτική Πακέτα</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Περιβάλλον που λείπει</string>
+    <string name="env_setup_missing_desc">Το Seal απαιτεί yt-dlp και ffmpeg για να λειτουργήσει σωστά. Επιλέξτε μια μέθοδο εγκατάστασης:</string>
+    <string name="env_setup_installing">Διαμόρφωση εξαρτήσεων...</string>
+    <string name="env_setup_success">Το περιβάλλον διαμορφώθηκε με επιτυχία</string>
+    <string name="env_setup_failed">Η διαμόρφωση περιβάλλοντος απέτυχε</string>
+    <string name="env_setup_sys_title">Εγκατάσταση μέσω του Package Manager (Συνιστάται)</string>
+    <string name="env_setup_sys_desc_win">Χρησιμοποιήστε winget. Σταθερό και μπορεί να κοινοποιηθεί με άλλες εφαρμογές.</string>
+    <string name="env_setup_sys_desc_mac">Χρησιμοποιήστε την παρασκευή. Σταθερό και μπορεί να κοινοποιηθεί με άλλες εφαρμογές.</string>
+    <string name="env_setup_port_title">Λήψη φορητών εξαρτήσεων μόνο για Seal</string>
+    <string name="env_setup_port_desc">Κάντε λήψη της φορητής έκδοσης στον ιδιωτικό κατάλογο της εφαρμογής χωρίς να μολύνει το σύστημα.</string>
+    <string name="env_setup_success_msg">Ολοκληρώθηκε η διαμόρφωση περιβάλλοντος! Κάντε επανεκκίνηση της εφαρμογής για να τεθεί σε ισχύ.</string>
+    <string name="env_setup_failed_msg">Παρουσιάστηκε σφάλμα κατά την αυτόματη εγκατάσταση. Μπορείτε να δοκιμάσετε να εκτελέσετε τις ακόλουθες εντολές με μη αυτόματο τρόπο:</string>
+    <string name="env_setup_btn_install">Με ένα κλικ Install &amp; Configure</string>
+    <string name="env_setup_btn_installing">Εγκατάσταση...</string>
+    <string name="env_setup_btn_done">Έγινε</string>
+    <string name="env_setup_btn_close">Κλείσιμο</string>
+    <string name="env_setup_btn_later">Αργότερα</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

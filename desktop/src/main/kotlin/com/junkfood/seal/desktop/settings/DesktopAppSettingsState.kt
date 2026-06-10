@@ -59,6 +59,7 @@ data class DesktopAppSettings(
     val ytDlpUpdateChannel: Int = 0,
     val ytDlpAutoUpdate: Boolean = true,
     val ytDlpUpdateInterval: Long = 604800000L,
+    val environmentPreference: Int = EnvPrefAuto,
 )
 
 private fun appSettingsPath(): Path {
@@ -190,6 +191,10 @@ internal const val DownloadTypePrevious = 1
 
 internal const val UpdateChannelStable = 0
 internal const val UpdateChannelPreview = 1
+
+internal const val EnvPrefAuto = 0
+internal const val EnvPrefBundled = 1
+internal const val EnvPrefSystem = 2
 
 private fun logAppSettingsStorageWarning(message: String, throwable: Throwable) {
     DesktopStorageEventLogger.warn(

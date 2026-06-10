@@ -150,4 +150,28 @@
     <string name="desktop_exit_confirm_title">Yuklab olishlarni to‘xtatib chiqilsinmi?</string>
     <string name="desktop_exit_confirm_running_count">Hozir %1$d ta yuklab olish vazifasi ishlamoqda. Chiqish yuklab olishlarni to‘xtatadi.</string>
     <string name="desktop_exit_confirm_running_generic">Tugallanmagan yuklab olishlar bor. Chiqish yuklab olishlarni to‘xtatadi.</string>
+    <string name="env_preference">Atrof-muhitga bog\'liqlik konfiguratsiyasi</string>
+    <string name="env_preference_desc">Yt-dlp va ffmpeg ikkilik fayllarini qanday qidirish va topishni sozlang</string>
+    <string name="env_pref_auto">Avtomatik aniqlash</string>
+    <string name="env_pref_bundled">Shaxsiy ilova</string>
+    <string name="env_pref_system">Global PATH tizimi</string>
+    <string name="env_setup_missing">Yo\'qolgan muhit</string>
+    <string name="env_setup_missing_desc">Seal to\'g\'ri ishlashi uchun yt-dlp va ffmpeg talab qiladi. Iltimos, o\'rnatish usulini tanlang:</string>
+    <string name="env_setup_installing">Bog\'liqlar sozlanmoqda...</string>
+    <string name="env_setup_success">Muhit muvaffaqiyatli sozlandi</string>
+    <string name="env_setup_failed">Atrof-muhit konfiguratsiyasi amalga oshmadi</string>
+    <string name="env_setup_sys_title">Paket menejeri orqali o\'rnating (Tavsiya etiladi)</string>
+    <string name="env_setup_sys_desc_win">Winget-dan foydalaning. Barqaror va boshqa ilovalar bilan baham ko\'rish mumkin.</string>
+    <string name="env_setup_sys_desc_mac">Pishirishdan foydalaning. Barqaror va boshqa ilovalar bilan baham ko\'rish mumkin.</string>
+    <string name="env_setup_port_title">Faqat Seal uchun portativ bog\'liqliklarni yuklab oling</string>
+    <string name="env_setup_port_desc">Tizimni ifloslantirmasdan ilovaning shaxsiy katalogiga ko\'chma versiyani yuklab oling.</string>
+    <string name="env_setup_success_msg">Atrof-muhit konfiguratsiyasi tugallandi! Iltimos, kuchga kirishi uchun ilovani qayta ishga tushiring.</string>
+    <string name="env_setup_failed_msg">Avtomatik o\'rnatish vaqtida xatolik yuz berdi. Quyidagi buyruqlarni qo\'lda bajarishga urinib ko\'rishingiz mumkin:</string>
+    <string name="env_setup_btn_install">Bir marta bosish bilan o\'rnatish va sozlash</string>
+    <string name="env_setup_btn_installing">O\'rnatilmoqda...</string>
+    <string name="env_setup_btn_done">Bajarildi</string>
+    <string name="env_setup_btn_close">Yopish</string>
+    <string name="env_setup_btn_later">Keyinchalik</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

@@ -442,4 +442,28 @@
     <string name="desktop_exit_confirm_title">Prekinuti preuzimanja i izaći?</string>
     <string name="desktop_exit_confirm_running_count">U tijeku je %1$d zadatak preuzimanja. Izlazak će prekinuti preuzimanja.</string>
     <string name="desktop_exit_confirm_running_generic">Postoje nedovršeni zadaci preuzimanja. Izlazak će prekinuti preuzimanja.</string>
+    <string name="env_preference">Konfiguracija ovisnosti o okruženju</string>
+    <string name="env_preference_desc">Konfigurirajte kako pretraživati ​​i locirati binarne datoteke yt-dlp i ffmpeg</string>
+    <string name="env_pref_auto">Automatsko otkrivanje</string>
+    <string name="env_pref_bundled">Privatni paket aplikacije</string>
+    <string name="env_pref_system">Globalni PATH sustava</string>
+    <string name="env_setup_missing">Nedostaje okruženje</string>
+    <string name="env_setup_missing_desc">Seal zahtijeva yt-dlp i ffmpeg za ispravan rad. Odaberite način instalacije:</string>
+    <string name="env_setup_installing">Konfiguriranje ovisnosti...</string>
+    <string name="env_setup_success">Okruženje je uspješno konfigurirano</string>
+    <string name="env_setup_failed">Konfiguracija okruženja nije uspjela</string>
+    <string name="env_setup_sys_title">Instalirajte putem upravitelja paketa (preporučeno)</string>
+    <string name="env_setup_sys_desc_win">Koristi krilo. Stabilan i može se dijeliti s drugim aplikacijama.</string>
+    <string name="env_setup_sys_desc_mac">Koristite pivo. Stabilan i može se dijeliti s drugim aplikacijama.</string>
+    <string name="env_setup_port_title">Preuzmi prijenosne ovisnosti samo za Seal</string>
+    <string name="env_setup_port_desc">Preuzmite prijenosnu verziju u privatni imenik aplikacije bez zagađivanja sustava.</string>
+    <string name="env_setup_success_msg">Konfiguracija okruženja dovršena! Ponovno pokrenite aplikaciju kako bi stupila na snagu.</string>
+    <string name="env_setup_failed_msg">Došlo je do pogreške tijekom automatske instalacije. Možete pokušati ručno izvršiti sljedeće naredbe:</string>
+    <string name="env_setup_btn_install">Instaliraj i konfiguriraj jednim klikom</string>
+    <string name="env_setup_btn_installing">Instaliranje...</string>
+    <string name="env_setup_btn_done">Gotovo</string>
+    <string name="env_setup_btn_close">Zatvori</string>
+    <string name="env_setup_btn_later">Kasnije</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

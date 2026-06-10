@@ -453,4 +453,28 @@
     <string name="desktop_exit_confirm_title">Hentikan unduhan dan keluar?</string>
     <string name="desktop_exit_confirm_running_count">Ada %1$d tugas unduhan yang berjalan. Keluar akan menghentikan unduhan.</string>
     <string name="desktop_exit_confirm_running_generic">Ada tugas unduhan yang belum selesai. Keluar akan menghentikan unduhan.</string>
+    <string name="env_preference">Konfigurasi Ketergantungan Lingkungan</string>
+    <string name="env_preference_desc">Konfigurasikan cara mencari dan menemukan biner yt-dlp dan ffmpeg</string>
+    <string name="env_pref_auto">Deteksi Otomatis</string>
+    <string name="env_pref_bundled">Paket Pribadi Aplikasi</string>
+    <string name="env_pref_system">Sistem JALUR Global</string>
+    <string name="env_setup_missing">Lingkungan Hilang</string>
+    <string name="env_setup_missing_desc">Seal membutuhkan yt-dlp dan ffmpeg agar berfungsi dengan baik. Silakan pilih metode instalasi:</string>
+    <string name="env_setup_installing">Mengonfigurasi dependensi...</string>
+    <string name="env_setup_success">Lingkungan berhasil dikonfigurasi</string>
+    <string name="env_setup_failed">Konfigurasi lingkungan gagal</string>
+    <string name="env_setup_sys_title">Instal melalui Package Manager (Disarankan)</string>
+    <string name="env_setup_sys_desc_win">Gunakan sayap. Stabil dan dapat dibagikan dengan aplikasi lain.</string>
+    <string name="env_setup_sys_desc_mac">Gunakan minuman. Stabil dan dapat dibagikan dengan aplikasi lain.</string>
+    <string name="env_setup_port_title">Unduh dependensi portabel hanya untuk Seal</string>
+    <string name="env_setup_port_desc">Unduh versi portabel ke direktori pribadi aplikasi tanpa mencemari sistem.</string>
+    <string name="env_setup_success_msg">Konfigurasi lingkungan selesai! Silakan restart aplikasi agar diterapkan.</string>
+    <string name="env_setup_failed_msg">Terjadi kesalahan selama instalasi otomatis. Anda dapat mencoba menjalankan perintah berikut secara manual:</string>
+    <string name="env_setup_btn_install">Instal &amp; Konfigurasikan sekali klik</string>
+    <string name="env_setup_btn_installing">Memasang...</string>
+    <string name="env_setup_btn_done">Selesai</string>
+    <string name="env_setup_btn_close">Tutup</string>
+    <string name="env_setup_btn_later">Nanti</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

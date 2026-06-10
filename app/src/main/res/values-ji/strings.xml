@@ -52,4 +52,28 @@
     <string name="desktop_exit_confirm_title">אָפֿשטעלן אראפקלאָדס און אַרויסגיין?</string>
     <string name="desktop_exit_confirm_running_count">עס לויפן %1$d אראפקלאָד־אַרבעט(ן). אַרויסגיין וועט אונטערברעכן די אראפקלאָדס.</string>
     <string name="desktop_exit_confirm_running_generic">עס זענען ניט־ענדיקטע אראפקלאָד־אַרבעטן. אַרויסגיין וועט אונטערברעכן די אראפקלאָדס.</string>
+    <string name="env_preference">סוויווע אָפענגיקייַט קאַנפיגיעריישאַן</string>
+    <string name="env_preference_desc">קאַנפיגיער ווי צו זוכן און געפֿינען yt-dlp און ffmpeg בינאַריעס</string>
+    <string name="env_pref_auto">אַוטאָ דעטעקט</string>
+    <string name="env_pref_bundled">אַפּ פּריוואַט בונדלד</string>
+    <string name="env_pref_system">סיסטעם גלאבאלע וועג</string>
+    <string name="env_setup_missing">פעלנדיק סוויווע</string>
+    <string name="env_setup_missing_desc">סיל ריקווייערז yt-dlp און ffmpeg צו אַרבעטן רעכט. ביטע אויסקלייַבן אַן ייַנמאָנטירונג אופֿן:</string>
+    <string name="env_setup_installing">קאַנפיגיערינג דיפּענדאַנסיז ...</string>
+    <string name="env_setup_success">סוויווע קאַנפיגיערד הצלחה</string>
+    <string name="env_setup_failed">סוויווע קאַנפיגיעריישאַן ניט אַנדערש</string>
+    <string name="env_setup_sys_title">ינסטאַלירן דורך פּאַקקאַגע מאַנאַגער (רעקאַמענדיד)</string>
+    <string name="env_setup_sys_desc_win">ניצן פליגל. סטאַביל און קענען זיין שערד מיט אנדערע אַפּפּס.</string>
+    <string name="env_setup_sys_desc_mac">ניצן ברו. סטאַביל און קענען זיין שערד מיט אנדערע אַפּפּס.</string>
+    <string name="env_setup_port_title">אראפקאפיע פּאָרטאַטיוו דיפּענדאַנסיז בלויז פֿאַר סיל</string>
+    <string name="env_setup_port_desc">דאַונלאָוד פּאָרטאַטיוו ווערסיע צו די פּריוואַט אַפּלאַקיישאַן וועגווייַזער אָן פּאַלוטינג די סיסטעם.</string>
+    <string name="env_setup_success_msg">סוויווע קאַנפיגיעריישאַן געענדיקט! ביטע ריסטאַרט די אַפּלאַקיישאַן צו נעמען ווירקונג.</string>
+    <string name="env_setup_failed_msg">א טעות פארגעקומען בעשאַס אָטאַמאַטיק ינסטאַלירונג. איר קענען פּרובירן די פאלגענדע קאַמאַנדז מאַניואַלי:</string>
+    <string name="env_setup_btn_install">איינער-גיט ינסטאַלל &amp; קאָנפיגורע</string>
+    <string name="env_setup_btn_installing">ינסטאָלינג ...</string>
+    <string name="env_setup_btn_done">געשען</string>
+    <string name="env_setup_btn_close">נאָענט</string>
+    <string name="env_setup_btn_later">שפּעטער</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

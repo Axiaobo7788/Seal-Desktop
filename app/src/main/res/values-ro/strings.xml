@@ -321,4 +321,28 @@
     <string name="desktop_exit_confirm_title">Opriți descărcările și ieșiți?</string>
     <string name="desktop_exit_confirm_running_count">Există %1$d sarcini de descărcare în desfășurare. Ieșirea va întrerupe descărcările.</string>
     <string name="desktop_exit_confirm_running_generic">Există descărcări neterminate. Ieșirea va întrerupe descărcările.</string>
+    <string name="env_preference">Configurația dependenței de mediu</string>
+    <string name="env_preference_desc">Configurați cum să căutați și să localizați binarele yt-dlp și ffmpeg</string>
+    <string name="env_pref_auto">Detectare automată</string>
+    <string name="env_pref_bundled">Aplicație privată pachet</string>
+    <string name="env_pref_system">Sistem Global PATH</string>
+    <string name="env_setup_missing">Mediul lipsă</string>
+    <string name="env_setup_missing_desc">Seal necesită yt-dlp și ffmpeg pentru a funcționa corect. Vă rugăm să selectați o metodă de instalare:</string>
+    <string name="env_setup_installing">Configurarea dependențelor...</string>
+    <string name="env_setup_success">Mediu configurat cu succes</string>
+    <string name="env_setup_failed">Configurarea mediului a eșuat</string>
+    <string name="env_setup_sys_title">Instalați prin Manager de pachete (recomandat)</string>
+    <string name="env_setup_sys_desc_win">Folosește winget. Stabil și poate fi partajat cu alte aplicații.</string>
+    <string name="env_setup_sys_desc_mac">Folosește infuzie. Stabil și poate fi partajat cu alte aplicații.</string>
+    <string name="env_setup_port_title">Descărcați dependențe portabile numai pentru Seal</string>
+    <string name="env_setup_port_desc">Descărcați versiunea portabilă în directorul privat al aplicației fără a polua sistemul.</string>
+    <string name="env_setup_success_msg">Configurarea mediului a fost finalizată! Vă rugăm să reporniți aplicația pentru a intra în vigoare.</string>
+    <string name="env_setup_failed_msg">A apărut o eroare în timpul instalării automate. Puteți încerca să executați manual următoarele comenzi:</string>
+    <string name="env_setup_btn_install">Un clic pe Instalare și configurare</string>
+    <string name="env_setup_btn_installing">Se instalează...</string>
+    <string name="env_setup_btn_done">Gata</string>
+    <string name="env_setup_btn_close">Închide</string>
+    <string name="env_setup_btn_later">Mai târziu</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

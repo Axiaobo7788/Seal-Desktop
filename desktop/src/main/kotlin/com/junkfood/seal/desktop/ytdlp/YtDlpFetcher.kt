@@ -6,6 +6,10 @@ import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isExecutable
 import kotlin.io.path.setPosixFilePermissions
+import com.junkfood.seal.desktop.storage.DesktopSqliteStorage
+import com.junkfood.seal.desktop.settings.EnvPrefAuto
+import com.junkfood.seal.desktop.settings.EnvPrefBundled
+import com.junkfood.seal.desktop.settings.EnvPrefSystem
 
 class EnvironmentMissingException(message: String) : Exception(message)
 
@@ -31,7 +35,12 @@ class YtDlpFetcher(
      * Best-effort: returns an existing binary without throwing exceptions.
      */
     fun findExistingBinary(): Path? {
-        return findBundledBinary() ?: findSystemBinary()
+        val pref = DesktopSqliteStorage.readAppSettings()?.environmentPreference ?: EnvPrefAuto
+        return when (pref) {
+            EnvPrefBundled -> findBundledBinary()
+            EnvPrefSystem -> findSystemBinary()
+            else -> findBundledBinary() ?: findSystemBinary() ?: findAuxiliaryBinary()
+        }
     }
 
     /**
@@ -45,7 +54,7 @@ class YtDlpFetcher(
      * Locates the binary or throws EnvironmentMissingException if not found.
      */
     fun ensureBinary(): Path {
-        return findExistingBinary() ?: throw EnvironmentMissingException("yt-dlp is not bundled and not found in system PATH.")
+        return findExistingBinary() ?: throw EnvironmentMissingException("yt-dlp is not bundled and not found in system or auxiliary paths.")
     }
 
     private fun findBundledBinary(): Path? {
@@ -103,6 +112,26 @@ class YtDlpFetcher(
             if (file.exists() && file.isExecutable()) {
                 return file
             }
+        }
+        return null
+    }
+
+    private fun findAuxiliaryBinary(): Path? {
+        val osName = System.getProperty("os.name").lowercase()
+        val userHome = System.getProperty("user.home")
+        val binaryName = if (osName.contains("win")) "yt-dlp.exe" else "yt-dlp"
+        
+        val dir = when {
+            osName.contains("win") -> Path.of(System.getenv("LOCALAPPDATA") ?: "$userHome\\AppData\\Local", "Seal", "bin")
+            osName.contains("mac") || osName.contains("darwin") -> Path.of(userHome, "Library", "Application Support", "Seal", "bin")
+            else -> Path.of(userHome, ".local", "bin")
+        }
+        val file = dir.resolve(binaryName)
+        if (file.exists()) {
+            if (!file.isExecutable()) {
+                markExecutable(file)
+            }
+            return file
         }
         return null
     }

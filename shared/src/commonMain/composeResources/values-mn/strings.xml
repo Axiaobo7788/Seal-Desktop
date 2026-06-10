@@ -453,4 +453,28 @@
     <string name="desktop_exit_confirm_title">Таталтыг зогсоож гарах уу?</string>
     <string name="desktop_exit_confirm_running_count">%1$d таталтын ажил явагдаж байна. Гарахад таталт тасалдана.</string>
     <string name="desktop_exit_confirm_running_generic">Дуусаагүй таталт байна. Гарахад таталт тасалдана.</string>
+    <string name="env_preference">Байгаль орчны хамаарлын тохиргоо</string>
+    <string name="env_preference_desc">yt-dlp болон ffmpeg хоёртын файлуудыг хэрхэн хайж олохыг тохируулах</string>
+    <string name="env_pref_auto">Автоматаар илрүүлэх</string>
+    <string name="env_pref_bundled">Апп хувийн багц</string>
+    <string name="env_pref_system">Систем Глобал PATH</string>
+    <string name="env_setup_missing">Алга болсон орчин</string>
+    <string name="env_setup_missing_desc">Seal нь зөв ажиллахын тулд yt-dlp болон ffmpeg шаарддаг. Суулгах аргыг сонгоно уу:</string>
+    <string name="env_setup_installing">Хамааралтай байдлыг тохируулж байна...</string>
+    <string name="env_setup_success">Хүрээлэн буй орчныг амжилттай тохируулсан</string>
+    <string name="env_setup_failed">Орчны тохиргоо амжилтгүй боллоо</string>
+    <string name="env_setup_sys_title">Багц менежерээр суулгана (Зөвлөдөг)</string>
+    <string name="env_setup_sys_desc_win">Winget ашигла. Тогтвортой бөгөөд бусад програмуудтай хуваалцах боломжтой.</string>
+    <string name="env_setup_sys_desc_mac">Шар айраг хэрэглэх. Тогтвортой бөгөөд бусад програмуудтай хуваалцах боломжтой.</string>
+    <string name="env_setup_port_title">Зөвхөн Seal-д зориулсан зөөврийн хамаарлыг татаж авах</string>
+    <string name="env_setup_port_desc">Системийг бохирдуулахгүйгээр зөөврийн хувилбарыг програмын хувийн лавлах руу татаж аваарай.</string>
+    <string name="env_setup_success_msg">Орчны тохиргоо дууссан! Хүчин төгөлдөр болохын тулд програмыг дахин эхлүүлнэ үү.</string>
+    <string name="env_setup_failed_msg">Автомат суулгах явцад алдаа гарлаа. Та дараах тушаалуудыг гараар гүйцэтгэхийг оролдож болно:</string>
+    <string name="env_setup_btn_install">Нэг товшилтоор Суулгах &amp; Тохиргоо</string>
+    <string name="env_setup_btn_installing">Суулгаж байна...</string>
+    <string name="env_setup_btn_done">Дууссан</string>
+    <string name="env_setup_btn_close">Хаах</string>
+    <string name="env_setup_btn_later">Дараа нь</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

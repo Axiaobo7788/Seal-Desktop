@@ -283,4 +283,28 @@
     <string name="desktop_exit_confirm_title">Stoppe downloads og afslutte?</string>
     <string name="desktop_exit_confirm_running_count">Der kører %1$d download-opgave(r). Afslutning vil afbryde downloads.</string>
     <string name="desktop_exit_confirm_running_generic">Der er ufuldførte download-opgaver. Afslutning vil afbryde downloads.</string>
+    <string name="env_preference">Konfiguration af miljøafhængighed</string>
+    <string name="env_preference_desc">Konfigurer, hvordan du søger og lokaliserer yt-dlp og ffmpeg binære filer</string>
+    <string name="env_pref_auto">Automatisk registrering</string>
+    <string name="env_pref_bundled">App privat bundtet</string>
+    <string name="env_pref_system">System Global PATH</string>
+    <string name="env_setup_missing">Manglende miljø</string>
+    <string name="env_setup_missing_desc">Seal kræver yt-dlp og ffmpeg for at fungere korrekt. Vælg venligst en installationsmetode:</string>
+    <string name="env_setup_installing">Konfigurerer afhængigheder...</string>
+    <string name="env_setup_success">Miljø konfigureret med succes</string>
+    <string name="env_setup_failed">Miljøkonfiguration mislykkedes</string>
+    <string name="env_setup_sys_title">Installer via Package Manager (anbefales)</string>
+    <string name="env_setup_sys_desc_win">Brug vinge. Stabil og kan deles med andre apps.</string>
+    <string name="env_setup_sys_desc_mac">Brug bryg. Stabil og kan deles med andre apps.</string>
+    <string name="env_setup_port_title">Download bærbare afhængigheder kun for Seal</string>
+    <string name="env_setup_port_desc">Download bærbar version til appens private mappe uden at forurene systemet.</string>
+    <string name="env_setup_success_msg">Miljøkonfiguration afsluttet! Genstart applikationen for at træde i kraft.</string>
+    <string name="env_setup_failed_msg">Der opstod en fejl under automatisk installation. Du kan prøve at udføre følgende kommandoer manuelt:</string>
+    <string name="env_setup_btn_install">Et-klik Installer og konfigurer</string>
+    <string name="env_setup_btn_installing">Installerer...</string>
+    <string name="env_setup_btn_done">Udført</string>
+    <string name="env_setup_btn_close">Luk</string>
+    <string name="env_setup_btn_later">Senere</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

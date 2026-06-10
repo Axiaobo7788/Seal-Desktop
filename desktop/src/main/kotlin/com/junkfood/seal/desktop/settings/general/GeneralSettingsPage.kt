@@ -25,6 +25,10 @@ import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.TextFieldCard
+import com.junkfood.seal.desktop.settings.ChoiceDialog
+import com.junkfood.seal.desktop.settings.EnvPrefAuto
+import com.junkfood.seal.desktop.settings.EnvPrefBundled
+import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.settings.ActionCard
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
@@ -35,6 +39,11 @@ import com.junkfood.seal.shared.generated.resources.create_thumbnail
 import com.junkfood.seal.shared.generated.resources.create_thumbnail_summary
 import com.junkfood.seal.shared.generated.resources.disable_preview
 import com.junkfood.seal.shared.generated.resources.disable_preview_desc
+import com.junkfood.seal.shared.generated.resources.env_pref_auto
+import com.junkfood.seal.shared.generated.resources.env_pref_bundled
+import com.junkfood.seal.shared.generated.resources.env_pref_system
+import com.junkfood.seal.shared.generated.resources.env_preference
+import com.junkfood.seal.shared.generated.resources.env_preference_desc
 import com.junkfood.seal.shared.generated.resources.download_archive
 import com.junkfood.seal.shared.generated.resources.download_archive_desc
 import com.junkfood.seal.shared.generated.resources.download_notification
@@ -72,6 +81,7 @@ internal fun GeneralSettingsPage(
     onBack: () -> Unit,
 ) {
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
+    var showEnvPrefDialog by remember { mutableStateOf(false) }
     
     SettingsPageScaffold(title = stringResource(Res.string.general_settings), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
@@ -79,6 +89,19 @@ internal fun GeneralSettingsPage(
         com.junkfood.seal.desktop.settings.YtdlpUpdateCard(
             appSettings = appSettings,
             onUpdateAppSettings = { newSettings -> onUpdateAppSettings { newSettings } }
+        )
+
+        val envPrefLabel = when (appSettings.environmentPreference) {
+            EnvPrefBundled -> stringResource(Res.string.env_pref_bundled)
+            EnvPrefSystem -> stringResource(Res.string.env_pref_system)
+            else -> stringResource(Res.string.env_pref_auto)
+        }
+
+        SelectionCard(
+            title = stringResource(Res.string.env_preference),
+            description = envPrefLabel,
+            icon = Icons.Rounded.SettingsApplications,
+            onClick = { showEnvPrefDialog = true }
         )
 
         ToggleCard(
@@ -166,6 +189,21 @@ internal fun GeneralSettingsPage(
                 onUpdate { it.copy(sponsorBlockCategory = it.toString()) }
                 showSponsorBlockDialog = false 
             }
+        )
+    }
+
+    if (showEnvPrefDialog) {
+        ChoiceDialog(
+            visible = showEnvPrefDialog,
+            title = stringResource(Res.string.env_preference),
+            options = listOf(
+                stringResource(Res.string.env_pref_auto) to EnvPrefAuto,
+                stringResource(Res.string.env_pref_bundled) to EnvPrefBundled,
+                stringResource(Res.string.env_pref_system) to EnvPrefSystem,
+            ),
+            selected = appSettings.environmentPreference,
+            onSelect = { pref -> onUpdateAppSettings { it.copy(environmentPreference = pref) } },
+            onDismiss = { showEnvPrefDialog = false }
         )
     }
 }

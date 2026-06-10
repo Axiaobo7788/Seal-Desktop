@@ -446,4 +446,28 @@
     <string name="desktop_exit_confirm_title">다운로드를 중단하고 종료할까요?</string>
     <string name="desktop_exit_confirm_running_count">%1$d개의 다운로드 작업이 진행 중입니다. 종료하면 다운로드가 중단됩니다.</string>
     <string name="desktop_exit_confirm_running_generic">완료되지 않은 다운로드 작업이 있습니다. 종료하면 다운로드가 중단됩니다.</string>
+    <string name="env_preference">환경 종속성 구성</string>
+    <string name="env_preference_desc">yt-dlp 및 ffmpeg 바이너리를 검색하고 찾는 방법 구성</string>
+    <string name="env_pref_auto">자동 감지</string>
+    <string name="env_pref_bundled">앱 비공개 번들</string>
+    <string name="env_pref_system">시스템 전역 경로</string>
+    <string name="env_setup_missing">누락된 환경</string>
+    <string name="env_setup_missing_desc">Seal이 제대로 작동하려면 yt-dlp 및 ffmpeg가 필요합니다. 설치 방법을 선택하세요:</string>
+    <string name="env_setup_installing">종속성 구성 중...</string>
+    <string name="env_setup_success">환경이 성공적으로 구성되었습니다</string>
+    <string name="env_setup_failed">환경 구성 실패</string>
+    <string name="env_setup_sys_title">패키지 관리자를 통해 설치(권장)</string>
+    <string name="env_setup_sys_desc_win">윙렛을 사용하세요. 안정적이며 다른 앱과 공유할 수 있습니다.</string>
+    <string name="env_setup_sys_desc_mac">양조를 사용하십시오. 안정적이며 다른 앱과 공유할 수 있습니다.</string>
+    <string name="env_setup_port_title">Seal 전용 휴대용 종속성 다운로드</string>
+    <string name="env_setup_port_desc">시스템을 오염시키지 않고 휴대용 버전을 앱 개인 디렉토리에 다운로드하세요.</string>
+    <string name="env_setup_success_msg">환경설정이 완료되었습니다! 적용하려면 애플리케이션을 다시 시작하세요.</string>
+    <string name="env_setup_failed_msg">자동 설치 중 오류가 발생했습니다. 다음 명령을 수동으로 실행해 볼 수 있습니다.</string>
+    <string name="env_setup_btn_install">원클릭 설치 및 구성</string>
+    <string name="env_setup_btn_installing">설치 중...</string>
+    <string name="env_setup_btn_done">완료</string>
+    <string name="env_setup_btn_close">닫기</string>
+    <string name="env_setup_btn_later">나중에</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

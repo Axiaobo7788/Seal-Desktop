@@ -304,4 +304,28 @@
     <string name="desktop_exit_confirm_title">Hentikan muat turun dan keluar?</string>
     <string name="desktop_exit_confirm_running_count">Terdapat %1$d tugas muat turun sedang berjalan. Keluar akan menghentikan muat turun.</string>
     <string name="desktop_exit_confirm_running_generic">Terdapat tugas muat turun yang belum selesai. Keluar akan menghentikan muat turun.</string>
+    <string name="env_preference">Konfigurasi Kebergantungan Persekitaran</string>
+    <string name="env_preference_desc">Konfigurasikan cara mencari dan mencari perduaan yt-dlp dan ffmpeg</string>
+    <string name="env_pref_auto">Auto Kesan</string>
+    <string name="env_pref_bundled">App Private Bundled</string>
+    <string name="env_pref_system">LALUAN Global Sistem</string>
+    <string name="env_setup_missing">Persekitaran Hilang</string>
+    <string name="env_setup_missing_desc">Seal memerlukan yt-dlp dan ffmpeg untuk berfungsi dengan betul. Sila pilih kaedah pemasangan:</string>
+    <string name="env_setup_installing">Mengkonfigurasi kebergantungan...</string>
+    <string name="env_setup_success">Persekitaran berjaya dikonfigurasikan</string>
+    <string name="env_setup_failed">Konfigurasi persekitaran gagal</string>
+    <string name="env_setup_sys_title">Pasang melalui Pengurus Pakej (Disyorkan)</string>
+    <string name="env_setup_sys_desc_win">Gunakan winget. Stabil dan boleh dikongsi dengan apl lain.</string>
+    <string name="env_setup_sys_desc_mac">Guna brew. Stabil dan boleh dikongsi dengan apl lain.</string>
+    <string name="env_setup_port_title">Muat turun kebergantungan mudah alih untuk Seal sahaja</string>
+    <string name="env_setup_port_desc">Muat turun versi mudah alih ke direktori peribadi apl tanpa mencemarkan sistem.</string>
+    <string name="env_setup_success_msg">Konfigurasi persekitaran selesai! Sila mulakan semula aplikasi untuk berkuat kuasa.</string>
+    <string name="env_setup_failed_msg">Ralat berlaku semasa pemasangan automatik. Anda boleh cuba melaksanakan arahan berikut secara manual:</string>
+    <string name="env_setup_btn_install">Satu klik Pasang &amp; Konfigurasi</string>
+    <string name="env_setup_btn_installing">Memasang...</string>
+    <string name="env_setup_btn_done">Selesai</string>
+    <string name="env_setup_btn_close">Tutup</string>
+    <string name="env_setup_btn_later">Nanti</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

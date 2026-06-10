@@ -82,4 +82,28 @@
     <string name="desktop_exit_confirm_title">Deskargak amaitu eta irten?</string>
     <string name="desktop_exit_confirm_running_count">%1$d deskarga-lan martxan dago. Irteteak deskargak etengo ditu.</string>
     <string name="desktop_exit_confirm_running_generic">Amaitu gabeko deskarga-lanak daude. Irteteak deskargak etengo ditu.</string>
+    <string name="env_preference">Ingurunearen menpekotasunaren konfigurazioa</string>
+    <string name="env_preference_desc">Konfiguratu yt-dlp eta ffmpeg bitarrak nola bilatu eta kokatu</string>
+    <string name="env_pref_auto">Detektatze automatikoa</string>
+    <string name="env_pref_bundled">Aplikazio pribatua sorta</string>
+    <string name="env_pref_system">Sistema Global PATH</string>
+    <string name="env_setup_missing">Ingurune falta</string>
+    <string name="env_setup_missing_desc">Seal-ek yt-dlp eta ffmpeg behar ditu behar bezala funtzionatzeko. Mesedez, hautatu instalazio metodo bat:</string>
+    <string name="env_setup_installing">Mendekotasunak konfiguratzen...</string>
+    <string name="env_setup_success">Ingurua ondo konfiguratu da</string>
+    <string name="env_setup_failed">Ingurunearen konfigurazioa huts egin du</string>
+    <string name="env_setup_sys_title">Instalatu paketeen kudeatzailearen bidez (gomendatua)</string>
+    <string name="env_setup_sys_desc_win">Erabili winget. Egonkorra eta beste aplikazio batzuekin parteka daiteke.</string>
+    <string name="env_setup_sys_desc_mac">Erabili brew. Egonkorra eta beste aplikazio batzuekin parteka daiteke.</string>
+    <string name="env_setup_port_title">Deskargatu Seal-erako dependentzia eramangarriak soilik</string>
+    <string name="env_setup_port_desc">Deskargatu bertsio eramangarria aplikazioaren direktorio pribatura sistema kutsatu gabe.</string>
+    <string name="env_setup_success_msg">Ingurunearen konfigurazioa osatu da! Mesedez, berrabiarazi aplikazioa indarrean jartzeko.</string>
+    <string name="env_setup_failed_msg">Errore bat gertatu da instalazio automatikoan. Komando hauek eskuz exekutatzen saia zaitezke:</string>
+    <string name="env_setup_btn_install">Egin klik bakarrean Instalatu eta Konfiguratu</string>
+    <string name="env_setup_btn_installing">Instalatzen...</string>
+    <string name="env_setup_btn_done">Eginda</string>
+    <string name="env_setup_btn_close">Itxi</string>
+    <string name="env_setup_btn_later">Geroago</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>

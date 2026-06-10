@@ -295,4 +295,28 @@
     <string name="desktop_exit_confirm_title">Letöltések leállítása és kilépés?</string>
     <string name="desktop_exit_confirm_running_count">%1$d letöltési feladat fut. A kilépés megszakítja a letöltéseket.</string>
     <string name="desktop_exit_confirm_running_generic">Vannak befejezetlen letöltési feladatok. A kilépés megszakítja a letöltéseket.</string>
+    <string name="env_preference">Környezetfüggőségi konfiguráció</string>
+    <string name="env_preference_desc">Az yt-dlp és ffmpeg binárisok keresésének és megtalálásának konfigurálása</string>
+    <string name="env_pref_auto">Automatikus észlelés</string>
+    <string name="env_pref_bundled">Privát alkalmazás csomagban</string>
+    <string name="env_pref_system">Rendszer globális PATH</string>
+    <string name="env_setup_missing">Hiányzó környezet</string>
+    <string name="env_setup_missing_desc">A Seal megfelelő működéséhez yt-dlp és ffmpeg szükséges. Kérjük, válasszon egy telepítési módot:</string>
+    <string name="env_setup_installing">Függőségek konfigurálása...</string>
+    <string name="env_setup_success">A környezet sikeresen konfigurálva</string>
+    <string name="env_setup_failed">A környezet konfigurálása nem sikerült</string>
+    <string name="env_setup_sys_title">Telepítés Csomagkezelőn keresztül (ajánlott)</string>
+    <string name="env_setup_sys_desc_win">Használj winget. Stabil és megosztható más alkalmazásokkal.</string>
+    <string name="env_setup_sys_desc_mac">Használjon főzetet. Stabil és megosztható más alkalmazásokkal.</string>
+    <string name="env_setup_port_title">Hordozható függőségek letöltése csak Sealhez</string>
+    <string name="env_setup_port_desc">Töltse le a hordozható verziót az alkalmazás privát könyvtárába a rendszer szennyezése nélkül.</string>
+    <string name="env_setup_success_msg">A környezetkonfiguráció befejeződött! Kérjük, indítsa újra az alkalmazást, hogy életbe lépjen.</string>
+    <string name="env_setup_failed_msg">Hiba történt az automatikus telepítés során. Megpróbálhatja manuálisan végrehajtani a következő parancsokat:</string>
+    <string name="env_setup_btn_install">Egykattintásos Telepítés és konfigurálás</string>
+    <string name="env_setup_btn_installing">Telepítés...</string>
+    <string name="env_setup_btn_done">Kész</string>
+    <string name="env_setup_btn_close">Bezárás</string>
+    <string name="env_setup_btn_later">Később</string>
+    <string name="env_setup_log_start">Starting environment configuration...
+</string>
 </resources>
