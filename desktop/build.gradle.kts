@@ -105,7 +105,7 @@ compose.desktop {
             val osName = System.getProperty("os.name").lowercase()
             val currentTargetFormats = when {
                 osName.contains("mac") -> arrayOf(TargetFormat.Dmg, TargetFormat.Pkg)
-                osName.contains("win") -> arrayOf(TargetFormat.Msi, TargetFormat.Exe)
+                osName.contains("win") -> arrayOf(TargetFormat.Exe)
                 else -> arrayOf(TargetFormat.Deb, TargetFormat.Rpm)
             }
 

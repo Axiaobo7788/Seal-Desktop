@@ -83,6 +83,7 @@ jobs:
         run: |
           mkdir -p desktop/appResources
           cp dist-bin/* desktop/appResources/ || true
+          rm -rf desktop/build/compose/binaries desktop/build/compose/tmp
 
       - name: Build Full installers and portable (Linux)
         shell: bash

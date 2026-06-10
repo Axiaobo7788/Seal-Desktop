@@ -110,8 +110,6 @@ jobs:
               { runId: linuxRunId, name: "desktop-installer-linux-x64-full-deb", out: "linux_full_deb" },
               { runId: linuxRunId, name: "desktop-installer-linux-x64-lite-rpm", out: "linux_lite_rpm" },
               { runId: linuxRunId, name: "desktop-installer-linux-x64-full-rpm", out: "linux_full_rpm" },
-              { runId: windowsRunId, name: "desktop-installer-win-x64-lite-msi", out: "win_lite_msi" },
-              { runId: windowsRunId, name: "desktop-installer-win-x64-full-msi", out: "win_full_msi" },
               { runId: windowsRunId, name: "desktop-installer-win-x64-lite-exe", out: "win_lite_exe" },
               { runId: windowsRunId, name: "desktop-installer-win-x64-full-exe", out: "win_full_exe" },
               { runId: macosRunId, name: "desktop-installer-macos-x64-lite-dmg", out: "mac_x64_lite_dmg" },
@@ -164,8 +162,6 @@ jobs:
           download_artifact "${{ steps.resolve_runs.outputs.linux_lite_rpm }}" "seal-desktop-linux-x64-installer-lite-v${v}-${r}-rpm"
           download_artifact "${{ steps.resolve_runs.outputs.linux_full_rpm }}" "seal-desktop-linux-x64-installer-full-v${v}-${r}-rpm"
           
-          download_artifact "${{ steps.resolve_runs.outputs.win_lite_msi }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-msi"
-          download_artifact "${{ steps.resolve_runs.outputs.win_full_msi }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-msi"
           download_artifact "${{ steps.resolve_runs.outputs.win_lite_exe }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-exe"
           download_artifact "${{ steps.resolve_runs.outputs.win_full_exe }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-exe"
           

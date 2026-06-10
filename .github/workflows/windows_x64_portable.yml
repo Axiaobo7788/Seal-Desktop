@@ -79,7 +79,6 @@ jobs:
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           
           mkdir -p dist-installers-lite
-          cp desktop/build/compose/binaries/main-release/msi/*.msi dist-installers-lite/ || true
           cp desktop/build/compose/binaries/main-release/exe/*.exe dist-installers-lite/ || true
         shell: bash
 
@@ -88,6 +87,7 @@ jobs:
         run: |
           mkdir -p desktop/appResources
           cp dist-bin/* desktop/appResources/ || true
+          rm -rf desktop/build/compose/binaries desktop/build/compose/tmp
 
       - name: Build Full installers and portable (Windows)
         run: |
@@ -96,7 +96,6 @@ jobs:
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          cp desktop/build/compose/binaries/main-release/msi/*.msi dist-installers-full/ || true
           cp desktop/build/compose/binaries/main-release/exe/*.exe dist-installers-full/ || true
         shell: bash
 
@@ -162,18 +161,6 @@ jobs:
         with:
           name: desktop-portable-win-x64-full
           path: ${{ env.PORTABLE_DIR }}
-
-      - name: Upload Lite MSI Installer artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: desktop-installer-win-x64-lite-msi
-          path: dist-installers-lite/*.msi
-
-      - name: Upload Full MSI Installer artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: desktop-installer-win-x64-full-msi
-          path: dist-installers-full/*.msi
 
       - name: Upload Lite EXE Installer artifact
         uses: actions/upload-artifact@v5

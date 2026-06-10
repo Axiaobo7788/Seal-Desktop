@@ -73,7 +73,7 @@ data class VideoInfo(
     @SerialName("_type") val type: String? = null,
 ) : YoutubeDLInfo {
     fun getBestThumbnailUrl(): String? {
-        return thumbnails?.lastOrNull()?.url ?: thumbnail
+        return thumbnail ?: thumbnails?.lastOrNull()?.url
     }
 }
 
