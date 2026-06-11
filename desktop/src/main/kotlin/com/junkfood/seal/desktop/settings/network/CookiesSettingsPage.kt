@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -99,6 +101,10 @@ internal fun CookiesSettingsPage(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showBrowserExtractDialog by remember { mutableStateOf(false) }
+    var extractUrl by remember { mutableStateOf("") }
+    var extractBrowser by remember { mutableStateOf(SupportedBrowser.entries.first()) }
+    var isExtracting by remember { mutableStateOf(false) }
     var userAgent by remember { mutableStateOf(false) }
     var isCookieEnabled by remember { mutableStateOf(preferences.cookies) }
     var cookiesStats by remember { mutableStateOf(DesktopCookiesStats(0, 0)) }
@@ -148,9 +154,17 @@ internal fun CookiesSettingsPage(
                                 }
                             )
                             DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Outlined.Add, null) },
+                                text = { Text("从文件导入 (Fallback)") },
+                                onClick = {
+                                    showMenu = false
+                                    showImportDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.FileCopy, null) },
                                 text = { Text(stringResource(Res.string.export_to_file)) },
-                                enabled = preferences.cookiesBrowser.isEmpty() && cookiesFilePath.exists(),
+                                enabled = cookiesFilePath.exists(),
                                 onClick = {
                                     showMenu = false
                                     scope.launch {
@@ -175,7 +189,7 @@ internal fun CookiesSettingsPage(
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.DeleteForever, null) },
                                 text = { Text(stringResource(Res.string.clear_all_cookies)) },
-                                enabled = preferences.cookiesBrowser.isEmpty() && cookiesFilePath.exists(),
+                                enabled = cookiesFilePath.exists(),
                                 onClick = {
                                     showMenu = false
                                     showClearConfirmDialog = true
@@ -236,118 +250,153 @@ internal fun CookiesSettingsPage(
             }
 
             item {
-                var browserMenuExpanded by remember { mutableStateOf(false) }
-                
                 Surface(
-                    modifier = Modifier.clickable { browserMenuExpanded = true }
+                    modifier = Modifier.clickable { showBrowserExtractDialog = true }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp, 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Cookie,
+                            imageVector = Icons.Outlined.Add,
                             contentDescription = null,
                             modifier = Modifier.padding(start = 8.dp, end = 16.dp).size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Column(
-                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            modifier = Modifier.weight(1f)
+                                .padding(end = 8.dp)
                         ) {
                             Text(
-                                text = "Cookies 来源",
+                                text = stringResource(Res.string.generate_new_cookies),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            val sourceDesc = if (preferences.cookiesBrowser.isEmpty()) {
-                                "cookies.txt 文件"
-                            } else {
-                                SupportedBrowser.fromName(preferences.cookiesBrowser)?.displayName ?: preferences.cookiesBrowser
-                            }
-                            Text(
-                                text = sourceDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Box(modifier = Modifier.padding(start = 56.dp)) {
-                        DropdownMenu(
-                            expanded = browserMenuExpanded,
-                            onDismissRequest = { browserMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("cookies.txt 文件") },
-                                onClick = {
-                                    onUpdate { it.copy(cookiesBrowser = "") }
-                                    browserMenuExpanded = false
-                                }
-                            )
-                            SupportedBrowser.entries.forEach { browser ->
-                                DropdownMenuItem(
-                                    text = { Text(browser.displayName) },
-                                    onClick = {
-                                        onUpdate { it.copy(cookiesBrowser = browser.browserName) }
-                                        browserMenuExpanded = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }
             }
 
-            if (preferences.cookiesBrowser.isEmpty()) {
-                item {
-                    Surface(
-                        modifier = Modifier.clickable { showImportDialog = true }
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp, 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Add,
-                                contentDescription = null,
-                                modifier = Modifier.padding(start = 8.dp, end = 16.dp).size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f)
-                                    .padding(end = 8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.generate_new_cookies),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    HorizontalDivider()
-                    Text(
-                        text = stringResource(Res.string.cookies_in_database, cookiesStats.cookieCount, cookiesStats.siteCount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                    )
-                }
-            } else {
-                item {
-                    HorizontalDivider()
-                    Text(
-                        text = "yt-dlp 将在下载时自动从此浏览器提取 Cookies。这可能需要您授权系统权限。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                    )
-                }
+            item {
+                HorizontalDivider()
+                Text(
+                    text = stringResource(Res.string.cookies_in_database, cookiesStats.cookieCount, cookiesStats.siteCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                )
             }
         }
     }
+
+
+    AnimatedAlertDialog(
+        visible = showBrowserExtractDialog,
+        onDismissRequest = { if (!isExtracting) showBrowserExtractDialog = false },
+        icon = { Icon(Icons.Outlined.Cookie, null) },
+        title = { Text(stringResource(Res.string.generate_new_cookies)) },
+        text = {
+            Column {
+                Text(
+                    text = "输入目标网站 URL 并选择浏览器以提取 Cookies",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = extractUrl,
+                    onValueChange = { extractUrl = it },
+                    label = { Text("URL") },
+                    singleLine = true,
+                    enabled = !isExtracting,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                )
+                
+                var expanded by remember { mutableStateOf(false) }
+                androidx.compose.material3.ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { if (!isExtracting) expanded = !expanded }
+                ) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = extractBrowser.displayName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("选择浏览器") },
+                        trailingIcon = {
+                            androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        colors = androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        enabled = !isExtracting
+                    )
+                    androidx.compose.material3.ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        SupportedBrowser.entries.forEach { browser ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(browser.displayName) },
+                                onClick = {
+                                    extractBrowser = browser
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                if (isExtracting) {
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.material3.LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { showBrowserExtractDialog = false },
+                enabled = !isExtracting
+            ) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (extractUrl.isBlank()) return@TextButton
+                    isExtracting = true
+                    scope.launch {
+                        val ytDlpPath = DesktopYtDlpPaths.ytDlpExecutable().toAbsolutePath().toString()
+                        val success = withContext(Dispatchers.IO) {
+                            runCatching {
+                                val pb = ProcessBuilder(
+                                    ytDlpPath,
+                                    "--cookies-from-browser",
+                                    extractBrowser.browserName,
+                                    "--cookies",
+                                    cookiesFilePath.toAbsolutePath().toString(),
+                                    "--simulate",
+                                    extractUrl
+                                ).redirectErrorStream(true)
+                                val p = pb.start()
+                                p.waitFor() == 0
+                            }.getOrDefault(false)
+                        }
+                        
+                        if (success) {
+                            withContext(Dispatchers.IO) {
+                                cookiesStats = DesktopCookiesParser.parseStats(cookiesFilePath)
+                            }
+                        }
+                        
+                        isExtracting = false
+                        showBrowserExtractDialog = false
+                    }
+                },
+                enabled = !isExtracting && extractUrl.isNotBlank()
+            ) {
+                Text(stringResource(Res.string.generate_new_cookies))
+            }
+        },
+    )
 
     AnimatedAlertDialog(
         visible = showClearConfirmDialog,

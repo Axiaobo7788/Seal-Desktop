@@ -56,7 +56,7 @@ data class DesktopAppSettings(
     val configureBeforeDownload: Boolean = true,
     val isVideoClipEnabled: Boolean = false,
     val isFormatSelectionEnabled: Boolean = true,
-    val ytDlpUpdateChannel: Int = 0,
+    val ytDlpUpdateChannel: Int = 1, // 1 is Nightly, 0 is Stable
     val ytDlpAutoUpdate: Boolean = true,
     val ytDlpUpdateInterval: Long = 604800000L,
     val environmentPreference: Int = EnvPrefAuto,

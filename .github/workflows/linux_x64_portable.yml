@@ -7,7 +7,7 @@ on:
 
 env:
   TOOLS_CACHE_VERSION: v2
-  YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+  YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_linux
   FFMPEG_LINUX_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: jetbrains
           java-version: 21
           cache: gradle
 

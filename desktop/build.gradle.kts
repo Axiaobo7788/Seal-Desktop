@@ -94,7 +94,7 @@ compose.desktop {
             release {
                 proguard {
                     val isTestingUberJar = gradle.startParameter.taskNames.any { it.contains("packageUberJar", ignoreCase = true) }
-                    isEnabled.set(false) // Temporarily disabled for debugging "Failed to launch JVM"
+                    isEnabled.set(!isTestingUberJar)
                     version.set("7.6.0")
                     configurationFiles.from(project.file("proguard-rules.pro"))
                 }
@@ -110,6 +110,7 @@ compose.desktop {
             }
 
             targetFormats(*currentTargetFormats)
+            modules("java.sql")
             appResourcesRootDir.set(project.layout.projectDirectory.dir("appResources"))
             packageName = "Seal"
             packageVersion = desktopPackageVersion
@@ -124,7 +125,6 @@ compose.desktop {
                 shortcut = true
                 menu = true
                 menuGroup = "Seal"
-                console = true // Temporary: force console to see JVM launch errors
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))
