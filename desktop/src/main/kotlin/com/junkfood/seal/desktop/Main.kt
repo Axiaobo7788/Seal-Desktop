@@ -246,7 +246,7 @@ fun main() = application {
         onCloseRequest = handleCloseRequest,
         title = stringResource(Res.string.app_name),
         icon = androidx.compose.ui.res.painterResource("icon.png"),
-        state = rememberWindowState(width = 1100.dp, height = 720.dp),
+        state = rememberWindowState(width = 1300.dp, height = 800.dp),
     ) {
         ProvideResourceEnvironment(currentResourceEnvironment()) {
             DesktopSealTheme(themeState = themeState, window = window) {
