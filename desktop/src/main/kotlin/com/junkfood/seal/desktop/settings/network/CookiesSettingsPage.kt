@@ -50,6 +50,11 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LinearProgressIndicator
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.LocalIndication
@@ -328,7 +333,7 @@ internal fun CookiesSettingsPage(
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         enabled = !isExtracting
                     )
-                    androidx.compose.material3.ExposedDropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
@@ -364,7 +369,7 @@ internal fun CookiesSettingsPage(
                     if (extractUrl.isBlank()) return@TextButton
                     isExtracting = true
                     scope.launch {
-                        val ytDlpPath = DesktopYtDlpPaths.ytDlpExecutable().toAbsolutePath().toString()
+                        val ytDlpPath = com.junkfood.seal.desktop.ytdlp.YtDlpFetcher().ensureBinary().toAbsolutePath().toString()
                         val success = withContext(Dispatchers.IO) {
                             runCatching {
                                 val pb = ProcessBuilder(
