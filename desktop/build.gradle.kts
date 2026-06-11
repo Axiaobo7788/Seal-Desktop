@@ -94,7 +94,7 @@ compose.desktop {
             release {
                 proguard {
                     val isTestingUberJar = gradle.startParameter.taskNames.any { it.contains("packageUberJar", ignoreCase = true) }
-                    isEnabled.set(!isTestingUberJar)
+                    isEnabled.set(false) // Temporarily disabled for debugging "Failed to launch JVM"
                     version.set("7.6.0")
                     configurationFiles.from(project.file("proguard-rules.pro"))
                 }
@@ -121,6 +121,10 @@ compose.desktop {
             }
             windows {
                 iconFile.set(project.file("src/main/resources/icon.ico"))
+                shortcut = true
+                menu = true
+                menuGroup = "Seal"
+                console = true // Temporary: force console to see JVM launch errors
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))

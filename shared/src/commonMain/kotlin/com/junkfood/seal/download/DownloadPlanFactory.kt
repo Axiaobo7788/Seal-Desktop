@@ -38,7 +38,13 @@ fun buildDownloadPlan(
 
     // Housekeeping & connectivity
     builder.flag("--no-mtime")
-    if (preferences.cookies) builder.markNeedsCookies()
+    if (preferences.cookies) {
+        if (preferences.cookiesBrowser.isNotEmpty()) {
+            builder.option("--cookies-from-browser", preferences.cookiesBrowser)
+        } else {
+            builder.markNeedsCookies()
+        }
+    }
     if (preferences.restrictFilenames) builder.flag("--restrict-filenames")
     if (preferences.proxy) builder.option("--proxy", preferences.proxyUrl)
     if (preferences.forceIpv4) builder.flag("-4")

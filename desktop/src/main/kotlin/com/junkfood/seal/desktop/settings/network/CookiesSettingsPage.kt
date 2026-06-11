@@ -150,7 +150,7 @@ internal fun CookiesSettingsPage(
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.FileCopy, null) },
                                 text = { Text(stringResource(Res.string.export_to_file)) },
-                                enabled = cookiesFilePath.exists(),
+                                enabled = preferences.cookiesBrowser.isEmpty() && cookiesFilePath.exists(),
                                 onClick = {
                                     showMenu = false
                                     scope.launch {
@@ -175,7 +175,7 @@ internal fun CookiesSettingsPage(
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.DeleteForever, null) },
                                 text = { Text(stringResource(Res.string.clear_all_cookies)) },
-                                enabled = cookiesFilePath.exists(),
+                                enabled = preferences.cookiesBrowser.isEmpty() && cookiesFilePath.exists(),
                                 onClick = {
                                     showMenu = false
                                     showClearConfirmDialog = true
@@ -203,7 +203,7 @@ internal fun CookiesSettingsPage(
                         .toggleable(
                             value = isCookieEnabled,
                             onValueChange = { target ->
-                                if (target && !cookiesFilePath.exists()) {
+                                if (target && preferences.cookiesBrowser.isEmpty() && !cookiesFilePath.exists()) {
                                     showHelpDialog = true
                                     return@toggleable
                                 }
@@ -236,41 +236,115 @@ internal fun CookiesSettingsPage(
             }
 
             item {
+                var browserMenuExpanded by remember { mutableStateOf(false) }
+                
                 Surface(
-                    modifier = Modifier.clickable { showImportDialog = true }
+                    modifier = Modifier.clickable { browserMenuExpanded = true }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp, 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Add,
+                            imageVector = Icons.Outlined.Cookie,
                             contentDescription = null,
                             modifier = Modifier.padding(start = 8.dp, end = 16.dp).size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Column(
-                            modifier = Modifier.weight(1f)
-                                .padding(end = 8.dp)
+                            modifier = Modifier.weight(1f).padding(end = 8.dp)
                         ) {
                             Text(
-                                text = stringResource(Res.string.generate_new_cookies),
+                                text = "Cookies 来源",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+                            val sourceDesc = if (preferences.cookiesBrowser.isEmpty()) {
+                                "cookies.txt 文件"
+                            } else {
+                                SupportedBrowser.fromName(preferences.cookiesBrowser)?.displayName ?: preferences.cookiesBrowser
+                            }
+                            Text(
+                                text = sourceDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.padding(start = 56.dp)) {
+                        DropdownMenu(
+                            expanded = browserMenuExpanded,
+                            onDismissRequest = { browserMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("cookies.txt 文件") },
+                                onClick = {
+                                    onUpdate { it.copy(cookiesBrowser = "") }
+                                    browserMenuExpanded = false
+                                }
+                            )
+                            SupportedBrowser.entries.forEach { browser ->
+                                DropdownMenuItem(
+                                    text = { Text(browser.displayName) },
+                                    onClick = {
+                                        onUpdate { it.copy(cookiesBrowser = browser.browserName) }
+                                        browserMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            item {
-                HorizontalDivider()
-                Text(
-                    text = stringResource(Res.string.cookies_in_database, cookiesStats.cookieCount, cookiesStats.siteCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                )
+            if (preferences.cookiesBrowser.isEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.clickable { showImportDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp, 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Add,
+                                contentDescription = null,
+                                modifier = Modifier.padding(start = 8.dp, end = 16.dp).size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Column(
+                                modifier = Modifier.weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.generate_new_cookies),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    HorizontalDivider()
+                    Text(
+                        text = stringResource(Res.string.cookies_in_database, cookiesStats.cookieCount, cookiesStats.siteCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                    )
+                }
+            } else {
+                item {
+                    HorizontalDivider()
+                    Text(
+                        text = "yt-dlp 将在下载时自动从此浏览器提取 Cookies。这可能需要您授权系统权限。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                    )
+                }
             }
         }
     }

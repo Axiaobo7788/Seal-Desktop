@@ -43,7 +43,11 @@ import com.junkfood.seal.util.DownloadPreferences
          opts += YtDlpOption.Flag("--restrict-filenames")
      }
      if (preferences.cookies) {
-         needsCookies = true
+         if (preferences.cookiesBrowser.isNotEmpty()) {
+             opts += YtDlpOption.KeyValue("--cookies-from-browser", preferences.cookiesBrowser)
+         } else {
+             needsCookies = true
+         }
          if (preferences.userAgentString.isNotEmpty()) {
              opts += YtDlpOption.KeyValue("--add-header", "User-Agent:${preferences.userAgentString}")
          }

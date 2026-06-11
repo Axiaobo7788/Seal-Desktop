@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentPaste
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsSuggest
 import androidx.compose.material.icons.outlined.VideoFile
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
@@ -73,6 +76,7 @@ import com.junkfood.seal.shared.generated.resources.additional_settings
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.auto
 import com.junkfood.seal.shared.generated.resources.best_quality
+import com.junkfood.seal.shared.generated.resources.best_quality_desc
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.create_thumbnail
 import com.junkfood.seal.shared.generated.resources.custom
@@ -106,6 +110,14 @@ import com.junkfood.seal.shared.generated.resources.video_format_preference
 import com.junkfood.seal.shared.generated.resources.video_quality
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.back
+import com.junkfood.seal.shared.generated.resources.audio_format
+import com.junkfood.seal.shared.generated.resources.audio_quality
+import com.junkfood.seal.shared.generated.resources.cookies
+import com.junkfood.seal.shared.generated.resources.convert_to
+import com.junkfood.seal.shared.generated.resources.lowest_bitrate
+import com.junkfood.seal.shared.generated.resources.prefer_placeholder
+import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
+import kotlin.io.path.exists
 import com.junkfood.seal.util.DownloadPreferences
 import org.jetbrains.compose.resources.stringResource
 
@@ -242,6 +254,13 @@ internal fun DownloadOptionsSheet(
                         checked = preferences.sponsorBlock,
                         onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
                     )
+                    if (remember { DesktopYtDlpPaths.cookiesFile().exists() } || preferences.cookiesBrowser.isNotEmpty()) {
+                        OptionChipRow(
+                            title = stringResource(Res.string.cookies),
+                            checked = preferences.cookies,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(cookies = it)) },
+                        )
+                    }
                 }
             }
         }
@@ -280,6 +299,10 @@ internal fun DownloadOptionsSheet(
     var resolution by remember(preferences) { mutableIntStateOf(preferences.videoResolution) }
     var format by remember(preferences) { mutableIntStateOf(preferences.videoFormat) }
     var customAudioPreset by remember(preferences) { mutableStateOf(preferences.useCustomAudioPreset) }
+    var convertAudio by remember(preferences) { mutableStateOf(preferences.convertAudio) }
+    var audioFormat by remember(preferences) { mutableIntStateOf(preferences.audioFormat) }
+    var audioConvertFormat by remember(preferences) { mutableIntStateOf(preferences.audioConvertFormat) }
+    var audioQuality by remember(preferences) { mutableIntStateOf(preferences.audioQuality) }
 
     VideoPresetDialog(
         visible = isVideoPresetDialogVisible,
@@ -301,12 +324,24 @@ internal fun DownloadOptionsSheet(
     AudioPresetDialog(
         visible = isAudioPresetDialogVisible,
         useCustomAudioPreset = customAudioPreset,
+        convertAudio = convertAudio,
+        audioFormat = audioFormat,
+        audioConvertFormat = audioConvertFormat,
+        audioQuality = audioQuality,
         onPresetSelect = { customAudioPreset = it },
+        onConvertToggled = { convertAudio = it },
+        onPreferredSelect = { audioFormat = it },
+        onConversionSelect = { audioConvertFormat = it },
+        onQualitySelect = { audioQuality = it },
         onDismissRequest = { showPresetDialog = false },
         onSave = {
             onPreferencesChange(
                 preferences.copy(
                     useCustomAudioPreset = customAudioPreset,
+                    convertAudio = convertAudio,
+                    audioFormat = audioFormat,
+                    audioConvertFormat = audioConvertFormat,
+                    audioQuality = audioQuality,
                 ),
             )
         },
@@ -488,11 +523,12 @@ private fun FormatSelectionSection(
                     }
                 }
                 androidx.compose.animation.AnimatedVisibility(visible = showEdit) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = null,
-                        modifier = Modifier.clickable { onPresetMenuClick() },
-                    )
+                    androidx.compose.material3.IconButton(onClick = onPresetMenuClick) {
+                        Icon(
+                            Icons.Outlined.MoreVert,
+                            contentDescription = null,
+                        )
+                    }
                 }
             }
         }
@@ -575,32 +611,40 @@ private fun VideoPresetDialog(
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismissRequest,
+        icon = { Icon(Icons.Outlined.VideoFile, contentDescription = null) },
         title = { Text(stringResource(Res.string.edit_preset)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(Res.string.format_preference), style = MaterialTheme.typography.titleSmall)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     formatOptions.forEach { (label, value) ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth().clickable { onFormatSelect(value) },
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        val selected = videoFormatPreference == value
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selected,
+                                    onClick = { onFormatSelect(value) },
+                                    role = androidx.compose.ui.semantics.Role.RadioButton
+                                )
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                RadioButton(selected = videoFormatPreference == value, onClick = { onFormatSelect(value) })
-                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            RadioButton(selected = selected, onClick = null)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(label, style = MaterialTheme.typography.titleMedium)
+                                val desc =
+                                    if (value == 1) stringResource(Res.string.prefer_compatibility_desc)
+                                    else stringResource(Res.string.prefer_quality_desc)
+                                Text(
+                                    text = desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
                             }
-                            val desc =
-                                if (value == 1) stringResource(Res.string.prefer_compatibility_desc)
-                                else stringResource(Res.string.prefer_quality_desc)
-                            Text(
-                                text = desc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 40.dp),
-                            )
                         }
                     }
                 }
@@ -615,8 +659,12 @@ private fun VideoPresetDialog(
                         readOnly = true,
                         label = { Text(stringResource(Res.string.video_quality)) },
                         trailingIcon = { Icon(Icons.Outlined.ExpandMore, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth().clickable { resolutionExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
                     )
+                    Box(modifier = Modifier.matchParentSize().clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) { resolutionExpanded = true })
                     DropdownMenu(
                         expanded = resolutionExpanded,
                         onDismissRequest = { resolutionExpanded = false },
@@ -660,11 +708,71 @@ private fun ChoiceRow(title: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
+private fun audioPresetText(preferences: DownloadPreferences): String {
+    return with(preferences) {
+        when {
+            formatSorting -> {
+                sortingFields
+            }
+
+            !useCustomAudioPreset -> {
+                stringResource(Res.string.best_quality)
+            }
+
+            convertAudio -> {
+                when (audioConvertFormat) {
+                    0 -> stringResource(Res.string.convert_to, "MP3")
+                    else -> stringResource(Res.string.convert_to, "M4A")
+                }
+            }
+
+            else -> {
+                val preferredFormat =
+                    when (audioFormat) {
+                        2 -> stringResource(Res.string.prefer_placeholder, "M4A")
+                        1 -> stringResource(Res.string.prefer_placeholder, "OPUS")
+                        else -> null
+                    }
+                val preferredQuality =
+                    when (audioQuality) {
+                        0 -> stringResource(Res.string.best_quality)
+                        1 -> "192 Kbps"
+                        2 -> "128 Kbps"
+                        3 -> "64 Kbps"
+                        4 -> "32 Kbps"
+                        else -> stringResource(Res.string.lowest_bitrate)
+                    }
+                listOfNotNull(preferredFormat, preferredQuality).joinToString(separator = ", ")
+            }
+        }
+    }
+}
+
+@Composable
+private fun audioFormatOptionLabel(convertAudio: Boolean, audioFormat: Int, audioConvertFormat: Int): String {
+    return if (convertAudio) {
+        stringResource(Res.string.convert_to, if (audioConvertFormat == 0) "MP3" else "M4A")
+    } else {
+        if (audioFormat == 1) "OPUS" else "M4A"
+    }
+}
+
+@Composable
+private fun audioQualityOptionLabel(code: Int): String =
+    when (code) {
+        0 -> stringResource(Res.string.best_quality)
+        1 -> "192 Kbps"
+        2 -> "128 Kbps"
+        3 -> "64 Kbps"
+        4 -> "32 Kbps"
+        else -> stringResource(Res.string.lowest_bitrate)
+    }
+
+@Composable
 private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): String {
     val resLabel = videoResolutionLabel(preferences.videoResolution)
-    val audioLabel = audioQualityLabel(preferences.audioQuality)
     return when (type) {
-        DesktopDownloadType.Audio -> "${stringResource(Res.string.audio)} · $audioLabel"
+        DesktopDownloadType.Audio -> "${stringResource(Res.string.audio)} · ${audioPresetText(preferences)}"
         DesktopDownloadType.Video -> "${stringResource(Res.string.video)} · $resLabel"
         DesktopDownloadType.Playlist -> "${stringResource(Res.string.playlist)} · $resLabel"
     }
@@ -685,51 +793,166 @@ private fun videoResolutionLabel(code: Int): String =
     }
 
 @Composable
-private fun audioQualityLabel(code: Int): String =
-    when (code) {
-        1 -> stringResource(Res.string.best_quality)
-        2 -> "Medium"
-        3 -> "Low"
-        4 -> "Very low"
-        else -> stringResource(Res.string.auto)
-    }
-
-@Composable
 private fun AudioPresetDialog(
     visible: Boolean,
     useCustomAudioPreset: Boolean,
+    convertAudio: Boolean,
+    audioFormat: Int,
+    audioConvertFormat: Int,
+    audioQuality: Int,
     onPresetSelect: (Boolean) -> Unit,
+    onConvertToggled: (Boolean) -> Unit,
+    onPreferredSelect: (Int) -> Unit,
+    onConversionSelect: (Int) -> Unit,
+    onQualitySelect: (Int) -> Unit,
     onSave: () -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    var formatExpanded by remember { mutableStateOf(false) }
+    var qualityExpanded by remember { mutableStateOf(false) }
+
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismissRequest,
+        icon = { Icon(Icons.Outlined.AudioFile, contentDescription = null) },
         title = { Text(stringResource(Res.string.edit_preset)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().clickable { onPresetSelect(false) },
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = !useCustomAudioPreset,
+                            onClick = { onPresetSelect(false) },
+                            role = androidx.compose.ui.semantics.Role.RadioButton
+                        )
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        RadioButton(selected = !useCustomAudioPreset, onClick = { onPresetSelect(false) })
-                        Text(stringResource(Res.string.best_quality), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    RadioButton(selected = !useCustomAudioPreset, onClick = null)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(Res.string.best_quality), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = stringResource(Res.string.best_quality_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                 }
-                Column(
-                    modifier = Modifier.fillMaxWidth().clickable { onPresetSelect(true) },
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = useCustomAudioPreset,
+                            onClick = { onPresetSelect(true) },
+                            role = androidx.compose.ui.semantics.Role.RadioButton
+                        )
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Spacer(modifier = Modifier.width(8.dp))
+                    RadioButton(selected = useCustomAudioPreset, onClick = null)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(Res.string.custom), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
+                androidx.compose.animation.AnimatedVisibility(visible = useCustomAudioPreset) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(start = 44.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        RadioButton(selected = useCustomAudioPreset, onClick = { onPresetSelect(true) })
-                        Text(stringResource(Res.string.custom), style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(Res.string.audio_format), style = MaterialTheme.typography.titleSmall)
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = audioFormatOptionLabel(convertAudio, audioFormat, audioConvertFormat),
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(Res.string.audio_format)) },
+                                trailingIcon = { Icon(Icons.Outlined.ExpandMore, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Box(modifier = Modifier.matchParentSize().clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { formatExpanded = true })
+                            DropdownMenu(
+                                expanded = formatExpanded,
+                                onDismissRequest = { formatExpanded = false },
+                                offset = DpOffset(0.dp, 56.dp),
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("OPUS") },
+                                    onClick = {
+                                        onPreferredSelect(1)
+                                        onConvertToggled(false)
+                                        formatExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("M4A") },
+                                    onClick = {
+                                        onPreferredSelect(2)
+                                        onConvertToggled(false)
+                                        formatExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.convert_to, "MP3")) },
+                                    onClick = {
+                                        onConversionSelect(0)
+                                        onConvertToggled(true)
+                                        formatExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.convert_to, "M4A")) },
+                                    onClick = {
+                                        onConversionSelect(1)
+                                        onConvertToggled(true)
+                                        formatExpanded = false
+                                    }
+                                )
+                            }
+                        }
+
+                        if (!convertAudio) {
+                            Text(stringResource(Res.string.audio_quality), style = MaterialTheme.typography.titleSmall)
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = audioQualityOptionLabel(audioQuality),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(Res.string.audio_quality)) },
+                                    trailingIcon = { Icon(Icons.Outlined.ExpandMore, contentDescription = null) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Box(modifier = Modifier.matchParentSize().clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) { qualityExpanded = true })
+                                DropdownMenu(
+                                    expanded = qualityExpanded,
+                                    onDismissRequest = { qualityExpanded = false },
+                                    offset = DpOffset(0.dp, 56.dp),
+                                ) {
+                                    listOf(0, 1, 2, 3, 4).forEach { code ->
+                                        DropdownMenuItem(
+                                            text = { Text(audioQualityOptionLabel(code)) },
+                                            onClick = {
+                                                onQualitySelect(code)
+                                                qualityExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

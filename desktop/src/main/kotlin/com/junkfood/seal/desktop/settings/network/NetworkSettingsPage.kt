@@ -19,6 +19,7 @@ import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
+import com.junkfood.seal.desktop.settings.network.SupportedBrowser
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
@@ -161,7 +162,13 @@ internal fun NetworkSettingsPage(
         )
 
         if (preferences.cookies) {
-            PreferenceInfo(text = cookiePath)
+            val cookieInfoText = if (preferences.cookiesBrowser.isNotEmpty()) {
+                val browserName = SupportedBrowser.fromName(preferences.cookiesBrowser)?.displayName ?: preferences.cookiesBrowser
+                "Cookies 将自动从 $browserName 提取"
+            } else {
+                cookiePath
+            }
+            PreferenceInfo(text = cookieInfoText)
         }
     }
 }
