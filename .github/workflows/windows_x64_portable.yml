@@ -80,7 +80,7 @@ jobs:
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           
           mkdir -p dist-installers-lite
-          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Lite /DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="dist-installers-lite" .github/scripts/windows_setup.iss
+          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Lite /DMyAppSrc="$GITHUB_WORKSPACE/desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="$GITHUB_WORKSPACE/dist-installers-lite" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Inject tools for Full version
@@ -98,7 +98,7 @@ jobs:
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Full /DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="dist-installers-full" .github/scripts/windows_setup.iss
+          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Full /DMyAppSrc="$GITHUB_WORKSPACE/desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="$GITHUB_WORKSPACE/dist-installers-full" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Prepare Full, Lite, Min distributions (Windows)
