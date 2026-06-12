@@ -128,8 +128,8 @@ jobs:
       - name: Build Full installers and portable (macOS ${{ matrix.arch }})
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
-          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --rerun-tasks --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full

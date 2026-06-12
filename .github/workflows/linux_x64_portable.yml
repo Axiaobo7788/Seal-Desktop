@@ -88,8 +88,8 @@ jobs:
       - name: Build Full installers and portable (Linux)
         shell: bash
         run: |
-          ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
-          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --rerun-tasks --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full

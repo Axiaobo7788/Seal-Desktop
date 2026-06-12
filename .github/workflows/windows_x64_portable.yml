@@ -94,7 +94,7 @@ jobs:
         env:
           MSYS2_ARG_CONV_EXCL: "*"
         run: |
-          ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
+          ./gradlew :desktop:createReleaseDistributable --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
