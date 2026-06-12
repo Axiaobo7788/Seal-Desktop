@@ -74,11 +74,13 @@ jobs:
       #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
 
       - name: Build Lite installers (Windows)
+        env:
+          MSYS2_ARG_CONV_EXCL: "*"
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           
           mkdir -p dist-installers-lite
-          iscc //DMyAppVersion=latest //DMyAppArch=x64 //DMyAppFlavor=Lite //DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" //DMyAppOutput="dist-installers-lite" .github/scripts/windows_setup.iss
+          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Lite /DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="dist-installers-lite" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Inject tools for Full version
@@ -89,12 +91,14 @@ jobs:
           rm -rf desktop/build/compose/binaries desktop/build/compose/tmp
 
       - name: Build Full installers and portable (Windows)
+        env:
+          MSYS2_ARG_CONV_EXCL: "*"
         run: |
           ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          iscc //DMyAppVersion=latest //DMyAppArch=x64 //DMyAppFlavor=Full //DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" //DMyAppOutput="dist-installers-full" .github/scripts/windows_setup.iss
+          iscc /DMyAppVersion=latest /DMyAppArch=x64 /DMyAppFlavor=Full /DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" /DMyAppOutput="dist-installers-full" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Prepare Full, Lite, Min distributions (Windows)
