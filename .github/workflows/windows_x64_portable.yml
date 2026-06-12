@@ -76,10 +76,9 @@ jobs:
       - name: Build Lite installers (Windows)
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
-          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           
           mkdir -p dist-installers-lite
-          cp desktop/build/compose/binaries/main-release/exe/*.exe dist-installers-lite/ || true
+          iscc //DMyAppVersion=latest //DMyAppArch=x64 //DMyAppFlavor=Lite //DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" //DMyAppOutput="dist-installers-lite" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Inject tools for Full version
@@ -92,11 +91,10 @@ jobs:
       - name: Build Full installers and portable (Windows)
         run: |
           ./gradlew :desktop:createReleaseDistributable --rerun-tasks --stacktrace
-          ./gradlew :desktop:packageReleaseDistributionForCurrentOS --rerun-tasks --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          cp desktop/build/compose/binaries/main-release/exe/*.exe dist-installers-full/ || true
+          iscc //DMyAppVersion=latest //DMyAppArch=x64 //DMyAppFlavor=Full //DMyAppSrc="desktop/build/compose/binaries/main-release/app/Seal" //DMyAppOutput="dist-installers-full" .github/scripts/windows_setup.iss
         shell: bash
 
       - name: Prepare Full, Lite, Min distributions (Windows)
