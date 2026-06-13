@@ -14,10 +14,15 @@ class YtDlpMetadataFetcher(
         proxyUrl: String? = null,
         extraEnv: Map<String, String> = emptyMap(),
     ): VideoInfo {
-        val binary: Path = fetcher.ensureBinary()
+        val dependencies = fetcher.ensureDependencies()
+        val binary: Path = dependencies.ytDlp!!.path
         val command =
             buildList {
                 add(binary.toAbsolutePath().toString())
+                dependencies.ffmpeg!!.path.parent?.let { ffmpegLocation ->
+                    add("--ffmpeg-location")
+                    add(ffmpegLocation.toAbsolutePath().toString())
+                }
                 add("-J")
                 add("--no-playlist")
                 proxyUrl?.trim()?.takeIf { it.isNotBlank() }?.let {

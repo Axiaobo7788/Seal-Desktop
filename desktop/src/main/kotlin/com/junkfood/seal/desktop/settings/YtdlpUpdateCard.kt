@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
 import com.junkfood.seal.shared.generated.resources.Res
@@ -75,21 +76,18 @@ internal fun YtdlpUpdateCard(
     val ytdlpUpdateFailText = stringResource(Res.string.yt_dlp_update_fail)
 
     val scope = rememberCoroutineScope()
-    val fetcher = remember { YtDlpFetcher() }
+    val fetcher =
+        remember(appSettings.environmentPreference) {
+            YtDlpFetcher(environmentPreferenceProvider = { appSettings.environmentPreference })
+        }
     var isUpdatingYtDlp by remember { mutableStateOf(false) }
     var ytDlpDesc by remember(ytdlpUpdateText) { mutableStateOf(ytdlpUpdateText) }
 
-    LaunchedEffect(Unit) {
-        val existing = fetcher.findExistingBinary()
-        if (existing != null) {
-            val version = readYtDlpVersion(existing)
-            ytDlpDesc =
-                if (!version.isNullOrBlank()) {
-                    "$ytdlpVersionLabel: $version"
-                } else {
-                    ytdlpUpdateText
-                }
-        }
+    LaunchedEffect(fetcher, ytdlpUpdateText, ytdlpVersionLabel) {
+        ytDlpDesc =
+            withContext(Dispatchers.IO) {
+                buildDependencyDescription(fetcher, ytdlpVersionLabel, ytdlpUpdateText)
+            }
     }
 
     androidx.compose.foundation.layout.Box {
@@ -107,15 +105,12 @@ internal fun YtdlpUpdateCard(
                         withContext(Dispatchers.IO) {
                             runCatching {
                                 fetcher.invalidateCachedBinary()
-                                val binary = fetcher.ensureBinary()
-                                readYtDlpVersion(binary)
+                                buildDependencyDescription(fetcher, ytdlpVersionLabel, ytdlpUpdateText)
                             }
                         }
 
                     ytDlpDesc =
-                        updated.getOrNull()?.takeIf { it.isNotBlank() }?.let { v ->
-                            "$ytdlpVersionLabel: $v"
-                        } ?: ytdlpUpdateFailText
+                        updated.getOrNull()?.takeIf { it.isNotBlank() } ?: ytdlpUpdateFailText
 
                     isUpdatingYtDlp = false
                 }
@@ -131,6 +126,23 @@ internal fun YtdlpUpdateCard(
         )
     }
 }
+
+private suspend fun buildDependencyDescription(
+    fetcher: YtDlpFetcher,
+    ytdlpVersionLabel: String,
+    fallback: String,
+): String {
+    val resolution = fetcher.resolveDependencies()
+    val ytDlp = resolution.ytDlp ?: return "yt-dlp: missing"
+    val version = readYtDlpVersion(ytDlp.path)?.takeIf { it.isNotBlank() } ?: "unknown"
+    return "yt-dlp (${ytDlp.source.label()}): $ytdlpVersionLabel: $version".ifBlank { fallback }
+}
+
+private fun DesktopDependencySource.label(): String =
+    when (this) {
+        DesktopDependencySource.AppPrivate -> "selfhost"
+        DesktopDependencySource.SystemPath -> "system"
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -314,4 +326,3 @@ private fun DialogSingleChoiceItemVariantWithLabel(
         )
     }
 }
-

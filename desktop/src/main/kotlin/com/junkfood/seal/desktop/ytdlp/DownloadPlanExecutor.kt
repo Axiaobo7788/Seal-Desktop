@@ -2,7 +2,6 @@ package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.download.DownloadPlan
 import java.io.InputStream
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.concurrent.thread
 
@@ -10,7 +9,7 @@ import kotlin.concurrent.thread
  * Execute a DownloadPlan via the yt-dlp binary (fetched per-platform).
  */
 class DownloadPlanExecutor(
-    private val fetcher: YtDlpFetcher = YtDlpFetcher(),
+    private val environmentPreferenceProvider: () -> Int = { DesktopDependencyResolver.defaultEnvironmentPreference() },
 ) {
     data class ExecutionConfig(
         val workingDirectory: Path? = null,
@@ -18,6 +17,7 @@ class DownloadPlanExecutor(
         val archiveFile: Path? = null,
         val extraEnv: Map<String, String> = emptyMap(),
         val redirectError: Boolean = false,
+        val environmentPreference: Int? = null,
         val url: String,
     )
 
@@ -31,6 +31,7 @@ class DownloadPlanExecutor(
         val workingDirectory: Path? = null,
         val extraEnv: Map<String, String> = emptyMap(),
         val redirectError: Boolean = false,
+        val environmentPreference: Int? = null,
     )
 
     class RunningProcess internal constructor(
@@ -108,9 +109,8 @@ class DownloadPlanExecutor(
         )
 
     private fun launchProcess(plan: DownloadPlan, config: ExecutionConfig): Process {
-        val binary = fetcher.ensureBinary()
-        ensureFfmpegAvailable(binary)
-        val command = buildCommand(binary, plan, config)
+        val dependencies = resolveDependencies(config.environmentPreference)
+        val command = buildCommand(dependencies, plan, config)
         val builder = ProcessBuilder(command)
         builder.redirectErrorStream(config.redirectError)
         config.workingDirectory?.let { builder.directory(it.toFile()) }
@@ -121,9 +121,8 @@ class DownloadPlanExecutor(
     }
 
     private fun launchProcessForArgs(args: List<String>, config: CommandExecutionConfig): Process {
-        val binary = fetcher.ensureBinary()
-        ensureFfmpegAvailable(binary)
-        val command = buildRawCommand(binary, args)
+        val dependencies = resolveDependencies(config.environmentPreference)
+        val command = buildRawCommand(dependencies, args)
         val builder = ProcessBuilder(command)
         builder.redirectErrorStream(config.redirectError)
         config.workingDirectory?.let { builder.directory(it.toFile()) }
@@ -134,17 +133,16 @@ class DownloadPlanExecutor(
     }
 
     private fun buildCommand(
-        binary: Path,
+        dependencies: DesktopDependencyResolution,
         plan: DownloadPlan,
         config: ExecutionConfig,
     ): List<String> {
         val args = mutableListOf<String>()
-        val absBinary = binary.toAbsolutePath()
+        val absBinary = dependencies.ytDlp!!.path.toAbsolutePath()
         args += absBinary.toString()
 
-        val ffmpegLocation = findBundledFfmpegLocation(absBinary)
-        if (ffmpegLocation != null) {
-            args += listOf("--ffmpeg-location", ffmpegLocation.toString())
+        dependencies.ffmpeg!!.path.parent?.let { ffmpegLocation ->
+            args += listOf("--ffmpeg-location", ffmpegLocation.toAbsolutePath().toString())
         }
 
         args += plan.asCliArgs()
@@ -158,50 +156,21 @@ class DownloadPlanExecutor(
         return args
     }
 
-    private fun buildRawCommand(binary: Path, args: List<String>): List<String> {
+    private fun buildRawCommand(dependencies: DesktopDependencyResolution, args: List<String>): List<String> {
         val command = mutableListOf<String>()
-        val absBinary = binary.toAbsolutePath()
+        val absBinary = dependencies.ytDlp!!.path.toAbsolutePath()
         command += absBinary.toString()
 
-        val ffmpegLocation = findBundledFfmpegLocation(absBinary)
-        if (ffmpegLocation != null) {
-            command += listOf("--ffmpeg-location", ffmpegLocation.toString())
+        dependencies.ffmpeg!!.path.parent?.let { ffmpegLocation ->
+            command += listOf("--ffmpeg-location", ffmpegLocation.toAbsolutePath().toString())
         }
 
         command += args
         return command
     }
 
-    private fun findBundledFfmpegLocation(ytDlpBinary: Path): Path? {
-        val os = System.getProperty("os.name")?.lowercase().orEmpty()
-        val isWindows = os.contains("win")
-        val ffmpegName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
-
-        val dir = ytDlpBinary.parent ?: return null
-        val ffmpeg = dir.resolve(ffmpegName)
-        return if (Files.exists(ffmpeg)) dir else null
-    }
-
-    private fun ensureFfmpegAvailable(ytDlpBinary: Path) {
-        if (findBundledFfmpegLocation(ytDlpBinary) != null) return
-
-        val isWindows = System.getProperty("os.name")?.lowercase()?.contains("win") == true
-        val ffmpegName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
-        val pathEnv = System.getenv("PATH") ?: throw EnvironmentMissingException("ffmpeg is not bundled and not found in system or auxiliary paths.")
-        val separator = java.io.File.pathSeparator
-
-        val found = pathEnv.split(separator).any { dir ->
-            try {
-                val file = Path.of(dir).resolve(ffmpegName)
-                Files.exists(file) && Files.isExecutable(file)
-            } catch (e: Exception) {
-                false
-            }
-        }
-        if (!found) {
-            throw EnvironmentMissingException("ffmpeg is not bundled and not found in system or auxiliary paths.")
-        }
-    }
+    private fun resolveDependencies(environmentPreference: Int?): DesktopDependencyResolution =
+        DesktopDependencyResolver.requireComplete(environmentPreference ?: environmentPreferenceProvider())
 
     private fun streamLines(
         stream: InputStream,

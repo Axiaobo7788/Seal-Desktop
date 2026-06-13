@@ -20,6 +20,7 @@ import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
+import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
 import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.download.buildDownloadPlan
@@ -54,11 +55,18 @@ private const val MAX_CONCURRENT_DOWNLOADS = 3
 
 class DesktopDownloadController(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-    private val executor: DownloadPlanExecutor = DownloadPlanExecutor(),
-    private val metadataFetcher: YtDlpMetadataFetcher = YtDlpMetadataFetcher(),
+    private val appSettingsProvider: () -> DesktopAppSettings = { DesktopAppSettings() },
+    private val executor: DownloadPlanExecutor =
+        DownloadPlanExecutor(environmentPreferenceProvider = { appSettingsProvider().environmentPreference }),
+    private val metadataFetcher: YtDlpMetadataFetcher =
+        YtDlpMetadataFetcher(
+            fetcher =
+                YtDlpFetcher(
+                    environmentPreferenceProvider = { appSettingsProvider().environmentPreference },
+                ),
+        ),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
     private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
-    private val appSettingsProvider: () -> DesktopAppSettings = { DesktopAppSettings() },
 ) {
     val environmentMissingEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     var filter by mutableStateOf(DownloadQueueFilter.All)

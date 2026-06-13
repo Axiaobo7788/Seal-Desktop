@@ -5,6 +5,13 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TOOLS_CACHE_VERSION: v2
   YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_linux
@@ -25,13 +32,17 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Set tools cache epoch
+        shell: bash
+        run: echo "TOOLS_CACHE_EPOCH=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
+
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
         with:
           path: |
             dist-bin
             ffmpeg-unpacked
-          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_VERSION }}
+          key: tools-${{ runner.os }}-${{ env.TOOLS_CACHE_EPOCH }}-${{ env.TOOLS_CACHE_VERSION }}
 
       - name: Download yt-dlp (linux x64)
         shell: bash
@@ -42,7 +53,7 @@ jobs:
             exit 0
           fi
           mkdir -p dist-bin
-          curl -L "$YT_DLP_LINUX_URL" -o dist-bin/yt-dlp
+          curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$YT_DLP_LINUX_URL" -o dist-bin/yt-dlp
           chmod +x dist-bin/yt-dlp
 
       - name: Download FFmpeg (linux x64)
@@ -54,7 +65,7 @@ jobs:
             exit 0
           fi
           mkdir -p ffmpeg-unpacked dist-bin
-          curl -L "$FFMPEG_LINUX_URL" -o ffmpeg.tar.xz
+          curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L "$FFMPEG_LINUX_URL" -o ffmpeg.tar.xz
           tar -xf ffmpeg.tar.xz -C ffmpeg-unpacked
           ffmpeg_path=$(find ffmpeg-unpacked -type f -name ffmpeg | head -n 1)
           ffprobe_path=$(find ffmpeg-unpacked -type f -name ffprobe | head -n 1)
@@ -147,31 +158,41 @@ jobs:
           echo "PORTABLE_DIR=$workspace/dist-portable/app" >> "$GITHUB_ENV"
 
       - name: Upload Portable Full artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-portable-linux-x64-full
           path: ${{ env.PORTABLE_DIR }}
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Lite DEB Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-linux-x64-lite-deb
           path: dist-installers-lite/*.deb
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Full DEB Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-linux-x64-full-deb
           path: dist-installers-full/*.deb
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Lite RPM Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-linux-x64-lite-rpm
           path: dist-installers-lite/*.rpm
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Full RPM Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-linux-x64-full-rpm
           path: dist-installers-full/*.rpm
+          if-no-files-found: error
+          retention-days: 20

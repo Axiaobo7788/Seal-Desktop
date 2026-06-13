@@ -103,11 +103,29 @@ compose.desktop {
 
         nativeDistributions {
             val osName = System.getProperty("os.name").lowercase()
-            val currentTargetFormats = when {
+            val defaultTargetFormats = when {
                 osName.contains("mac") -> arrayOf(TargetFormat.Dmg, TargetFormat.Pkg)
                 osName.contains("win") -> arrayOf(TargetFormat.Exe)
                 else -> arrayOf(TargetFormat.Deb, TargetFormat.Rpm)
             }
+            val requestedTargetFormats =
+                (providers.gradleProperty("desktopTargetFormats").orNull
+                    ?: providers.environmentVariable("DESKTOP_TARGET_FORMATS").orNull)
+                    ?.split(',')
+                    ?.map { it.trim().lowercase() }
+                    ?.filter { it.isNotEmpty() }
+                    ?.map {
+                        when (it) {
+                            "dmg" -> TargetFormat.Dmg
+                            "pkg" -> TargetFormat.Pkg
+                            "exe" -> TargetFormat.Exe
+                            "deb" -> TargetFormat.Deb
+                            "rpm" -> TargetFormat.Rpm
+                            else -> error("Unsupported desktop target format: $it")
+                        }
+                    }
+                    ?.toTypedArray()
+            val currentTargetFormats = requestedTargetFormats ?: defaultTargetFormats
 
             targetFormats(*currentTargetFormats)
             modules("java.sql")
@@ -125,6 +143,7 @@ compose.desktop {
                 shortcut = true
                 menu = true
                 menuGroup = "Seal"
+                console = true
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))

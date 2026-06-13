@@ -112,12 +112,8 @@ jobs:
               { runId: linuxRunId, name: "desktop-installer-linux-x64-full-rpm", out: "linux_full_rpm" },
               { runId: windowsRunId, name: "desktop-installer-win-x64-lite-exe", out: "win_lite_exe" },
               { runId: windowsRunId, name: "desktop-installer-win-x64-full-exe", out: "win_full_exe" },
-              { runId: macosRunId, name: "desktop-installer-macos-x64-lite-dmg", out: "mac_x64_lite_dmg" },
-              { runId: macosRunId, name: "desktop-installer-macos-x64-full-dmg", out: "mac_x64_full_dmg" },
               { runId: macosRunId, name: "desktop-installer-macos-x64-lite-pkg", out: "mac_x64_lite_pkg" },
               { runId: macosRunId, name: "desktop-installer-macos-x64-full-pkg", out: "mac_x64_full_pkg" },
-              { runId: macosRunId, name: "desktop-installer-macos-arm64-lite-dmg", out: "mac_arm64_lite_dmg" },
-              { runId: macosRunId, name: "desktop-installer-macos-arm64-full-dmg", out: "mac_arm64_full_dmg" },
               { runId: macosRunId, name: "desktop-installer-macos-arm64-lite-pkg", out: "mac_arm64_lite_pkg" },
               { runId: macosRunId, name: "desktop-installer-macos-arm64-full-pkg", out: "mac_arm64_full_pkg" }
             ];
@@ -165,13 +161,9 @@ jobs:
           download_artifact "${{ steps.resolve_runs.outputs.win_lite_exe }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-exe"
           download_artifact "${{ steps.resolve_runs.outputs.win_full_exe }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-exe"
           
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite_dmg }}" "seal-desktop-macos-x64-installer-lite-v${v}-${r}-dmg"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full_dmg }}" "seal-desktop-macos-x64-installer-full-v${v}-${r}-dmg"
           download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite_pkg }}" "seal-desktop-macos-x64-installer-lite-v${v}-${r}-pkg"
           download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full_pkg }}" "seal-desktop-macos-x64-installer-full-v${v}-${r}-pkg"
           
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_dmg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-dmg"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_dmg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-dmg"
           download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_pkg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-pkg"
           download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_pkg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-pkg"
 

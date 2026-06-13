@@ -1,7 +1,9 @@
 #define MyAppName "Seal"
 #define MyAppPublisher "Junkfood"
 #define MyAppURL "https://github.com/Axiaobo7788/Seal-Desktop"
-#define MyAppExeName "Seal.exe"
+#ifndef MyAppLaunchPath
+#define MyAppLaunchPath "Seal.exe"
+#endif
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -40,8 +42,8 @@ Source: "{#MyAppSrc}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppLaunchPath}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppLaunchPath}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppLaunchPath}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

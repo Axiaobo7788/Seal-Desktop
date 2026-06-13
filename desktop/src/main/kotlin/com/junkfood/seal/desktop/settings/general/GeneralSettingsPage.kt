@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.RemoveDone
-import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Image
@@ -18,21 +17,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
-import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ChoiceDialog
 import com.junkfood.seal.desktop.settings.EnvPrefAuto
 import com.junkfood.seal.desktop.settings.EnvPrefBundled
 import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.settings.ActionCard
-import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
-import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolution
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
 import com.junkfood.seal.shared.generated.resources.create_thumbnail
@@ -43,7 +42,6 @@ import com.junkfood.seal.shared.generated.resources.env_pref_auto
 import com.junkfood.seal.shared.generated.resources.env_pref_bundled
 import com.junkfood.seal.shared.generated.resources.env_pref_system
 import com.junkfood.seal.shared.generated.resources.env_preference
-import com.junkfood.seal.shared.generated.resources.env_preference_desc
 import com.junkfood.seal.shared.generated.resources.download_archive
 import com.junkfood.seal.shared.generated.resources.download_archive_desc
 import com.junkfood.seal.shared.generated.resources.download_notification
@@ -62,13 +60,8 @@ import com.junkfood.seal.shared.generated.resources.sponsorblock
 import com.junkfood.seal.shared.generated.resources.sponsorblock_categories
 import com.junkfood.seal.shared.generated.resources.sponsorblock_categories_desc
 import com.junkfood.seal.shared.generated.resources.sponsorblock_desc
-import com.junkfood.seal.shared.generated.resources.yt_dlp_update_fail
-import com.junkfood.seal.shared.generated.resources.ytdlp_update
-import com.junkfood.seal.shared.generated.resources.ytdlp_update_action
-import com.junkfood.seal.shared.generated.resources.ytdlp_version
 import com.junkfood.seal.util.DownloadPreferences
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 
@@ -82,6 +75,14 @@ internal fun GeneralSettingsPage(
 ) {
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
     var showEnvPrefDialog by remember { mutableStateOf(false) }
+    var envDetectionSummary by remember { mutableStateOf("") }
+
+    LaunchedEffect(appSettings.environmentPreference) {
+        envDetectionSummary =
+            withContext(Dispatchers.IO) {
+                DesktopDependencyResolver.resolve(appSettings.environmentPreference).toDetectionSummary()
+            }
+    }
     
     SettingsPageScaffold(title = stringResource(Res.string.general_settings), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
@@ -99,7 +100,14 @@ internal fun GeneralSettingsPage(
 
         SelectionCard(
             title = stringResource(Res.string.env_preference),
-            description = envPrefLabel,
+            description =
+                buildString {
+                    append(envPrefLabel)
+                    if (envDetectionSummary.isNotBlank()) {
+                        append('\n')
+                        append(envDetectionSummary)
+                    }
+                },
             icon = Icons.Rounded.SettingsApplications,
             onClick = { showEnvPrefDialog = true }
         )
@@ -203,7 +211,45 @@ internal fun GeneralSettingsPage(
             ),
             selected = appSettings.environmentPreference,
             onSelect = { pref -> onUpdateAppSettings { it.copy(environmentPreference = pref) } },
-            onDismiss = { showEnvPrefDialog = false }
+            onDismiss = { showEnvPrefDialog = false },
+            footer = { selectedPreference ->
+                var selectedDetectionSummary by remember(selectedPreference) { mutableStateOf("") }
+                LaunchedEffect(selectedPreference) {
+                    selectedDetectionSummary =
+                        withContext(Dispatchers.IO) {
+                            DesktopDependencyResolver.resolve(selectedPreference).toDetectionSummary()
+                        }
+                }
+                PreferenceInfo(
+                    text = selectedDetectionSummary.ifBlank { "Detecting dependencies..." },
+                    applyPaddings = false,
+                )
+            }
         )
     }
 }
+
+private fun DesktopDependencyResolution.toDetectionSummary(): String {
+    val ytDlpLine = ytDlp?.let { dependency ->
+        "yt-dlp: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+    } ?: "yt-dlp: missing"
+
+    val ffmpegLine = ffmpeg?.let { dependency ->
+        "ffmpeg: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+    } ?: "ffmpeg: missing"
+
+    return buildString {
+        appendLine(ytDlpLine)
+        append(ffmpegLine)
+        if (!isComplete) {
+            appendLine()
+            append("Missing: ${missingNames.joinToString()}")
+        }
+    }
+}
+
+private fun DesktopDependencySource.label(): String =
+    when (this) {
+        DesktopDependencySource.AppPrivate -> "selfhost"
+        DesktopDependencySource.SystemPath -> "system"
+    }

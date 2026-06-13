@@ -5,8 +5,16 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TOOLS_CACHE_VERSION: v3
+  DESKTOP_TARGET_FORMATS: pkg
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_macos
   GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
 
@@ -36,11 +44,15 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Set tools cache epoch
+        shell: bash
+        run: echo "TOOLS_CACHE_EPOCH=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
+
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
         with:
           path: dist-bin
-          key: tools-${{ runner.os }}-${{ matrix.arch }}-${{ env.TOOLS_CACHE_VERSION }}
+          key: tools-${{ runner.os }}-${{ matrix.arch }}-${{ env.TOOLS_CACHE_EPOCH }}-${{ env.TOOLS_CACHE_VERSION }}
 
       - name: Download yt-dlp (macOS universal)
         shell: bash
@@ -116,7 +128,6 @@ jobs:
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           
           mkdir -p dist-installers-lite
-          cp desktop/build/compose/binaries/main-release/dmg/*.dmg dist-installers-lite/ || true
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-lite/ || true
 
       - name: Inject tools for Full version
@@ -134,7 +145,6 @@ jobs:
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
           
           mkdir -p dist-installers-full
-          cp desktop/build/compose/binaries/main-release/dmg/*.dmg dist-installers-full/ || true
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-full/ || true
 
       - name: Print jpackage logs on failure
@@ -183,31 +193,25 @@ jobs:
           echo "PORTABLE_DIR=$workspace/dist-portable" >> "$GITHUB_ENV"
 
       - name: Upload Portable Full artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-portable-macos-${{ matrix.arch }}-full
           path: ${{ env.PORTABLE_DIR }}
-
-      - name: Upload Lite DMG Installer artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: desktop-installer-macos-${{ matrix.arch }}-lite-dmg
-          path: dist-installers-lite/*.dmg
-
-      - name: Upload Full DMG Installer artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: desktop-installer-macos-${{ matrix.arch }}-full-dmg
-          path: dist-installers-full/*.dmg
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Lite PKG Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-macos-${{ matrix.arch }}-lite-pkg
           path: dist-installers-lite/*.pkg
+          if-no-files-found: error
+          retention-days: 20
 
       - name: Upload Full PKG Installer artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-installer-macos-${{ matrix.arch }}-full-pkg
           path: dist-installers-full/*.pkg
+          if-no-files-found: error
+          retention-days: 20

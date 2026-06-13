@@ -144,6 +144,7 @@ object DesktopCustomCommandTaskManager {
                                 DownloadPlanExecutor.CommandExecutionConfig(
                                     workingDirectory = workingDir,
                                     extraEnv = proxyEnv,
+                                    environmentPreference = appSettings.environmentPreference,
                                 ),
                             onStdout = { line ->
                                 scope.launch { appendLine(taskId, line, isError = false) }

@@ -334,6 +334,7 @@ internal fun <T> ChoiceDialog(
     selected: T,
     onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
+    footer: @Composable ((T) -> Unit)? = null,
 ) {
     var currentSelection by remember(selected, visible) { mutableStateOf(selected) }
 
@@ -365,6 +366,7 @@ internal fun <T> ChoiceDialog(
                         onClick = { currentSelection = value }
                     )
                 }
+                footer?.invoke(currentSelection)
             }
         },
     )
@@ -637,4 +639,3 @@ internal fun ActionWithDividerCard(
         }
     }
 }
-
