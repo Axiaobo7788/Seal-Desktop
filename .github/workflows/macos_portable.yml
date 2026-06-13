@@ -34,7 +34,7 @@ jobs:
           distribution: jetbrains
           java-version: 21
           cache: gradle
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.jb_GITHUB_TOKEN }}
 
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
