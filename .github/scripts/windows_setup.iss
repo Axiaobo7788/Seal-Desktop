@@ -43,8 +43,17 @@ Source: "{#MyAppSrc}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
+#ifdef MyAppLaunchThroughCmd
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{sys}\cmd.exe"; Parameters: "/K ""{app}\{#MyAppLaunchPath}"""; WorkingDir: "{app}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{sys}\cmd.exe"; Parameters: "/K ""{app}\{#MyAppLaunchPath}"""; WorkingDir: "{app}"; Tasks: desktopicon
+#else
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppLaunchPath}"; WorkingDir: "{app}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppLaunchPath}"; WorkingDir: "{app}"; Tasks: desktopicon
+#endif
 
 [Run]
+#ifdef MyAppLaunchThroughCmd
+Filename: "{sys}\cmd.exe"; Parameters: "/K ""{app}\{#MyAppLaunchPath}"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: postinstall skipifsilent shellexec
+#else
 Filename: "{app}\{#MyAppLaunchPath}"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+#endif

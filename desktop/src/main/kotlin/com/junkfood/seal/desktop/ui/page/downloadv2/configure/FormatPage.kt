@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -35,17 +37,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Subtitles
+import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +68,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -72,6 +84,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,9 +97,9 @@ import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.auto_subtitle
 import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.shared.generated.resources.cancel
-import com.junkfood.seal.shared.generated.resources.clip_end
-import com.junkfood.seal.shared.generated.resources.clip_start
+import com.junkfood.seal.shared.generated.resources.clear
 import com.junkfood.seal.shared.generated.resources.clip_video
+import com.junkfood.seal.shared.generated.resources.discard
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.rename
@@ -94,9 +107,13 @@ import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.search_in_subtitles
 import com.junkfood.seal.shared.generated.resources.show_all_items
 import com.junkfood.seal.shared.generated.resources.split_video
+import com.junkfood.seal.shared.generated.resources.split_video_msg
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.subtitle_language
 import com.junkfood.seal.shared.generated.resources.suggested
+import com.junkfood.seal.shared.generated.resources.show_more_actions
+import com.junkfood.seal.shared.generated.resources.thumbnail
+import com.junkfood.seal.shared.generated.resources.title
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_only
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
@@ -274,6 +291,7 @@ private fun FormatPageImpl(
     isVideoClipEnabled: Boolean = false,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val uriHandler = LocalUriHandler.current
     val formats = videoInfo.formats.orEmpty()
     if (formats.isEmpty()) return
 
@@ -304,6 +322,7 @@ private fun FormatPageImpl(
     var audioOnlyItemLimit by remember { mutableIntStateOf(6) }
     var videoAudioItemLimit by remember { mutableIntStateOf(6) }
     var showSubtitleSelectionDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
 
     val isSuggestedFormatAvailable =
         !videoInfo.requestedFormats.isNullOrEmpty() || !videoInfo.requestedDownloads.isNullOrEmpty()
@@ -409,35 +428,40 @@ private fun FormatPageImpl(
             contentPadding = PaddingValues(12.dp),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                FormatPreviewHeader(videoInfo = videoInfo)
-            }
-
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                AdvancedOptionsCard(
-                    durationSeconds = durationSeconds,
-                    chapterCount = chapterCount,
+                FormatPreviewHeader(
+                    videoInfo = videoInfo,
+                    title = newTitle.ifBlank { videoInfo.title },
                     splitByChapter = splitByChapter,
+                    clipVideo = clipVideo,
                     isVideoClipEnabled = isVideoClipEnabled,
-                    onSplitByChapterChange = { checked ->
-                        splitByChapter = checked
-                        if (checked) {
+                    isSplitByChapterAvailable = chapterCount > 0,
+                    onRename = { showRenameDialog = true },
+                    onOpenThumbnail = {
+                        videoInfo.getBestThumbnailUrl().toHttpsUrl().takeIf { it.isNotBlank() }?.let(uriHandler::openUri)
+                    },
+                    onSplitByChapterToggle = {
+                        splitByChapter = !splitByChapter
+                        if (splitByChapter) {
                             clipVideo = false
                         }
                     },
-                    clipVideo = clipVideo,
-                    onClipVideoChange = { checked ->
-                        clipVideo = checked
-                        if (checked) {
+                    onClipVideoToggle = {
+                        clipVideo = !clipVideo
+                        if (clipVideo) {
                             splitByChapter = false
                         }
                     },
-                    clipStartText = clipStartText,
-                    onClipStartTextChange = { clipStartText = it },
-                    clipEndText = clipEndText,
-                    onClipEndTextChange = { clipEndText = it },
-                    newTitle = newTitle,
-                    onNewTitleChange = { newTitle = it },
                 )
+            }
+
+            if (chapterCount > 0) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    SplitVideoInfoRow(
+                        visible = splitByChapter,
+                        chapterCount = chapterCount,
+                        onDiscard = { splitByChapter = false },
+                    )
+                }
             }
 
             if (suggestedSubtitleMap.isNotEmpty()) {
@@ -593,11 +617,30 @@ private fun FormatPageImpl(
             showSubtitleSelectionDialog = false
         },
     )
+
+    RenameDialog(
+        visible = showRenameDialog,
+        initialValue = newTitle.ifBlank { videoInfo.title },
+        onDismissRequest = { showRenameDialog = false },
+        onConfirm = { newTitle = it },
+    )
 }
 
 @Composable
-private fun FormatPreviewHeader(videoInfo: VideoInfo) {
+private fun FormatPreviewHeader(
+    videoInfo: VideoInfo,
+    title: String,
+    splitByChapter: Boolean,
+    clipVideo: Boolean,
+    isVideoClipEnabled: Boolean,
+    isSplitByChapterAvailable: Boolean,
+    onRename: () -> Unit,
+    onOpenThumbnail: () -> Unit,
+    onSplitByChapterToggle: () -> Unit,
+    onClipVideoToggle: () -> Unit,
+) {
     val uriHandler = LocalUriHandler.current
+    var menuExpanded by remember { mutableStateOf(false) }
     val thumbnailUrl = videoInfo.getBestThumbnailUrl().toHttpsUrl()
     val durationText = formatDuration(videoInfo.duration?.toInt() ?: 0)
     val creatorText = listOf(videoInfo.uploader, videoInfo.uploaderId).firstOrNull { !it.isNullOrBlank() }.orEmpty()
@@ -643,7 +686,7 @@ private fun FormatPreviewHeader(videoInfo: VideoInfo) {
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = videoInfo.title.ifBlank { videoInfo.webpageUrlBasename.orEmpty() },
+                        text = title.ifBlank { videoInfo.webpageUrlBasename.orEmpty() },
                         style = MaterialTheme.typography.headlineSmall,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -668,6 +711,55 @@ private fun FormatPreviewHeader(videoInfo: VideoInfo) {
                         )
                     }
                 }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = stringResource(Res.string.show_more_actions),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                            text = { Text(stringResource(Res.string.rename)) },
+                            onClick = {
+                                menuExpanded = false
+                                onRename()
+                            },
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Outlined.Image, contentDescription = null) },
+                            text = { Text(stringResource(Res.string.thumbnail)) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenThumbnail()
+                            },
+                        )
+                        if (isVideoClipEnabled && !clipVideo && !splitByChapter) {
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Outlined.ContentCut, contentDescription = null) },
+                                text = { Text(stringResource(Res.string.clip_video)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onClipVideoToggle()
+                                },
+                            )
+                        }
+                        if (isSplitByChapterAvailable && !clipVideo && !splitByChapter) {
+                            DropdownMenuItem(
+                                leadingIcon = { Icon(Icons.Outlined.VerticalSplit, contentDescription = null) },
+                                text = { Text(stringResource(Res.string.split_video)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onSplitByChapterToggle()
+                                },
+                            )
+                        }
+                    }
+                }
             }
             videoInfo.playlist?.takeIf { it.isNotBlank() }?.let {
                 Text(
@@ -680,6 +772,101 @@ private fun FormatPreviewHeader(videoInfo: VideoInfo) {
             }
         }
     }
+}
+
+@Composable
+private fun SplitVideoInfoRow(
+    visible: Boolean,
+    chapterCount: Int,
+    onDiscard: () -> Unit,
+) {
+    AnimatedVisibility(visible = visible) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.split_video_msg, chapterCount),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButtonWithIcon(
+                    onClick = onDiscard,
+                    icon = Icons.Outlined.Delete,
+                    text = stringResource(Res.string.discard),
+                    contentColor = MaterialTheme.colorScheme.error,
+                )
+            }
+            HorizontalDivider()
+        }
+    }
+}
+
+@Composable
+private fun TextButtonWithIcon(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
+) {
+    TextButton(onClick = onClick) {
+        Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.size(8.dp))
+        Text(text, color = contentColor)
+    }
+}
+
+@Composable
+private fun RenameDialog(
+    visible: Boolean,
+    initialValue: String,
+    onDismissRequest: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var value by remember(visible, initialValue) { mutableStateOf(initialValue) }
+
+    AnimatedAlertDialog(
+        visible = visible,
+        onDismissRequest = onDismissRequest,
+        icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+        title = { Text(stringResource(Res.string.rename)) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(stringResource(Res.string.title)) },
+                trailingIcon = {
+                    if (value.isNotEmpty()) {
+                        IconButton(onClick = { value = "" }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Clear,
+                                contentDescription = stringResource(Res.string.clear),
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirm(value)
+                    onDismissRequest()
+                },
+            ) {
+                Text(stringResource(Res.string.save))
+            }
+        },
+    )
 }
 
 @Composable
@@ -733,88 +920,6 @@ private fun FormatHintInfo(text: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
         )
-    }
-}
-
-@Composable
-private fun AdvancedOptionsCard(
-    durationSeconds: Int,
-    chapterCount: Int,
-    splitByChapter: Boolean,
-    onSplitByChapterChange: (Boolean) -> Unit,
-    isVideoClipEnabled: Boolean,
-    clipVideo: Boolean,
-    onClipVideoChange: (Boolean) -> Unit,
-    clipStartText: String,
-    onClipStartTextChange: (String) -> Unit,
-    clipEndText: String,
-    onClipEndTextChange: (String) -> Unit,
-    newTitle: String,
-    onNewTitleChange: (String) -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(stringResource(Res.string.format_selection), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-
-            OutlinedTextField(
-                value = newTitle,
-                onValueChange = onNewTitleChange,
-                label = { Text(stringResource(Res.string.rename)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            if (chapterCount > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSplitByChapterChange(!splitByChapter) },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = splitByChapter, onCheckedChange = onSplitByChapterChange)
-                    Text("${stringResource(Res.string.split_video)} ($chapterCount)")
-                }
-            }
-
-            if (durationSeconds > 0 && isVideoClipEnabled) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onClipVideoChange(!clipVideo) },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = clipVideo, onCheckedChange = onClipVideoChange)
-                    Text("${stringResource(Res.string.clip_video)} (${formatDuration(durationSeconds)})")
-                }
-                if (clipVideo) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = clipStartText,
-                            onValueChange = { onClipStartTextChange(it.filter(Char::isDigit)) },
-                            label = { Text(stringResource(Res.string.clip_start)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        OutlinedTextField(
-                            value = clipEndText,
-                            onValueChange = { onClipEndTextChange(it.filter(Char::isDigit)) },
-                            label = { Text(stringResource(Res.string.clip_end)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Text(
-                        text = "单位：秒，范围 0-$durationSeconds",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-        }
     }
 }
 
@@ -909,6 +1014,63 @@ private fun ClickableTextAction(
     }
 }
 
+@Composable
+private fun DesktopSealSearchBar(
+    text: String,
+    placeholderText: String,
+    modifier: Modifier = Modifier,
+    onValueChange: (String) -> Unit,
+) {
+    Surface(
+        modifier = modifier.widthIn(360.dp, 720.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(modifier = Modifier.size(16.dp))
+            Icon(
+                imageVector = Icons.Outlined.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Box(
+                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (text.isEmpty()) {
+                    Text(
+                        text = placeholderText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                BasicTextField(
+                    value = text,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (text.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Clear,
+                        contentDescription = stringResource(Res.string.clear),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SubtitleSelectionDialog(
@@ -952,13 +1114,11 @@ private fun SubtitleSelectionDialog(
         text = {
             Column {
                 if (totalCount > 5) {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
+                    DesktopSealSearchBar(
+                        text = searchText,
+                        placeholderText = stringResource(Res.string.search_in_subtitles),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                        label = { Text(stringResource(Res.string.search_in_subtitles)) },
+                        onValueChange = { searchText = it },
                     )
                 }
 

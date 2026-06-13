@@ -32,6 +32,13 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Resolve desktop package version
+        shell: bash
+        run: |
+          version="$(./gradlew -q :desktop:printDesktopPackageVersion)"
+          echo "DESKTOP_PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Desktop package version: $version"
+
       - name: Set tools cache epoch
         shell: bash
         run: echo "TOOLS_CACHE_EPOCH=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
@@ -102,12 +109,18 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\dist-installers-lite" | Out-Null
+          Write-Host "Lite installer source: $env:LITE_INSTALLER_SRC"
+          Write-Host "Lite installer launch path: $env:LITE_INSTALLER_SRC_LAUNCH_PATH"
+          if (-not (Test-Path (Join-Path "$env:LITE_INSTALLER_SRC" "$env:LITE_INSTALLER_SRC_LAUNCH_PATH"))) {
+            throw "Lite installer launch target not found: $env:LITE_INSTALLER_SRC_LAUNCH_PATH"
+          }
           & iscc `
-            "/DMyAppVersion=latest" `
+            "/DMyAppVersion=$env:DESKTOP_PACKAGE_VERSION" `
             "/DMyAppArch=x64" `
             "/DMyAppFlavor=Lite" `
             "/DMyAppSrc=$env:LITE_INSTALLER_SRC" `
             "/DMyAppLaunchPath=$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
+            "/DMyAppLaunchThroughCmd=1" `
             "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-lite" `
             ".github/scripts/windows_setup.iss"
 
@@ -136,12 +149,18 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\dist-installers-full" | Out-Null
+          Write-Host "Full installer source: $env:FULL_INSTALLER_SRC"
+          Write-Host "Full installer launch path: $env:FULL_INSTALLER_SRC_LAUNCH_PATH"
+          if (-not (Test-Path (Join-Path "$env:FULL_INSTALLER_SRC" "$env:FULL_INSTALLER_SRC_LAUNCH_PATH"))) {
+            throw "Full installer launch target not found: $env:FULL_INSTALLER_SRC_LAUNCH_PATH"
+          }
           & iscc `
-            "/DMyAppVersion=latest" `
+            "/DMyAppVersion=$env:DESKTOP_PACKAGE_VERSION" `
             "/DMyAppArch=x64" `
             "/DMyAppFlavor=Full" `
             "/DMyAppSrc=$env:FULL_INSTALLER_SRC" `
             "/DMyAppLaunchPath=$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
+            "/DMyAppLaunchThroughCmd=1" `
             "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-full" `
             ".github/scripts/windows_setup.iss"
 

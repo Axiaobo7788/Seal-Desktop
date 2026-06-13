@@ -52,6 +52,16 @@ dependencies {
     implementation(libs.sqlite.jdbc)
 }
 
+val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
+
+tasks.register("printDesktopPackageVersion") {
+    group = "help"
+    description = "Prints the desktop native package version used by Compose distributions."
+    doLast {
+        println(desktopPackageVersion)
+    }
+}
+
 tasks.register<JavaExec>("desktopStorageSelfCheck") {
     group = "verification"
     description = "Runs desktop storage self-check for json/dual/sqlite backends"
@@ -88,7 +98,6 @@ configurations.all {
 compose.desktop {
     application {
         mainClass = "com.junkfood.seal.desktop.MainKt"
-        val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
 
         buildTypes {
             release {
