@@ -3,7 +3,10 @@
 package com.junkfood.seal.desktop.ui.page.downloadv2.configure
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,14 +20,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -34,6 +40,8 @@ import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,6 +52,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -63,23 +72,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
+import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.auto_subtitle
 import com.junkfood.seal.shared.generated.resources.back
+import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.clip_end
 import com.junkfood.seal.shared.generated.resources.clip_start
 import com.junkfood.seal.shared.generated.resources.clip_video
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.rename
+import com.junkfood.seal.shared.generated.resources.save
+import com.junkfood.seal.shared.generated.resources.search_in_subtitles
 import com.junkfood.seal.shared.generated.resources.show_all_items
 import com.junkfood.seal.shared.generated.resources.split_video
 import com.junkfood.seal.shared.generated.resources.start_download
@@ -90,6 +102,7 @@ import com.junkfood.seal.shared.generated.resources.video_only
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
+import com.junkfood.seal.util.SubtitleFormat
 import com.junkfood.seal.util.VideoClip
 import com.junkfood.seal.util.VideoInfo
 import com.junkfood.seal.util.connectWithDelimiter
@@ -275,10 +288,22 @@ private fun FormatPageImpl(
     val initialSubtitleCodes = remember(basePreferences.subtitleLanguage) { parseLanguageCodes(basePreferences.subtitleLanguage) }
     val subtitleCodes = remember(videoInfo.subtitles) { videoInfo.subtitles.keys.sorted() }
     val autoCaptionCodes = remember(videoInfo.automaticCaptions) { videoInfo.automaticCaptions.keys.sorted() }
+    val suggestedSubtitleMap: Map<String, List<SubtitleFormat>> =
+        remember(videoInfo.subtitles, videoInfo.automaticCaptions) {
+            videoInfo.subtitles.takeIf { it.isNotEmpty() }
+                ?: videoInfo.automaticCaptions.filterKeys { it.endsWith("-orig") }
+        }
+    val suggestedSubtitleUsesAutoCaptions =
+        videoInfo.subtitles.isEmpty() && suggestedSubtitleMap.isNotEmpty()
+    val otherSubtitleMap: Map<String, List<SubtitleFormat>> =
+        remember(videoInfo.subtitles, videoInfo.automaticCaptions, suggestedSubtitleMap) {
+            (videoInfo.subtitles + videoInfo.automaticCaptions).filterKeys { it !in suggestedSubtitleMap.keys }
+        }
 
     var videoOnlyItemLimit by remember { mutableIntStateOf(6) }
     var audioOnlyItemLimit by remember { mutableIntStateOf(6) }
     var videoAudioItemLimit by remember { mutableIntStateOf(6) }
+    var showSubtitleSelectionDialog by remember { mutableStateOf(false) }
 
     val isSuggestedFormatAvailable =
         !videoInfo.requestedFormats.isNullOrEmpty() || !videoInfo.requestedDownloads.isNullOrEmpty()
@@ -412,11 +437,28 @@ private fun FormatPageImpl(
                     onClipEndTextChange = { clipEndText = it },
                     newTitle = newTitle,
                     onNewTitleChange = { newTitle = it },
-                    subtitleCodes = subtitleCodes,
-                    selectedSubtitles = selectedSubtitles,
-                    autoCaptionCodes = autoCaptionCodes,
-                    selectedAutoCaptions = selectedAutoCaptions,
                 )
+            }
+
+            if (suggestedSubtitleMap.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    SubtitleLanguageSection(
+                        suggestedSubtitles = suggestedSubtitleMap,
+                        selectedCodes = if (suggestedSubtitleUsesAutoCaptions) selectedAutoCaptions else selectedSubtitles,
+                        totalCount = subtitleCodes.size + autoCaptionCodes.size,
+                        onToggle = { code ->
+                            val target =
+                                if (suggestedSubtitleUsesAutoCaptions) selectedAutoCaptions
+                                else selectedSubtitles
+                            if (target.contains(code)) {
+                                target.remove(code)
+                            } else {
+                                target.add(code)
+                            }
+                        },
+                        onShowAll = { showSubtitleSelectionDialog = true },
+                    )
+                }
             }
 
             if (isSuggestedFormatAvailable) {
@@ -534,6 +576,23 @@ private fun FormatPageImpl(
             item { Spacer(Modifier.height(64.dp)) }
         }
     }
+
+    SubtitleSelectionDialog(
+        visible = showSubtitleSelectionDialog,
+        suggestedSubtitles = suggestedSubtitleMap,
+        suggestedUsesAutoCaptions = suggestedSubtitleUsesAutoCaptions,
+        autoCaptions = otherSubtitleMap,
+        selectedSubtitles = selectedSubtitles,
+        selectedAutoCaptions = selectedAutoCaptions,
+        onDismissRequest = { showSubtitleSelectionDialog = false },
+        onConfirm = { subtitles, autoCaptions ->
+            selectedSubtitles.clear()
+            selectedSubtitles.addAll(subtitles)
+            selectedAutoCaptions.clear()
+            selectedAutoCaptions.addAll(autoCaptions)
+            showSubtitleSelectionDialog = false
+        },
+    )
 }
 
 @Composable
@@ -692,10 +751,6 @@ private fun AdvancedOptionsCard(
     onClipEndTextChange: (String) -> Unit,
     newTitle: String,
     onNewTitleChange: (String) -> Unit,
-    subtitleCodes: List<String>,
-    selectedSubtitles: MutableList<String>,
-    autoCaptionCodes: List<String>,
-    selectedAutoCaptions: MutableList<String>,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
@@ -759,63 +814,291 @@ private fun AdvancedOptionsCard(
                 }
             }
 
-            if (subtitleCodes.isNotEmpty() || autoCaptionCodes.isNotEmpty()) {
-                HorizontalDivider()
-            }
+        }
+    }
+}
 
-            if (subtitleCodes.isNotEmpty()) {
-                Text(stringResource(Res.string.subtitle_language), style = MaterialTheme.typography.titleSmall)
-                LanguageSelectorList(
-                    codes = subtitleCodes,
-                    selectedCodes = selectedSubtitles,
-                )
-            }
+@Composable
+private fun SubtitleLanguageSection(
+    suggestedSubtitles: Map<String, List<SubtitleFormat>>,
+    selectedCodes: List<String>,
+    totalCount: Int,
+    onToggle: (String) -> Unit,
+    onShowAll: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(Res.string.subtitle_language),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            ClickableTextAction(
+                visible = totalCount > suggestedSubtitles.size,
+                text = stringResource(Res.string.show_all_items, totalCount),
+                onClick = onShowAll,
+            )
+        }
 
-            if (autoCaptionCodes.isNotEmpty()) {
-                Text(stringResource(Res.string.auto_subtitle), style = MaterialTheme.typography.titleSmall)
-                LanguageSelectorList(
-                    codes = autoCaptionCodes,
-                    selectedCodes = selectedAutoCaptions,
-                )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            suggestedSubtitles.toList().forEach { (code, formats) ->
+                item(key = code) {
+                    SubtitleFilterChip(
+                        selected = selectedCodes.contains(code),
+                        label = formats.subtitleLabel(code),
+                        onClick = { onToggle(code) },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun LanguageSelectorList(
-    codes: List<String>,
-    selectedCodes: MutableList<String>,
+private fun SubtitleFilterChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        codes.forEach { code ->
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable {
-                    if (selectedCodes.contains(code)) {
-                        selectedCodes.remove(code)
-                    } else {
-                        selectedCodes.add(code)
-                    }
-                },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = selectedCodes.contains(code),
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            if (!selectedCodes.contains(code)) {
-                                selectedCodes.add(code)
-                            }
-                        } else {
-                            selectedCodes.remove(code)
-                        }
-                    },
-                )
-                Text(code)
-            }
-        }
+    val background by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(100),
+        label = "subtitleChipBackground",
+    )
+    val contentColor by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(100),
+        label = "subtitleChipContent",
+    )
+
+    Surface(
+        modifier = Modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = background,
+        border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Text(
+            text = label,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
+
+@Composable
+private fun ClickableTextAction(
+    visible: Boolean,
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    AnimatedVisibility(visible = visible, exit = fadeOut(animationSpec = tween(90))) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = modifier.clip(CircleShape).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SubtitleSelectionDialog(
+    visible: Boolean,
+    suggestedSubtitles: Map<String, List<SubtitleFormat>>,
+    suggestedUsesAutoCaptions: Boolean,
+    autoCaptions: Map<String, List<SubtitleFormat>>,
+    selectedSubtitles: List<String>,
+    selectedAutoCaptions: List<String>,
+    onDismissRequest: () -> Unit,
+    onConfirm: (subs: List<String>, autoSubs: List<String>) -> Unit,
+) {
+    var searchText by remember(visible) { mutableStateOf("") }
+    val dialogSelectedSubtitles =
+        remember(visible, selectedSubtitles) {
+            mutableStateListOf<String>().apply { addAll(selectedSubtitles) }
+        }
+    val dialogSelectedAutoCaptions =
+        remember(visible, selectedAutoCaptions) {
+            mutableStateListOf<String>().apply { addAll(selectedAutoCaptions) }
+        }
+
+    val suggestedSelection = if (suggestedUsesAutoCaptions) dialogSelectedAutoCaptions else dialogSelectedSubtitles
+    val suggestedFiltered =
+        suggestedSubtitles
+            .filterWithSearchText(searchText)
+            .sortedWithSelection(suggestedSelection)
+    val autoCaptionsFiltered =
+        autoCaptions
+            .filterWithSearchText(searchText)
+            .sortedWithSelection(dialogSelectedAutoCaptions)
+    val totalCount = suggestedSubtitles.size + autoCaptions.size
+
+    AnimatedAlertDialog(
+        visible = visible,
+        onDismissRequest = onDismissRequest,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        icon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
+        title = { Text(stringResource(Res.string.subtitle_language)) },
+        textContentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 0.dp),
+        text = {
+            Column {
+                if (totalCount > 5) {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        label = { Text(stringResource(Res.string.search_in_subtitles)) },
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    if (suggestedFiltered.isNotEmpty()) {
+                        item {
+                            DialogSectionTitle(text = stringResource(Res.string.suggested))
+                        }
+                    }
+                    suggestedFiltered.forEach { (code, formats) ->
+                        item(key = "suggested-$code") {
+                            DialogCheckBoxItem(
+                                modifier = Modifier.animateItem(),
+                                text = formats.subtitleLabel(code),
+                                checked = suggestedSelection.contains(code),
+                                onCheckedChange = { checked ->
+                                    suggestedSelection.updateSelection(code, checked)
+                                },
+                            )
+                        }
+                    }
+
+                    if (autoCaptionsFiltered.isNotEmpty()) {
+                        item {
+                            DialogSectionTitle(text = stringResource(Res.string.auto_subtitle))
+                        }
+                    }
+                    autoCaptionsFiltered.forEach { (code, formats) ->
+                        item(key = "auto-$code") {
+                            DialogCheckBoxItem(
+                                modifier = Modifier.animateItem(),
+                                text = formats.subtitleLabel(code),
+                                checked = dialogSelectedAutoCaptions.contains(code),
+                                onCheckedChange = { checked ->
+                                    dialogSelectedAutoCaptions.updateSelection(code, checked)
+                                },
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider()
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) {
+                Text(stringResource(Res.string.cancel))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirm(dialogSelectedSubtitles.toList(), dialogSelectedAutoCaptions.toList())
+                },
+            ) {
+                Text(stringResource(Res.string.save))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DialogSectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun DialogCheckBoxItem(
+    modifier: Modifier = Modifier,
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = null,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Text(
+            text = text,
+            modifier = Modifier.padding(start = 16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun MutableList<String>.updateSelection(code: String, selected: Boolean) {
+    if (selected) {
+        if (!contains(code)) add(code)
+    } else {
+        remove(code)
+    }
+}
+
+private fun Map<String, List<SubtitleFormat>>.filterWithSearchText(searchText: String): Map<String, List<SubtitleFormat>> =
+    filter { (code, formats) ->
+        searchText.isBlank() ||
+            code.contains(searchText, ignoreCase = true) ||
+            formats.any { format -> format.name?.contains(searchText, ignoreCase = true) == true }
+    }
+
+private fun Map<String, List<SubtitleFormat>>.sortedWithSelection(selectedKeys: List<String>): Map<String, List<SubtitleFormat>> =
+    toList()
+        .sortedWith { entry1, entry2 ->
+            when {
+                entry1.first in selectedKeys && entry2.first !in selectedKeys -> -1
+                entry1.first !in selectedKeys && entry2.first in selectedKeys -> 1
+                else -> entry1.compareSubtitleTo(entry2)
+            }
+        }
+        .toMap()
+
+private fun Pair<String, List<SubtitleFormat>>.compareSubtitleTo(other: Pair<String, List<SubtitleFormat>>): Int {
+    val name = second.firstOrNull()?.name
+    val otherName = other.second.firstOrNull()?.name
+    return if (name != null && otherName != null) {
+        name.compareTo(otherName)
+    } else {
+        first.compareTo(other.first)
+    }
+}
+
+private fun List<SubtitleFormat>.subtitleLabel(code: String): String =
+    firstOrNull()?.run { name ?: protocol ?: code } ?: code
 
 @Composable
 private fun SuggestedFormatCard(

@@ -3,6 +3,7 @@
 package com.junkfood.seal.desktop.download.configure
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
@@ -233,52 +235,70 @@ internal fun DownloadOptionsSheet(
                 showEdit = downloadType != DesktopDownloadType.Playlist,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { showAdvanced = !showAdvanced },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                SectionTitle(text = stringResource(Res.string.additional_settings))
-                Icon(
-                    imageVector = Icons.Outlined.ExpandMore,
-                    contentDescription = null,
-                    modifier = Modifier.rotate(advancedIconRotation),
-                )
-            }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp)
+                        .clickable { showAdvanced = !showAdvanced }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    SectionTitle(text = stringResource(Res.string.additional_settings))
+                    Icon(
+                        imageVector = Icons.Outlined.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.rotate(advancedIconRotation),
+                    )
+                }
 
-            AnimatedVisibility(
-                visible = showAdvanced,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (remember { DesktopYtDlpPaths.cookiesFile().exists() } || preferences.cookiesBrowser.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = showAdvanced,
+                    enter = fadeIn(animationSpec = tween(120)) +
+                        expandVertically(
+                            expandFrom = Alignment.Top,
+                            animationSpec = tween(220),
+                        ),
+                    exit = fadeOut(animationSpec = tween(90)) +
+                        shrinkVertically(
+                            shrinkTowards = Alignment.Top,
+                            animationSpec = tween(180),
+                        ),
+                ) {
+                    FlowRow(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (remember { DesktopYtDlpPaths.cookiesFile().exists() } || preferences.cookiesBrowser.isNotEmpty()) {
+                            OptionChipRow(
+                                title = stringResource(Res.string.cookies),
+                                checked = preferences.cookies,
+                                onCheckedChange = { onPreferencesChange(preferences.copy(cookies = it)) },
+                            )
+                        }
                         OptionChipRow(
-                            title = stringResource(Res.string.cookies),
-                            checked = preferences.cookies,
-                            onCheckedChange = { onPreferencesChange(preferences.copy(cookies = it)) },
+                            title = stringResource(Res.string.download_subtitles),
+                            checked = preferences.downloadSubtitle,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(downloadSubtitle = it, embedSubtitle = it && preferences.embedSubtitle)) },
+                        )
+                        OptionChipRow(
+                            title = stringResource(Res.string.create_thumbnail),
+                            checked = preferences.embedThumbnail,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(embedThumbnail = it)) },
+                        )
+                        OptionChipRow(
+                            title = stringResource(Res.string.embed_metadata),
+                            checked = preferences.embedMetadata,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(embedMetadata = it)) },
+                        )
+                        OptionChipRow(
+                            title = stringResource(Res.string.sponsorblock),
+                            checked = preferences.sponsorBlock,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
                         )
                     }
-                    OptionChipRow(
-                        title = stringResource(Res.string.download_subtitles),
-                        checked = preferences.downloadSubtitle,
-                        onCheckedChange = { onPreferencesChange(preferences.copy(downloadSubtitle = it, embedSubtitle = it && preferences.embedSubtitle)) },
-                    )
-                    OptionChipRow(
-                        title = stringResource(Res.string.create_thumbnail),
-                        checked = preferences.embedThumbnail,
-                        onCheckedChange = { onPreferencesChange(preferences.copy(embedThumbnail = it)) },
-                    )
-                    OptionChipRow(
-                        title = stringResource(Res.string.embed_metadata),
-                        checked = preferences.embedMetadata,
-                        onCheckedChange = { onPreferencesChange(preferences.copy(embedMetadata = it)) },
-                    )
-                    OptionChipRow(
-                        title = stringResource(Res.string.sponsorblock),
-                        checked = preferences.sponsorBlock,
-                        onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
-                    )
                 }
             }
         }
@@ -729,7 +749,7 @@ private fun ChoiceRow(title: String, selected: Boolean, onClick: () -> Unit) {
 private fun audioPresetText(preferences: DownloadPreferences): String {
     return with(preferences) {
         when {
-            formatSorting -> {
+            formatSorting && sortingFields.isNotBlank() -> {
                 sortingFields
             }
 
