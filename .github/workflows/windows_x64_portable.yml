@@ -9,6 +9,7 @@ env:
   TOOLS_CACHE_VERSION: v2
   YT_DLP_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe
   FFMPEG_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
+  GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
 
 jobs:
   build-windows-portable:
@@ -23,7 +24,6 @@ jobs:
           distribution: jetbrains
           java-version: 21
           cache: gradle
-          github-token: ${{ secrets.JB_TOKEN }}
 
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5

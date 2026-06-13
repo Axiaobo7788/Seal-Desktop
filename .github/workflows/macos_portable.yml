@@ -8,6 +8,7 @@ on:
 env:
   TOOLS_CACHE_VERSION: v3
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_macos
+  GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
 
 jobs:
   build-macos-portable:
@@ -34,7 +35,6 @@ jobs:
           distribution: jetbrains
           java-version: 21
           cache: gradle
-          github-token: ${{ secrets.JB_TOKEN }}
 
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
