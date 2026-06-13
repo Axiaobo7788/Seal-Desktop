@@ -2,6 +2,12 @@
 
 package com.junkfood.seal.desktop.download.configure
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +33,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.LibraryMusic
@@ -64,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -188,6 +194,10 @@ internal fun DownloadOptionsSheet(
     val formatSummary = formatSummary(preferences, downloadType)
     val isCustomCommandMode = customCommandEnabled
     val canStart = !isCustomCommandMode || customCommandTemplate != null
+    val advancedIconRotation by animateFloatAsState(
+        targetValue = if (showAdvanced) 180f else 0f,
+        label = "advancedSettingsIconRotation",
+    )
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -229,11 +239,26 @@ internal fun DownloadOptionsSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 SectionTitle(text = stringResource(Res.string.additional_settings))
-                Icon(if (showAdvanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.rotate(advancedIconRotation),
+                )
             }
 
-            if (showAdvanced) {
+            AnimatedVisibility(
+                visible = showAdvanced,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (remember { DesktopYtDlpPaths.cookiesFile().exists() } || preferences.cookiesBrowser.isNotEmpty()) {
+                        OptionChipRow(
+                            title = stringResource(Res.string.cookies),
+                            checked = preferences.cookies,
+                            onCheckedChange = { onPreferencesChange(preferences.copy(cookies = it)) },
+                        )
+                    }
                     OptionChipRow(
                         title = stringResource(Res.string.download_subtitles),
                         checked = preferences.downloadSubtitle,
@@ -254,13 +279,6 @@ internal fun DownloadOptionsSheet(
                         checked = preferences.sponsorBlock,
                         onCheckedChange = { onPreferencesChange(preferences.copy(sponsorBlock = it)) },
                     )
-                    if (remember { DesktopYtDlpPaths.cookiesFile().exists() } || preferences.cookiesBrowser.isNotEmpty()) {
-                        OptionChipRow(
-                            title = stringResource(Res.string.cookies),
-                            checked = preferences.cookies,
-                            onCheckedChange = { onPreferencesChange(preferences.copy(cookies = it)) },
-                        )
-                    }
                 }
             }
         }
@@ -772,9 +790,9 @@ private fun audioQualityOptionLabel(code: Int): String =
 private fun formatSummary(preferences: DownloadPreferences, type: DesktopDownloadType): String {
     val resLabel = videoResolutionLabel(preferences.videoResolution)
     return when (type) {
-        DesktopDownloadType.Audio -> "${stringResource(Res.string.audio)} · ${audioPresetText(preferences)}"
-        DesktopDownloadType.Video -> "${stringResource(Res.string.video)} · $resLabel"
-        DesktopDownloadType.Playlist -> "${stringResource(Res.string.playlist)} · $resLabel"
+        DesktopDownloadType.Audio -> audioPresetText(preferences)
+        DesktopDownloadType.Video -> resLabel
+        DesktopDownloadType.Playlist -> resLabel
     }
 }
 

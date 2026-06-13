@@ -93,8 +93,7 @@ compose.desktop {
         buildTypes {
             release {
                 proguard {
-                    val isTestingUberJar = gradle.startParameter.taskNames.any { it.contains("packageUberJar", ignoreCase = true) }
-                    isEnabled.set(!isTestingUberJar)
+                    isEnabled.set(false) // Temporarily disabled for debugging "Failed to launch JVM" on Windows.
                     version.set("7.6.0")
                     configurationFiles.from(project.file("proguard-rules.pro"))
                 }

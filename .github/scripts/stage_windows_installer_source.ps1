@@ -96,6 +96,45 @@ function Assert-InstallerSource([string]$sourceDir, [string]$launchPath) {
   }
 }
 
+function Write-DebugLauncher([string]$sourceDir, [string]$launchPath) {
+  $debugLauncherPath = Join-Path $sourceDir "Seal_Debug.cmd"
+  $content = @"
+@echo off
+setlocal
+cd /d "%~dp0"
+set JPACKAGE_DEBUG=true
+echo Seal debug launcher
+echo Install dir: %CD%
+echo Launch target: $launchPath
+echo.
+"%~dp0$launchPath"
+set EXIT_CODE=%ERRORLEVEL%
+echo.
+echo Seal exited with code %EXIT_CODE%.
+echo Press any key to close this window.
+pause >nul
+"@
+  Set-Content -Path $debugLauncherPath -Value $content -Encoding ASCII
+}
+
+function Print-Diagnostics([string]$sourceDir, [string]$launchPath) {
+  Write-Host "Staged top-level entries:"
+  Get-ChildItem $sourceDir -Force | ForEach-Object {
+    Write-Host "- $($_.Name)"
+  }
+
+  $configPath = Join-Path $sourceDir "app/Seal.cfg"
+  if (Test-Path $configPath) {
+    Write-Host "----- app/Seal.cfg -----"
+    Get-Content $configPath | ForEach-Object { Write-Host $_ }
+    Write-Host "----- end app/Seal.cfg -----"
+  } else {
+    Write-Host "app/Seal.cfg not found under staged source."
+  }
+
+  Write-Host "Installer shortcut launch path: $launchPath"
+}
+
 $workspacePath = (Resolve-Path $Workspace).Path
 $binariesRoot = Find-ComposeBinariesRoot $workspacePath
 $appImage = Find-WindowsAppImageRoot $binariesRoot
@@ -108,9 +147,11 @@ New-Item -ItemType Directory -Force -Path $stagePath | Out-Null
 
 Copy-Item (Join-Path $appImage.Root "*") -Destination $stagePath -Recurse -Force
 Assert-InstallerSource $stagePath $appImage.LaunchPath
+Write-DebugLauncher $stagePath $appImage.LaunchPath
 
 Write-Host "Windows app-image root: $($appImage.Root)"
 Write-Host "Windows launch path: $($appImage.LaunchPath)"
 Write-Host "Staged installer source: $stagePath"
+Print-Diagnostics $stagePath "Seal_Debug.cmd"
 "$EnvName=$stagePath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-"$LaunchEnvName=$($appImage.LaunchPath)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+"$LaunchEnvName=Seal_Debug.cmd" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
