@@ -8,7 +8,9 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$EnvName,
 
-  [string]$LaunchEnvName = "$($EnvName)_LAUNCH_PATH"
+  [string]$LaunchEnvName = "$($EnvName)_LAUNCH_PATH",
+
+  [switch]$DebugLauncher
 )
 
 $ErrorActionPreference = "Stop"
@@ -147,11 +149,22 @@ New-Item -ItemType Directory -Force -Path $stagePath | Out-Null
 
 Copy-Item (Join-Path $appImage.Root "*") -Destination $stagePath -Recurse -Force
 Assert-InstallerSource $stagePath $appImage.LaunchPath
-Write-DebugLauncher $stagePath $appImage.LaunchPath
+if ($DebugLauncher) {
+  Write-DebugLauncher $stagePath $appImage.LaunchPath
+}
 
 Write-Host "Windows app-image root: $($appImage.Root)"
 Write-Host "Windows launch path: $($appImage.LaunchPath)"
+Write-Host "Windows debug launcher: $DebugLauncher"
 Write-Host "Staged installer source: $stagePath"
-Print-Diagnostics $stagePath "Seal_Debug.cmd"
+if ($DebugLauncher) {
+  Print-Diagnostics $stagePath "Seal_Debug.cmd"
+} else {
+  Print-Diagnostics $stagePath $appImage.LaunchPath
+}
 "$EnvName=$stagePath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-"$LaunchEnvName=Seal_Debug.cmd" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+if ($DebugLauncher) {
+  "$LaunchEnvName=Seal_Debug.cmd" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+} else {
+  "$LaunchEnvName=$($appImage.LaunchPath)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+}

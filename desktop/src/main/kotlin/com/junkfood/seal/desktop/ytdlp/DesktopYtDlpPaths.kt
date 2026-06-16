@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.util.DownloadPreferences
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -44,10 +45,43 @@ object DesktopYtDlpPaths {
         return dir.resolve("download-archive.txt")
     }
 
-    fun downloadDirectory(hint: String?): Path {
-        val dir = downloadsRoot
+    fun defaultDownloadDirectory(): Path = ensureDirectory(downloadsRoot)
+
+    fun configuredDownloadDirectory(directory: String?): Path {
+        val dir = resolveConfiguredDirectory(directory) ?: downloadsRoot
+        return ensureDirectory(dir)
+    }
+
+    fun downloadDirectoryFor(preferences: DownloadPreferences, hint: String?): Path {
+        val configuredDirectory =
+            when (hint) {
+                "audio" -> preferences.audioDirectory
+                "video" -> preferences.videoDirectory
+                else -> ""
+            }
+
+        return configuredDownloadDirectory(configuredDirectory)
+    }
+
+    private fun ensureDirectory(dir: Path): Path {
         if (!dir.exists()) Files.createDirectories(dir)
         return dir
+    }
+
+    private fun resolveConfiguredDirectory(directory: String?): Path? {
+        val raw = directory?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        val stripped = raw.removeSurrounding("\"")
+        val home = System.getProperty("user.home")
+        val expanded =
+            when {
+                stripped == "~" -> home
+                stripped.startsWith("~/") -> home + stripped.removePrefix("~")
+                stripped.startsWith("\$HOME/") -> home + stripped.removePrefix("\$HOME")
+                stripped.startsWith("\${HOME}/") -> home + stripped.removePrefix("\${HOME}")
+                else -> stripped
+            }
+        val path = runCatching { Path.of(expanded) }.getOrNull() ?: return null
+        return if (path.isAbsolute) path else downloadsRoot.resolve(path).normalize()
     }
 
     private fun resolveStateRoot(): Path {

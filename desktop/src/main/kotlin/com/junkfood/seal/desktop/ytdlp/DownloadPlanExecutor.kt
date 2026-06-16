@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.download.DownloadPlan
+import com.junkfood.seal.util.DownloadPreferences
 import java.io.InputStream
 import java.nio.file.Path
 import kotlin.concurrent.thread
@@ -100,9 +101,12 @@ class DownloadPlanExecutor(
         plan: DownloadPlan,
         url: String,
         paths: DesktopYtDlpPaths = DesktopYtDlpPaths,
+        preferences: DownloadPreferences? = null,
     ): ExecutionConfig =
         ExecutionConfig(
-            workingDirectory = paths.downloadDirectory(plan.downloadPathHint),
+            workingDirectory =
+                preferences?.let { paths.downloadDirectoryFor(it, plan.downloadPathHint) }
+                    ?: paths.defaultDownloadDirectory(),
             cookiesFile = if (plan.needsCookiesFile) paths.cookiesFile() else null,
             archiveFile = if (plan.needsArchiveFile) paths.archiveFile() else null,
             url = url,

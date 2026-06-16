@@ -193,8 +193,8 @@ internal fun GeneralSettingsPage(
             visible = showSponsorBlockDialog,
             initialCategories = preferences.sponsorBlockCategory,
             onDismissRequest = { showSponsorBlockDialog = false },
-            onConfirm = { 
-                onUpdate { it.copy(sponsorBlockCategory = it.toString()) }
+            onConfirm = { categories ->
+                onUpdate { it.copy(sponsorBlockCategory = categories) }
                 showSponsorBlockDialog = false 
             }
         )

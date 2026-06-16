@@ -63,7 +63,12 @@ internal fun AboutSettingsPage(
 ) {
     val uriHandler = LocalUriHandler.current
     val clipboardManager = LocalClipboardManager.current
-    val appVersion = remember { System.getProperty("jpackage.app-version") ?: "dev" }
+    val appVersion =
+        remember {
+            System.getProperty("seal.app.version")
+                ?: System.getProperty("jpackage.app-version")
+                ?: "dev"
+        }
 
     SettingsPageScaffold(title = stringResource(Res.string.about), onBack = onBack) {
         SelectionCard(

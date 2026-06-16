@@ -134,7 +134,7 @@ object DesktopCustomCommandTaskManager {
 
                 val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(preferences, appSettings)
                 val proxyEnv = DesktopProxyResolver.buildProxyEnvironment(runtimeProxy)
-                val workingDir = DesktopYtDlpPaths.downloadDirectory(preferences.commandDirectory)
+                val workingDir = DesktopYtDlpPaths.configuredDownloadDirectory(preferences.commandDirectory)
 
                 val running =
                     withContext(Dispatchers.IO) {

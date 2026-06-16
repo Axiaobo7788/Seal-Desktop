@@ -2,6 +2,12 @@ name: desktop-windows-portable
 
 on:
   workflow_dispatch:
+    inputs:
+      debug_launcher:
+        description: "Build Windows installers with cmd debug launcher and visible console"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [ main ]
 
@@ -17,6 +23,7 @@ env:
   YT_DLP_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe
   FFMPEG_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
   GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
+  DESKTOP_WINDOWS_DEBUG_LAUNCHER: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_launcher && '1' || '0' }}
 
 jobs:
   build-windows-portable:
@@ -32,12 +39,16 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Resolve desktop package version
+      - name: Resolve desktop versions
         shell: bash
         run: |
-          version="$(./gradlew -q :desktop:printDesktopPackageVersion)"
-          echo "DESKTOP_PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
-          echo "Desktop package version: $version"
+          package_version="$(./gradlew -q :desktop:printDesktopPackageVersion)"
+          version_name="$(./gradlew -q :desktop:printDesktopVersionName)"
+          echo "DESKTOP_PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
+          echo "DESKTOP_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "Desktop package version: $package_version"
+          echo "Desktop version name: $version_name"
+          echo "Windows debug launcher: $DESKTOP_WINDOWS_DEBUG_LAUNCHER"
 
       - name: Set tools cache epoch
         shell: bash
@@ -94,16 +105,25 @@ jobs:
 
       - name: Build Lite distributable (Windows)
         run: |
-          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          debug_args=()
+          if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "1" ]]; then
+            debug_args+=("-PdesktopWindowsDebugLauncher=true")
+          fi
+          ./gradlew :desktop:createReleaseDistributable --stacktrace "${debug_args[@]}"
         shell: bash
 
       - name: Stage Lite installer source (Windows)
         shell: pwsh
         run: |
-          & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" `
-            -Workspace "$env:GITHUB_WORKSPACE" `
-            -StageDir "$env:GITHUB_WORKSPACE\dist-stage-lite" `
-            -EnvName "LITE_INSTALLER_SRC"
+          $params = @{
+            Workspace = "$env:GITHUB_WORKSPACE"
+            StageDir = "$env:GITHUB_WORKSPACE\dist-stage-lite"
+            EnvName = "LITE_INSTALLER_SRC"
+          }
+          if ($env:DESKTOP_WINDOWS_DEBUG_LAUNCHER -eq "1") {
+            $params.DebugLauncher = $true
+          }
+          & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" @params
 
       - name: Package Lite installer (Windows)
         shell: pwsh
@@ -114,15 +134,18 @@ jobs:
           if (-not (Test-Path (Join-Path "$env:LITE_INSTALLER_SRC" "$env:LITE_INSTALLER_SRC_LAUNCH_PATH"))) {
             throw "Lite installer launch target not found: $env:LITE_INSTALLER_SRC_LAUNCH_PATH"
           }
-          & iscc `
-            "/DMyAppVersion=$env:DESKTOP_PACKAGE_VERSION" `
-            "/DMyAppArch=x64" `
-            "/DMyAppFlavor=Lite" `
-            "/DMyAppSrc=$env:LITE_INSTALLER_SRC" `
-            "/DMyAppLaunchPath=$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
-            "/DMyAppLaunchThroughCmd=1" `
-            "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-lite" `
-            ".github/scripts/windows_setup.iss"
+          $isccArgs = @(
+            "/DMyAppVersion=$env:DESKTOP_VERSION_NAME",
+            "/DMyAppArch=x64",
+            "/DMyAppFlavor=Lite",
+            "/DMyAppSrc=$env:LITE_INSTALLER_SRC",
+            "/DMyAppLaunchPath=$env:LITE_INSTALLER_SRC_LAUNCH_PATH",
+            "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-lite"
+          )
+          if ($env:DESKTOP_WINDOWS_DEBUG_LAUNCHER -eq "1") {
+            $isccArgs += "/DMyAppLaunchThroughCmd=1"
+          }
+          & iscc @isccArgs ".github/scripts/windows_setup.iss"
 
       - name: Inject tools for Full version
         shell: bash
@@ -133,17 +156,26 @@ jobs:
 
       - name: Build Full distributable and portable jar (Windows)
         run: |
-          ./gradlew :desktop:createReleaseDistributable --stacktrace
+          debug_args=()
+          if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "1" ]]; then
+            debug_args+=("-PdesktopWindowsDebugLauncher=true")
+          fi
+          ./gradlew :desktop:createReleaseDistributable --stacktrace "${debug_args[@]}"
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
         shell: bash
 
       - name: Stage Full installer source (Windows)
         shell: pwsh
         run: |
-          & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" `
-            -Workspace "$env:GITHUB_WORKSPACE" `
-            -StageDir "$env:GITHUB_WORKSPACE\dist-stage-full" `
-            -EnvName "FULL_INSTALLER_SRC"
+          $params = @{
+            Workspace = "$env:GITHUB_WORKSPACE"
+            StageDir = "$env:GITHUB_WORKSPACE\dist-stage-full"
+            EnvName = "FULL_INSTALLER_SRC"
+          }
+          if ($env:DESKTOP_WINDOWS_DEBUG_LAUNCHER -eq "1") {
+            $params.DebugLauncher = $true
+          }
+          & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" @params
 
       - name: Package Full installer (Windows)
         shell: pwsh
@@ -154,15 +186,18 @@ jobs:
           if (-not (Test-Path (Join-Path "$env:FULL_INSTALLER_SRC" "$env:FULL_INSTALLER_SRC_LAUNCH_PATH"))) {
             throw "Full installer launch target not found: $env:FULL_INSTALLER_SRC_LAUNCH_PATH"
           }
-          & iscc `
-            "/DMyAppVersion=$env:DESKTOP_PACKAGE_VERSION" `
-            "/DMyAppArch=x64" `
-            "/DMyAppFlavor=Full" `
-            "/DMyAppSrc=$env:FULL_INSTALLER_SRC" `
-            "/DMyAppLaunchPath=$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
-            "/DMyAppLaunchThroughCmd=1" `
-            "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-full" `
-            ".github/scripts/windows_setup.iss"
+          $isccArgs = @(
+            "/DMyAppVersion=$env:DESKTOP_VERSION_NAME",
+            "/DMyAppArch=x64",
+            "/DMyAppFlavor=Full",
+            "/DMyAppSrc=$env:FULL_INSTALLER_SRC",
+            "/DMyAppLaunchPath=$env:FULL_INSTALLER_SRC_LAUNCH_PATH",
+            "/DMyAppOutput=$env:GITHUB_WORKSPACE\dist-installers-full"
+          )
+          if ($env:DESKTOP_WINDOWS_DEBUG_LAUNCHER -eq "1") {
+            $isccArgs += "/DMyAppLaunchThroughCmd=1"
+          }
+          & iscc @isccArgs ".github/scripts/windows_setup.iss"
 
       - name: Prepare Full, Lite, Min distributions (Windows)
         shell: pwsh

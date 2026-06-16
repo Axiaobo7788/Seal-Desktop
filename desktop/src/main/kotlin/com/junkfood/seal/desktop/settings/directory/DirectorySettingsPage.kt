@@ -145,7 +145,7 @@ internal fun DirectorySettingsPage(
     val scope = rememberCoroutineScope()
     val archivePath = DesktopYtDlpPaths.archiveFile().toAbsolutePath().toString()
     val defaultStr = stringResource(Res.string.defaults)
-    val defaultDownloadDir = DesktopYtDlpPaths.downloadDirectory(null).toAbsolutePath().toString()
+    val defaultDownloadDir = DesktopYtDlpPaths.defaultDownloadDirectory().toAbsolutePath().toString()
     var showClearTempDialog by remember { mutableStateOf(false) }
     var showOutputTemplateDialog by remember { mutableStateOf(false) }
     var showSubdirectoryDialog by remember { mutableStateOf(false) }

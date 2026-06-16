@@ -50,15 +50,44 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.sqlite.jdbc)
+
+    testImplementation(kotlin("test"))
 }
 
 val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
+val desktopVersionName = currentVersion.name
+
+fun String.asGradleBoolean(): Boolean =
+    equals("true", ignoreCase = true) ||
+        equals("yes", ignoreCase = true) ||
+        equals("on", ignoreCase = true) ||
+        this == "1"
+
+val desktopWindowsDebugLauncher =
+    (
+        providers.gradleProperty("desktopWindowsDebugLauncher").orNull
+            ?: providers.environmentVariable("DESKTOP_WINDOWS_DEBUG_LAUNCHER").orNull
+    )?.asGradleBoolean() ?: false
+
+val desktopReleaseProguardEnabled =
+    (
+        providers.gradleProperty("desktopReleaseProguard").orNull
+            ?: providers.environmentVariable("DESKTOP_RELEASE_PROGUARD").orNull
+    )?.asGradleBoolean() ?: false
 
 tasks.register("printDesktopPackageVersion") {
     group = "help"
     description = "Prints the desktop native package version used by Compose distributions."
     doLast {
         println(desktopPackageVersion)
+    }
+}
+
+tasks.register("printDesktopVersionName") {
+    group = "help"
+    description = "Prints the user-facing desktop version name."
+    doLast {
+        println(desktopVersionName)
     }
 }
 
@@ -102,7 +131,7 @@ compose.desktop {
         buildTypes {
             release {
                 proguard {
-                    isEnabled.set(false) // Temporarily disabled for debugging "Failed to launch JVM" on Windows.
+                    isEnabled.set(desktopReleaseProguardEnabled)
                     version.set("7.6.0")
                     configurationFiles.from(project.file("proguard-rules.pro"))
                 }
@@ -136,6 +165,7 @@ compose.desktop {
             val currentTargetFormats = requestedTargetFormats ?: defaultTargetFormats
 
             targetFormats(*currentTargetFormats)
+            jvmArgs("-Dseal.app.version=$desktopVersionName")
             modules("java.sql")
             appResourcesRootDir.set(project.layout.projectDirectory.dir("appResources"))
             packageName = "Seal"
@@ -151,7 +181,7 @@ compose.desktop {
                 shortcut = true
                 menu = true
                 menuGroup = "Seal"
-                console = true
+                console = desktopWindowsDebugLauncher
             }
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))

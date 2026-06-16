@@ -461,7 +461,13 @@ class DesktopDownloadController(
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val config =
+                executor.defaultConfigFor(
+                    plan,
+                    url = trimmed,
+                    paths = DesktopYtDlpPaths,
+                    preferences = effectivePreferences,
+                )
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
@@ -678,7 +684,13 @@ class DesktopDownloadController(
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
                 )
 
-            val config = executor.defaultConfigFor(plan, url = trimmed, paths = DesktopYtDlpPaths)
+            val config =
+                executor.defaultConfigFor(
+                    plan,
+                    url = trimmed,
+                    paths = DesktopYtDlpPaths,
+                    preferences = preferencesWithProxy,
+                )
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
 
