@@ -56,6 +56,14 @@ dependencies {
 
 val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
 val desktopVersionName = currentVersion.name
+val desktopMacOSPackageVersion =
+    if (currentVersion.major > 0) {
+        desktopPackageVersion
+    } else {
+        // Compose/macOS package validation requires MAJOR > 0. Keep the user-facing
+        // app version at 0.x.y via -Dseal.app.version, but use a valid native package version.
+        "1.${currentVersion.minor}.${currentVersion.patch}"
+    }
 
 fun String.asGradleBoolean(): Boolean =
     equals("true", ignoreCase = true) ||
@@ -88,6 +96,14 @@ tasks.register("printDesktopVersionName") {
     description = "Prints the user-facing desktop version name."
     doLast {
         println(desktopVersionName)
+    }
+}
+
+tasks.register("printDesktopMacOSPackageVersion") {
+    group = "help"
+    description = "Prints the macOS native package version accepted by pkg/dmg validation."
+    doLast {
+        println(desktopMacOSPackageVersion)
     }
 }
 
@@ -172,8 +188,12 @@ compose.desktop {
             packageVersion = desktopPackageVersion
             
             macOS {
-                packageVersion = desktopPackageVersion
-                dmgPackageVersion = desktopPackageVersion
+                packageVersion = desktopMacOSPackageVersion
+                packageBuildVersion = desktopMacOSPackageVersion
+                dmgPackageVersion = desktopMacOSPackageVersion
+                dmgPackageBuildVersion = desktopMacOSPackageVersion
+                pkgPackageVersion = desktopMacOSPackageVersion
+                pkgPackageBuildVersion = desktopMacOSPackageVersion
                 iconFile.set(project.file("src/main/resources/icon.icns"))
             }
             windows {
