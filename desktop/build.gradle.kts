@@ -73,7 +73,7 @@ val desktopReleaseProguardEnabled =
     (
         providers.gradleProperty("desktopReleaseProguard").orNull
             ?: providers.environmentVariable("DESKTOP_RELEASE_PROGUARD").orNull
-    )?.asGradleBoolean() ?: false
+    )?.asGradleBoolean() ?: true
 
 tasks.register("printDesktopPackageVersion") {
     group = "help"

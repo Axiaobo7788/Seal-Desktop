@@ -108,6 +108,7 @@ jobs:
           debug_args=()
           if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "1" ]]; then
             debug_args+=("-PdesktopWindowsDebugLauncher=true")
+            debug_args+=("-PdesktopReleaseProguard=false")
           fi
           ./gradlew :desktop:createReleaseDistributable --stacktrace "${debug_args[@]}"
         shell: bash
@@ -159,6 +160,7 @@ jobs:
           debug_args=()
           if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "1" ]]; then
             debug_args+=("-PdesktopWindowsDebugLauncher=true")
+            debug_args+=("-PdesktopReleaseProguard=false")
           fi
           ./gradlew :desktop:createReleaseDistributable --stacktrace "${debug_args[@]}"
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
@@ -217,12 +219,45 @@ jobs:
           Copy-Item "$appRoot\*" -Destination $portableDir -Recurse -Force
           "PORTABLE_DIR=$portableDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Print Windows package sizes
+        shell: pwsh
+        run: |
+          function Format-Size([long]$bytes) {
+            if ($bytes -ge 1GB) { return "{0:N2} GB" -f ($bytes / 1GB) }
+            if ($bytes -ge 1MB) { return "{0:N2} MB" -f ($bytes / 1MB) }
+            if ($bytes -ge 1KB) { return "{0:N2} KB" -f ($bytes / 1KB) }
+            return "$bytes B"
+          }
+
+          $paths = @(
+            "dist-installers-lite",
+            "dist-installers-full",
+            "dist-stage-lite",
+            "dist-stage-full",
+            "dist-portable"
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              $bytes = (Get-ChildItem $path -Recurse -File | Measure-Object -Property Length -Sum).Sum
+              Write-Host ("{0}: {1}" -f $path, (Format-Size $bytes))
+            }
+          }
+
+          if (Test-Path "dist-stage-full") {
+            Write-Host "Top files in dist-stage-full:"
+            Get-ChildItem "dist-stage-full" -Recurse -File |
+              Sort-Object Length -Descending |
+              Select-Object -First 20 FullName, @{Name="Size";Expression={Format-Size $_.Length}} |
+              Format-Table -AutoSize
+          }
+
       - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v6
         with:
           name: desktop-portable-win-x64-full
           path: ${{ env.PORTABLE_DIR }}
           if-no-files-found: error
+          compression-level: 9
           retention-days: 20
 
       - name: Upload Lite EXE Installer artifact
@@ -231,6 +266,7 @@ jobs:
           name: desktop-installer-win-x64-lite-exe
           path: dist-installers-lite/*.exe
           if-no-files-found: error
+          compression-level: 0
           retention-days: 20
 
       - name: Upload Full EXE Installer artifact
@@ -239,4 +275,5 @@ jobs:
           name: desktop-installer-win-x64-full-exe
           path: dist-installers-full/*.exe
           if-no-files-found: error
+          compression-level: 0
           retention-days: 20
