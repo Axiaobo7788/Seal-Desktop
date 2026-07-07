@@ -331,7 +331,8 @@ private fun DesktopApp(
 
     com.junkfood.seal.desktop.ui.DesktopEnvironmentSetupDialog(
         visible = showEnvSetupDialog,
-        onDismissRequest = { showEnvSetupDialog = false }
+        onDismissRequest = { showEnvSetupDialog = false },
+        ytDlpUpdateChannel = appSettingsState.settings.ytDlpUpdateChannel,
     )
 
     androidx.compose.runtime.LaunchedEffect(appSettingsState, settingsState) {

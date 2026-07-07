@@ -7,6 +7,7 @@ import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.util.DesktopNotifier
+import com.junkfood.seal.desktop.ytdlp.DESKTOP_ARIA2C_DOWNLOADER
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.download.CustomCommandPlan
@@ -128,7 +129,13 @@ object DesktopCustomCommandTaskManager {
         scope.launch {
             var configFile: Path? = null
             try {
-                val plan = buildCustomCommandPlan(urls, preferences, preferences.commandDirectory)
+                val plan =
+                    buildCustomCommandPlan(
+                        urls = urls,
+                        preferences = preferences,
+                        commandDirectory = preferences.commandDirectory,
+                        aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
+                    )
                 configFile = writeTemplateConfig(taskId, template.template)
                 val args = buildCommandArgs(plan, urls, configFile)
 

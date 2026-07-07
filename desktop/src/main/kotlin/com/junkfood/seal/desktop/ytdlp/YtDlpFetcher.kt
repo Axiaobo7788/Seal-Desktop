@@ -25,7 +25,20 @@ class YtDlpFetcher(
     fun findExistingBinary(): Path? =
         resolveDependencies().ytDlp?.path
 
-    fun invalidateCachedBinary(): Boolean = false
+    suspend fun invalidateCachedBinary(
+        ytDlpUpdateChannel: Int = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE,
+        onLog: (String) -> Unit = {},
+    ): Boolean {
+        val osName = System.getProperty("os.name").lowercase()
+        val isWin = osName.contains("win")
+        val isMac = osName.contains("mac") || osName.contains("darwin")
+        return DesktopAuxiliaryDownloader.downloadYtDlpBinary(
+            isWin = isWin,
+            isMac = isMac,
+            onLog = onLog,
+            ytDlpUpdateChannel = ytDlpUpdateChannel,
+        )
+    }
 
     fun ensureBinary(): Path =
         ensureDependencies().ytDlp?.path

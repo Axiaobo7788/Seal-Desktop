@@ -18,6 +18,7 @@ import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.util.DesktopNotifier
+import com.junkfood.seal.desktop.ytdlp.DESKTOP_ARIA2C_DOWNLOADER
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
@@ -459,6 +460,7 @@ class DesktopDownloadController(
                     effectivePreferences,
                     playlistUrl = trimmed,
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 
             val config =
@@ -682,6 +684,7 @@ class DesktopDownloadController(
                     preferencesWithProxy,
                     playlistUrl = trimmed,
                     playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 
             val config =

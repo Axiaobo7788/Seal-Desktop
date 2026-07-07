@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.settings
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Info
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -597,13 +599,15 @@ internal fun ActionWithDividerCard(
     icon: ImageVector,
     trailingIcon: ImageVector,
     enabled: Boolean = true,
+    loading: Boolean = false,
+    useDisabledAlpha: Boolean = true,
     onClick: () -> Unit,
     onTrailingClick: () -> Unit,
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (enabled) 1f else DISABLED_CARD_ALPHA }
+            .graphicsLayer { alpha = if (enabled || !useDisabledAlpha) 1f else DISABLED_CARD_ALPHA }
             .clip(MaterialTheme.shapes.large)
             .clickable(enabled = enabled, onClick = onClick),
         tonalElevation = 1.dp,
@@ -619,16 +623,26 @@ internal fun ActionWithDividerCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(2.dp))
-                    if (!description.isNullOrBlank()) {
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    AnimatedContent(targetState = description, label = "action-card-description") { targetDescription ->
+                        if (!targetDescription.isNullOrBlank()) {
+                            Text(
+                                text = targetDescription,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }

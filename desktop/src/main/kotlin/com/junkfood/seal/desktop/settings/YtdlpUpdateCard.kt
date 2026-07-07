@@ -1,11 +1,18 @@
 package com.junkfood.seal.desktop.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -20,9 +27,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
@@ -82,6 +92,7 @@ internal fun YtdlpUpdateCard(
         }
     var isUpdatingYtDlp by remember { mutableStateOf(false) }
     var ytDlpDesc by remember(ytdlpUpdateText) { mutableStateOf(ytdlpUpdateText) }
+    var updateLogLine by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(fetcher, ytdlpUpdateText, ytdlpVersionLabel) {
         ytDlpDesc =
@@ -90,21 +101,33 @@ internal fun YtdlpUpdateCard(
             }
     }
 
-    androidx.compose.foundation.layout.Box {
+    Column {
         ActionWithDividerCard(
             title = stringResource(Res.string.ytdlp_update_action),
             description = ytDlpDesc,
             icon = Icons.Outlined.Update,
             trailingIcon = Icons.Outlined.Settings,
             enabled = !isUpdatingYtDlp,
+            loading = isUpdatingYtDlp,
+            useDisabledAlpha = false,
             onClick = {
                 scope.launch {
                     isUpdatingYtDlp = true
+                    updateLogLine = ytdlpUpdateText
                     ytDlpDesc = ytdlpUpdateText
                     val updated =
                         withContext(Dispatchers.IO) {
                             runCatching {
-                                fetcher.invalidateCachedBinary()
+                                val success =
+                                    fetcher.invalidateCachedBinary(
+                                        ytDlpUpdateChannel = appSettings.ytDlpUpdateChannel,
+                                        onLog = { line ->
+                                            scope.launch {
+                                                updateLogLine = line.toStatusLine()
+                                            }
+                                        },
+                                    )
+                                if (!success) error(ytdlpUpdateFailText)
                                 buildDependencyDescription(fetcher, ytdlpVersionLabel, ytdlpUpdateText)
                             }
                         }
@@ -112,11 +135,34 @@ internal fun YtdlpUpdateCard(
                     ytDlpDesc =
                         updated.getOrNull()?.takeIf { it.isNotBlank() } ?: ytdlpUpdateFailText
 
+                    updateLogLine = null
                     isUpdatingYtDlp = false
                 }
             },
             onTrailingClick = { showYtdlpDialog = true },
         )
+
+        AnimatedVisibility(
+            visible = isUpdatingYtDlp,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 1.dp,
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = updateLogLine ?: ytdlpUpdateText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
 
         DesktopYtdlpUpdateChannelDialog(
             visible = showYtdlpDialog,
@@ -137,6 +183,13 @@ private suspend fun buildDependencyDescription(
     val version = readYtDlpVersion(ytDlp.path)?.takeIf { it.isNotBlank() } ?: "unknown"
     return "yt-dlp (${ytDlp.source.label()}): $ytdlpVersionLabel: $version".ifBlank { fallback }
 }
+
+private fun String.toStatusLine(): String =
+    lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .lastOrNull()
+        ?: trim()
 
 private fun DesktopDependencySource.label(): String =
     when (this) {
@@ -184,16 +237,16 @@ internal fun DesktopYtdlpUpdateChannelDialog(
                 DialogSingleChoiceItemVariantWithLabel(
                     text = "yt-dlp",
                     label = "Stable",
-                    selected = updateChannel == 0,
-                    onClick = { updateChannel = 0 }
+                    selected = updateChannel == DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE,
+                    onClick = { updateChannel = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE }
                 )
 
                 DialogSingleChoiceItemVariantWithLabel(
                     text = "yt-dlp-nightly-builds",
                     label = "Nightly",
-                    selected = updateChannel == 1,
+                    selected = updateChannel == DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_NIGHTLY,
                     isLabelTertiary = true,
-                    onClick = { updateChannel = 1 }
+                    onClick = { updateChannel = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_NIGHTLY }
                 )
 
                 Text(

@@ -77,11 +77,13 @@ val desktopWindowsDebugLauncher =
             ?: providers.environmentVariable("DESKTOP_WINDOWS_DEBUG_LAUNCHER").orNull
     )?.asGradleBoolean() ?: false
 
+val desktopBuildOsName = System.getProperty("os.name").lowercase()
+val desktopReleaseProguardDefault = !desktopBuildOsName.contains("win")
 val desktopReleaseProguardEnabled =
     (
         providers.gradleProperty("desktopReleaseProguard").orNull
             ?: providers.environmentVariable("DESKTOP_RELEASE_PROGUARD").orNull
-    )?.asGradleBoolean() ?: true
+    )?.asGradleBoolean() ?: desktopReleaseProguardDefault
 
 tasks.register("printDesktopPackageVersion") {
     group = "help"
@@ -96,6 +98,14 @@ tasks.register("printDesktopVersionName") {
     description = "Prints the user-facing desktop version name."
     doLast {
         println(desktopVersionName)
+    }
+}
+
+tasks.register("printDesktopReleaseProguardEnabled") {
+    group = "help"
+    description = "Prints whether desktop release ProGuard is enabled for this build."
+    doLast {
+        println(desktopReleaseProguardEnabled)
     }
 }
 

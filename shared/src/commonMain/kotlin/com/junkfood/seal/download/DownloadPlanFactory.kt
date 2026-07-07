@@ -23,6 +23,7 @@ private const val CONVERT_VTT = 4
 
 private const val CONVERT_MP3 = 0
 private const val CONVERT_M4A = 1
+private const val DEFAULT_ARIA2C_DOWNLOADER = "libaria2c.so"
 
 /**
  * Map preferences + video info + user selections into a platform-neutral DownloadPlan.
@@ -33,6 +34,7 @@ fun buildDownloadPlan(
     preferences: DownloadPreferences,
     playlistUrl: String = "",
     playlistItem: Int = 0,
+    aria2cDownloader: String = DEFAULT_ARIA2C_DOWNLOADER,
 ): DownloadPlan {
     val builder = DownloadPlanBuilder()
 
@@ -62,7 +64,7 @@ fun buildDownloadPlan(
 
     // Concurrency / downloader
     if (preferences.aria2c) {
-        builder.option("--downloader", "libaria2c.so")
+        builder.option("--downloader", aria2cDownloader.ifBlank { DEFAULT_ARIA2C_DOWNLOADER })
     } else if (preferences.concurrentFragments > 1) {
         builder.option("--concurrent-fragments", preferences.concurrentFragments.toString())
     }

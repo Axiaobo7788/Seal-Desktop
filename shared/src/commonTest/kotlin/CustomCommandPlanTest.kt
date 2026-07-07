@@ -44,4 +44,20 @@ class CustomCommandPlanTest {
         val args = plan.asCliArgs()
         assertEquals(listOf("--newline", "u"), args)
     }
+
+    @Test
+    fun `allows platform adapter to override aria2c downloader name`() {
+        val prefs = DownloadPreferences.EMPTY.copy(aria2c = true)
+        val plan =
+            buildCustomCommandPlan(
+                urls = listOf("u"),
+                preferences = prefs,
+                commandDirectory = "",
+                aria2cDownloader = "aria2c",
+            )
+
+        val args = plan.asCliArgs()
+        assertTrue(args.containsAll(listOf("--downloader", "aria2c")))
+        assertFalse(args.contains("libaria2c.so"))
+    }
 }

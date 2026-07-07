@@ -12,40 +12,50 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object DesktopAuxiliaryDownloader {
+    const val YT_DLP_CHANNEL_STABLE = 0
+    const val YT_DLP_CHANNEL_NIGHTLY = 1
 
     private val httpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build()
 
+    suspend fun downloadYtDlpBinary(
+        isWin: Boolean,
+        isMac: Boolean,
+        onLog: (String) -> Unit,
+        ytDlpUpdateChannel: Int = YT_DLP_CHANNEL_STABLE,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val dir = auxiliaryDirectory(isWin, isMac)
+        if (!Files.exists(dir)) {
+            Files.createDirectories(dir)
+        }
+
+        try {
+            downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
+            onLog("yt-dlp 更新完成。\n文件存放在私人便携目录:\n$dir")
+            return@withContext true
+        } catch (e: Exception) {
+            onLog("yt-dlp 更新失败: ${e.message}")
+            return@withContext false
+        }
+    }
+
     suspend fun downloadPortableDependencies(
         isWin: Boolean,
         isMac: Boolean,
-        onLog: (String) -> Unit
+        onLog: (String) -> Unit,
+        ytDlpUpdateChannel: Int = YT_DLP_CHANNEL_STABLE,
     ): Boolean = withContext(Dispatchers.IO) {
-        val userHome = System.getProperty("user.home")
-        val dir = when {
-            isWin -> Path.of(System.getenv("LOCALAPPDATA") ?: "$userHome\\AppData\\Local", "Seal", "bin")
-            isMac -> Path.of(userHome, "Library", "Application Support", "Seal", "bin")
-            else -> Path.of(userHome, ".local", "bin")
-        }
+        val dir = auxiliaryDirectory(isWin, isMac)
 
         if (!Files.exists(dir)) {
             Files.createDirectories(dir)
         }
 
-        val ytDlpUrl = getYtDlpUrl(isWin, isMac)
         val ffmpegArchiveUrl = getFfmpegUrl(isWin, isMac)
 
         try {
-            onLog("正在下载 yt-dlp (来源: GitHub Releases)...")
-            val ytDlpFileName = if (isWin) "yt-dlp.exe" else "yt-dlp"
-            val ytDlpPath = dir.resolve(ytDlpFileName)
-            downloadFile(ytDlpUrl, ytDlpPath)
-            
-            if (!isWin) {
-                ytDlpPath.toFile().setExecutable(true, false)
-            }
-            onLog("✅ yt-dlp 下载完成并配置。")
+            downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
 
             onLog("正在下载 ffmpeg (来源: yt-dlp/FFmpeg-Builds)...")
             val archiveName = ffmpegArchiveUrl.substringAfterLast('/')
@@ -69,7 +79,37 @@ object DesktopAuxiliaryDownloader {
         }
     }
 
-    private fun getYtDlpUrl(isWin: Boolean, isMac: Boolean): String {
+    private fun auxiliaryDirectory(isWin: Boolean, isMac: Boolean): Path {
+        val userHome = System.getProperty("user.home")
+        return when {
+            isWin -> Path.of(System.getenv("LOCALAPPDATA") ?: "$userHome\\AppData\\Local", "Seal", "bin")
+            isMac -> Path.of(userHome, "Library", "Application Support", "Seal", "bin")
+            else -> Path.of(userHome, ".local", "bin")
+        }
+    }
+
+    private fun downloadYtDlpTo(
+        dir: Path,
+        isWin: Boolean,
+        isMac: Boolean,
+        ytDlpUpdateChannel: Int,
+        onLog: (String) -> Unit,
+    ) {
+        val channelName = if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) "Nightly" else "Stable"
+        onLog("正在下载 yt-dlp ($channelName, 来源: GitHub Releases)...")
+
+        val ytDlpUrl = getYtDlpUrl(isWin, isMac, ytDlpUpdateChannel)
+        val ytDlpFileName = if (isWin) "yt-dlp.exe" else "yt-dlp"
+        val ytDlpPath = dir.resolve(ytDlpFileName)
+        downloadFile(ytDlpUrl, ytDlpPath)
+
+        if (!isWin) {
+            ytDlpPath.toFile().setExecutable(true, false)
+        }
+        onLog("yt-dlp 下载完成并配置。")
+    }
+
+    private fun getYtDlpUrl(isWin: Boolean, isMac: Boolean, ytDlpUpdateChannel: Int): String {
         val arch = System.getProperty("os.arch").lowercase()
         val isArm = arch.contains("aarch64") || arch.contains("arm64")
         val isX86 = arch.contains("x86") || arch.contains("i386") || arch.contains("i686")
@@ -82,7 +122,13 @@ object DesktopAuxiliaryDownloader {
             !isMac && !isWin && isArm -> "yt-dlp_linux_aarch64"
             else -> "yt-dlp_linux"
         }
-        return "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$binaryName"
+        val repository =
+            if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) {
+                "yt-dlp-nightly-builds"
+            } else {
+                "yt-dlp"
+            }
+        return "https://github.com/yt-dlp/$repository/releases/latest/download/$binaryName"
     }
 
     private fun getFfmpegUrl(isWin: Boolean, isMac: Boolean): String {

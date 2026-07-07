@@ -2,6 +2,8 @@ package com.junkfood.seal.download
 
 import com.junkfood.seal.util.DownloadPreferences
 
+private const val DEFAULT_ARIA2C_DOWNLOADER = "libaria2c.so"
+
 /**
  * Platform-neutral plan for executing custom yt-dlp commands with user preferences.
  */
@@ -22,6 +24,7 @@ import com.junkfood.seal.util.DownloadPreferences
      urls: List<String>,
      preferences: DownloadPreferences,
      commandDirectory: String,
+     aria2cDownloader: String = DEFAULT_ARIA2C_DOWNLOADER,
  ): CustomCommandPlan {
      val opts = mutableListOf<YtDlpOption>()
      var needsCookies = false
@@ -34,7 +37,7 @@ import com.junkfood.seal.util.DownloadPreferences
      }
  
      if (preferences.aria2c) {
-         opts += YtDlpOption.KeyValue("--downloader", "libaria2c.so")
+         opts += YtDlpOption.KeyValue("--downloader", aria2cDownloader.ifBlank { DEFAULT_ARIA2C_DOWNLOADER })
      }
      if (preferences.useDownloadArchive) {
          needsArchive = true

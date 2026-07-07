@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.io.BufferedReader
+import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -38,7 +39,8 @@ enum class SetupDialogState {
 @Composable
 fun DesktopEnvironmentSetupDialog(
     visible: Boolean,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    ytDlpUpdateChannel: Int = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE,
 ) {
     if (!visible) return
 
@@ -177,7 +179,7 @@ fun DesktopEnvironmentSetupDialog(
                         state = SetupDialogState.Installing
                         logOutput = logStart
                         scope.launch {
-                            val success = runInstallProcess(selectedOption, isWin, isMac) { log ->
+                            val success = runInstallProcess(selectedOption, isWin, isMac, ytDlpUpdateChannel) { log ->
                                 logOutput += log + "\n"
                             }
                             state = if (success) SetupDialogState.Success else SetupDialogState.Failed
@@ -209,6 +211,7 @@ private suspend fun runInstallProcess(
     option: Int,
     isWin: Boolean,
     isMac: Boolean,
+    ytDlpUpdateChannel: Int,
     onLog: (String) -> Unit
 ): Boolean = withContext(Dispatchers.IO) {
     if (option == 0) {
@@ -240,7 +243,13 @@ private suspend fun runInstallProcess(
     } else {
         // Portable download
         onLog("开始下载便携版依赖 (直连 GitHub，请耐心等待)...\n")
-        val success = com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader.downloadPortableDependencies(isWin, isMac, onLog)
+        val success =
+            DesktopAuxiliaryDownloader.downloadPortableDependencies(
+                isWin = isWin,
+                isMac = isMac,
+                onLog = onLog,
+                ytDlpUpdateChannel = ytDlpUpdateChannel,
+            )
         return@withContext success
     }
 }

@@ -44,10 +44,12 @@ jobs:
         run: |
           package_version="$(./gradlew -q :desktop:printDesktopPackageVersion)"
           version_name="$(./gradlew -q :desktop:printDesktopVersionName)"
+          release_proguard="$(./gradlew -q :desktop:printDesktopReleaseProguardEnabled)"
           echo "DESKTOP_PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
           echo "DESKTOP_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
           echo "Desktop package version: $package_version"
           echo "Desktop version name: $version_name"
+          echo "Desktop release ProGuard enabled: $release_proguard"
           echo "Windows debug launcher: $DESKTOP_WINDOWS_DEBUG_LAUNCHER"
 
       - name: Set tools cache epoch
@@ -126,6 +128,14 @@ jobs:
           }
           & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" @params
 
+      - name: Smoke test Lite app image (Windows)
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
+            -AppRoot "$env:LITE_INSTALLER_SRC" `
+            -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
+            -Label "Lite app image"
+
       - name: Package Lite installer (Windows)
         shell: pwsh
         run: |
@@ -178,6 +188,14 @@ jobs:
             $params.DebugLauncher = $true
           }
           & "$env:GITHUB_WORKSPACE\.github\scripts\stage_windows_installer_source.ps1" @params
+
+      - name: Smoke test Full app image (Windows)
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
+            -AppRoot "$env:FULL_INSTALLER_SRC" `
+            -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
+            -Label "Full app image"
 
       - name: Package Full installer (Windows)
         shell: pwsh
