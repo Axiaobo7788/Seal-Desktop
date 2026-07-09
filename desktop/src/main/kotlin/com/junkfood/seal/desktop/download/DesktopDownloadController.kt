@@ -53,6 +53,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 private const val MAX_CONCURRENT_DOWNLOADS = 3
+private const val MAX_HISTORY_ENTRIES = 500
 
 class DesktopDownloadController(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -99,6 +100,7 @@ class DesktopDownloadController(
         val backups =
             items.mapNotNull { item ->
                 val request = requestByItemId[item.id] ?: return@mapNotNull null
+                if (request.preferences.privateMode) return@mapNotNull null
                 DesktopQueueItemBackup(
                     id = item.id,
                     title = item.title,
@@ -212,6 +214,7 @@ class DesktopDownloadController(
     private fun buildCliArgs(plan: com.junkfood.seal.download.DownloadPlan, config: DownloadPlanExecutor.ExecutionConfig): List<String> {
         val args = mutableListOf<String>()
         args += plan.asCliArgs()
+        args += config.extraArgs
         if (plan.needsCookiesFile && config.cookiesFile != null) {
             args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
         }
@@ -532,11 +535,7 @@ class DesktopDownloadController(
                         filePath = filePath,
                         fileSizeBytes = fileSize,
                     )
-                    historyEntries.add(0, entry)
-                    if (historyEntries.size > 500) {
-                        repeat(historyEntries.size - 500) { historyEntries.removeLast() }
-                    }
-                    historyStorage.save(historyEntries.toList())
+                    appendHistoryEntryIfAllowed(effectivePreferences, entry)
                 }
                 
                 if (appSettings.downloadNotificationEnabled) {
@@ -756,11 +755,7 @@ class DesktopDownloadController(
                         filePath = filePath,
                         fileSizeBytes = fileSize,
                     )
-                    historyEntries.add(0, entry)
-                    if (historyEntries.size > 500) {
-                        repeat(historyEntries.size - 500) { historyEntries.removeLast() }
-                    }
-                    historyStorage.save(historyEntries.toList())
+                    appendHistoryEntryIfAllowed(preferencesWithProxy, entry)
                 }
                 
                 if (appSettings.downloadNotificationEnabled) {
@@ -838,6 +833,34 @@ class DesktopDownloadController(
             )
         }
     }
+
+    private suspend fun appendHistoryEntryIfAllowed(
+        preferences: DownloadPreferences,
+        entry: DesktopDownloadHistoryEntry,
+    ) {
+        appendDesktopHistoryEntryIfAllowed(
+            historyEntries = historyEntries,
+            preferences = preferences,
+            entry = entry,
+            saveEntries = { historyStorage.save(it) },
+        )
+    }
+}
+
+internal suspend fun appendDesktopHistoryEntryIfAllowed(
+    historyEntries: MutableList<DesktopDownloadHistoryEntry>,
+    preferences: DownloadPreferences,
+    entry: DesktopDownloadHistoryEntry,
+    saveEntries: suspend (List<DesktopDownloadHistoryEntry>) -> Unit,
+): Boolean {
+    if (preferences.privateMode) return false
+
+    historyEntries.add(0, entry)
+    if (historyEntries.size > MAX_HISTORY_ENTRIES) {
+        repeat(historyEntries.size - MAX_HISTORY_ENTRIES) { historyEntries.removeLast() }
+    }
+    saveEntries(historyEntries.toList())
+    return true
 }
 
 private fun isYtDlpErrorLine(line: String): Boolean {

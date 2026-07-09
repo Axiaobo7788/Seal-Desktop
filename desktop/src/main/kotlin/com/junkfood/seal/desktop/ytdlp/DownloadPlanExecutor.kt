@@ -6,6 +6,9 @@ import java.io.InputStream
 import java.nio.file.Path
 import kotlin.concurrent.thread
 
+private const val CROP_ARTWORK_POSTPROCESSOR_ARGS =
+    "ffmpeg: -c:v mjpeg -vf crop='if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'"
+
 /**
  * Execute a DownloadPlan via the yt-dlp binary (fetched per-platform).
  */
@@ -16,6 +19,7 @@ class DownloadPlanExecutor(
         val workingDirectory: Path? = null,
         val cookiesFile: Path? = null,
         val archiveFile: Path? = null,
+        val extraArgs: List<String> = emptyList(),
         val extraEnv: Map<String, String> = emptyMap(),
         val redirectError: Boolean = false,
         val environmentPreference: Int? = null,
@@ -109,6 +113,7 @@ class DownloadPlanExecutor(
                     ?: paths.defaultDownloadDirectory(),
             cookiesFile = if (plan.needsCookiesFile) paths.cookiesFile() else null,
             archiveFile = if (plan.needsArchiveFile) paths.archiveFile() else null,
+            extraArgs = preferences?.extraArgsFor(plan).orEmpty(),
             url = url,
         )
 
@@ -149,7 +154,10 @@ class DownloadPlanExecutor(
             args += listOf("--ffmpeg-location", ffmpegLocation.toAbsolutePath().toString())
         }
 
-        args += plan.asCliArgs()
+        val planArgs = plan.asCliArgs()
+        ensureOptionalDownloadersAvailable(dependencies, planArgs)
+        args += planArgs
+        args += config.extraArgs
         if (plan.needsCookiesFile && config.cookiesFile != null) {
             args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
         }
@@ -169,8 +177,20 @@ class DownloadPlanExecutor(
             command += listOf("--ffmpeg-location", ffmpegLocation.toAbsolutePath().toString())
         }
 
+        ensureOptionalDownloadersAvailable(dependencies, args)
         command += args
         return command
+    }
+
+    private fun ensureOptionalDownloadersAvailable(
+        dependencies: DesktopDependencyResolution,
+        args: List<String>,
+    ) {
+        if (args.usesDownloader("aria2c") && dependencies.aria2c == null) {
+            throw EnvironmentMissingException(
+                "Missing optional dependency: aria2c. Install aria2c or disable Aria2 in Settings > Network."
+            )
+        }
     }
 
     private fun resolveDependencies(environmentPreference: Int?): DesktopDependencyResolution =
@@ -189,4 +209,27 @@ class DownloadPlanExecutor(
                 }
             }
         }
+}
+
+private fun DownloadPreferences.extraArgsFor(plan: DownloadPlan): List<String> {
+    val isAudioLike = extractAudio || plan.downloadPathHint == "audio"
+    if (!isAudioLike || !embedMetadata || !cropArtwork) return emptyList()
+    return listOf("--ppa", CROP_ARTWORK_POSTPROCESSOR_ARGS)
+}
+
+private fun List<String>.usesDownloader(name: String): Boolean {
+    for (index in indices) {
+        val option = this[index]
+        val value = getOrNull(index + 1).orEmpty()
+        if ((option == "--downloader" || option == "--external-downloader") && value.equals(name, ignoreCase = true)) {
+            return true
+        }
+        if (option.startsWith("--downloader=") && option.substringAfter("=").equals(name, ignoreCase = true)) {
+            return true
+        }
+        if (option.startsWith("--external-downloader=") && option.substringAfter("=").equals(name, ignoreCase = true)) {
+            return true
+        }
+    }
+    return false
 }

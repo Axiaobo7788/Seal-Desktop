@@ -147,7 +147,7 @@ private fun addVideoOptions(builder: DownloadPlanBuilder, preferences: DownloadP
         )
     }
 
-    if (preferences.mergeToMkv) {
+    if (preferences.effectiveMergeToMkv()) {
         builder.option("--remux-video", "mkv")
         builder.option("--merge-output-format", "mkv")
     }
@@ -158,6 +158,9 @@ private fun addVideoOptions(builder: DownloadPlanBuilder, preferences: DownloadP
         builder.flag("--embed-chapters")
     }
 }
+
+private fun DownloadPreferences.effectiveMergeToMkv(): Boolean =
+    mergeToMkv || (downloadSubtitle && embedSubtitle)
 
 private fun addAudioOptions(
     builder: DownloadPlanBuilder,

@@ -11,8 +11,10 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material.icons.rounded.OfflineBolt
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
@@ -25,6 +27,9 @@ import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
 import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ToggleCard
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolution
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
@@ -44,6 +49,8 @@ import com.junkfood.seal.shared.generated.resources.proxy_desc
 import com.junkfood.seal.shared.generated.resources.rate_limit
 import com.junkfood.seal.shared.generated.resources.rate_limit_desc
 import com.junkfood.seal.util.DownloadPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -66,6 +73,28 @@ internal fun NetworkSettingsPage(
                 DesktopProxyAutoDetector.detectXrayProxy()
             else null
         }
+    val dependencyResolution by produceState<DesktopDependencyResolution?>(null, appSettings.environmentPreference) {
+        value =
+            withContext(Dispatchers.IO) {
+                DesktopDependencyResolver.resolve(appSettings.environmentPreference)
+            }
+    }
+    val aria2cDependency = dependencyResolution?.aria2c
+    val aria2cAvailable = dependencyResolution == null || aria2cDependency != null
+    val aria2Description =
+        aria2cDependency?.let { dependency ->
+            "aria2c: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+        } ?: if (dependencyResolution == null) {
+            "aria2c: detecting..."
+        } else {
+            "${stringResource(Res.string.aria2_desc)}\naria2c: missing"
+        }
+
+    LaunchedEffect(dependencyResolution, preferences.aria2c) {
+        if (dependencyResolution != null && aria2cDependency == null && preferences.aria2c) {
+            onUpdate { it.copy(aria2c = false) }
+        }
+    }
 
     var showRateLimitDialog by remember { mutableStateOf(false) }
     var showProxyDialog by remember { mutableStateOf(false) }
@@ -94,9 +123,10 @@ internal fun NetworkSettingsPage(
 
         ToggleCard(
             title = stringResource(Res.string.aria2),
-            description = stringResource(Res.string.aria2_desc),
+            description = aria2Description,
             icon = Icons.Rounded.Bolt,
-            checked = preferences.aria2c,
+            checked = preferences.aria2c && aria2cAvailable,
+            enabled = aria2cAvailable,
         ) { checked -> onUpdate { it.copy(aria2c = checked) } }
 
         SwitchWithDividerCard(
@@ -172,3 +202,9 @@ internal fun NetworkSettingsPage(
         }
     }
 }
+
+private fun DesktopDependencySource.label(): String =
+    when (this) {
+        DesktopDependencySource.AppPrivate -> "selfhost"
+        DesktopDependencySource.SystemPath -> "system"
+    }

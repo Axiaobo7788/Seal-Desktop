@@ -14,23 +14,19 @@ class YtDlpMetadataFetcher(
         proxyUrl: String? = null,
         extraEnv: Map<String, String> = emptyMap(),
     ): VideoInfo {
-        val dependencies = fetcher.ensureDependencies()
-        val binary: Path = dependencies.ytDlp!!.path
+        val dependencies = fetcher.resolveDependencies()
+        val binary: Path =
+            dependencies.ytDlp?.path
+                ?: throw EnvironmentMissingException(
+                    "Missing required dependency: yt-dlp. Check dependency configuration in Settings > General."
+                )
         val command =
-            buildList {
-                add(binary.toAbsolutePath().toString())
-                dependencies.ffmpeg!!.path.parent?.let { ffmpegLocation ->
-                    add("--ffmpeg-location")
-                    add(ffmpegLocation.toAbsolutePath().toString())
-                }
-                add("-J")
-                add("--no-playlist")
-                proxyUrl?.trim()?.takeIf { it.isNotBlank() }?.let {
-                    add("--proxy")
-                    add(it)
-                }
-                add(url)
-            }
+            buildMetadataCommand(
+                ytDlpPath = binary,
+                ffmpegPath = dependencies.ffmpeg?.path,
+                url = url,
+                proxyUrl = proxyUrl,
+            )
         val processBuilder = ProcessBuilder(command)
         if (extraEnv.isNotEmpty()) {
             processBuilder.environment().putAll(extraEnv)
@@ -45,3 +41,24 @@ class YtDlpMetadataFetcher(
         return json.decodeFromString(stdout)
     }
 }
+
+internal fun buildMetadataCommand(
+    ytDlpPath: Path,
+    ffmpegPath: Path?,
+    url: String,
+    proxyUrl: String? = null,
+): List<String> =
+    buildList {
+        add(ytDlpPath.toAbsolutePath().toString())
+        ffmpegPath?.parent?.let { ffmpegLocation ->
+            add("--ffmpeg-location")
+            add(ffmpegLocation.toAbsolutePath().toString())
+        }
+        add("-J")
+        add("--no-playlist")
+        proxyUrl?.trim()?.takeIf { it.isNotBlank() }?.let {
+            add("--proxy")
+            add(it)
+        }
+        add(url)
+    }

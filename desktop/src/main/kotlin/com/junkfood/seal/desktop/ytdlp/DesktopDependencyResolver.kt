@@ -27,6 +27,7 @@ data class DesktopDependencyResolution(
     val environmentPreference: Int,
     val ytDlp: ResolvedDesktopDependency?,
     val ffmpeg: ResolvedDesktopDependency?,
+    val aria2c: ResolvedDesktopDependency?,
 ) {
     val isComplete: Boolean
         get() = ytDlp != null && ffmpeg != null
@@ -48,10 +49,12 @@ object DesktopDependencyResolver {
     fun resolve(environmentPreference: Int = defaultEnvironmentPreference()): DesktopDependencyResolution {
         val ytDlp = resolveYtDlp(environmentPreference)
         val ffmpeg = resolveFfmpeg(environmentPreference, ytDlp)
+        val aria2c = resolveAria2c(environmentPreference)
         return DesktopDependencyResolution(
             environmentPreference = environmentPreference,
             ytDlp = ytDlp,
             ffmpeg = ffmpeg,
+            aria2c = aria2c,
         )
     }
 
@@ -99,6 +102,15 @@ object DesktopDependencyResolver {
             preferredRoot = preferredRoot,
         )
     }
+
+    private fun resolveAria2c(environmentPreference: Int): ResolvedDesktopDependency? =
+        when (environmentPreference) {
+            EnvPrefBundled -> findPrivateBinary("aria2c", listOf(platform.aria2cName))
+            EnvPrefSystem -> findSystemBinary("aria2c", platform.aria2cName)
+            else ->
+                findPrivateBinary("aria2c", listOf(platform.aria2cName))
+                    ?: findSystemBinary("aria2c", platform.aria2cName)
+        }
 
     private fun findPrivateBinary(
         name: String,
@@ -208,6 +220,7 @@ private data class DependencyPlatform(
     val privateYtDlpNames: List<String>,
     val systemYtDlpName: String,
     val ffmpegName: String,
+    val aria2cName: String,
     val isWindows: Boolean,
 )
 
@@ -233,6 +246,7 @@ private fun detectDependencyPlatform(): DependencyPlatform {
         privateYtDlpNames = privateYtDlpNames,
         systemYtDlpName = if (isWin) "yt-dlp.exe" else "yt-dlp",
         ffmpegName = if (isWin) "ffmpeg.exe" else "ffmpeg",
+        aria2cName = if (isWin) "aria2c.exe" else "aria2c",
         isWindows = isWin,
     )
 }

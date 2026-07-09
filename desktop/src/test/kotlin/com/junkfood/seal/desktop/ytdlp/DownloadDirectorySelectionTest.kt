@@ -5,6 +5,8 @@ import com.junkfood.seal.util.DownloadPreferences
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DownloadDirectorySelectionTest {
     @Test
@@ -44,6 +46,46 @@ class DownloadDirectorySelectionTest {
         val resolved = DesktopYtDlpPaths.configuredDownloadDirectory(commandDir.toString())
 
         assertEquals(commandDir.normalizedString(), resolved.normalizedString())
+    }
+
+    @Test
+    fun `crop artwork injects ffmpeg crop postprocessor args for audio metadata downloads`() {
+        val plan = DownloadPlan(options = emptyList(), outputTemplate = "%(title)s", downloadPathHint = "audio")
+
+        val config =
+            DownloadPlanExecutor().defaultConfigFor(
+                plan = plan,
+                url = "https://example.invalid/audio",
+                preferences =
+                    DownloadPreferences.EMPTY.copy(
+                        extractAudio = true,
+                        embedMetadata = true,
+                        cropArtwork = true,
+                    ),
+            )
+
+        assertTrue(config.extraArgs.contains("--ppa"))
+        assertTrue(config.extraArgs.any { it.contains("crop=") })
+    }
+
+    @Test
+    fun `crop artwork does not inject postprocessor args without metadata embedding`() {
+        val plan = DownloadPlan(options = emptyList(), outputTemplate = "%(title)s", downloadPathHint = "audio")
+
+        val config =
+            DownloadPlanExecutor().defaultConfigFor(
+                plan = plan,
+                url = "https://example.invalid/audio",
+                preferences =
+                    DownloadPreferences.EMPTY.copy(
+                        extractAudio = true,
+                        embedMetadata = false,
+                        cropArtwork = true,
+                    ),
+            )
+
+        assertFalse(config.extraArgs.contains("--ppa"))
+        assertFalse(config.extraArgs.any { it.contains("crop=") })
     }
 }
 

@@ -238,9 +238,14 @@ private fun DesktopDependencyResolution.toDetectionSummary(): String {
         "ffmpeg: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
     } ?: "ffmpeg: missing"
 
+    val aria2cLine = aria2c?.let { dependency ->
+        "aria2c: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+    } ?: "aria2c: missing (optional)"
+
     return buildString {
         appendLine(ytDlpLine)
-        append(ffmpegLine)
+        appendLine(ffmpegLine)
+        append(aria2cLine)
         if (!isComplete) {
             appendLine()
             append("Missing: ${missingNames.joinToString()}")

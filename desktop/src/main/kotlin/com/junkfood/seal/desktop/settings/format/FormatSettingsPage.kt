@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.settings.ChoiceDialog
+import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
@@ -37,6 +38,7 @@ import com.junkfood.seal.shared.generated.resources.crop_artwork_desc
 import com.junkfood.seal.shared.generated.resources.custom
 import com.junkfood.seal.shared.generated.resources.embed_metadata
 import com.junkfood.seal.shared.generated.resources.embed_metadata_desc
+import com.junkfood.seal.shared.generated.resources.embed_subtitles_mkv_msg
 import com.junkfood.seal.shared.generated.resources.embed_thumbnail
 import com.junkfood.seal.shared.generated.resources.embed_thumbnail_desc
 import com.junkfood.seal.shared.generated.resources.extract_audio
@@ -103,6 +105,8 @@ internal fun FormatSettingsPage(
     val audioPresetLabel = audioPresetLabel(preferences.useCustomAudioPreset)
     val audioConvertLabel = audioConvertFormatLabel(preferences.audioConvertFormat)
     val videoFormatDesc = videoFormatDescription(preferences.videoFormat)
+    val forceMkvForEmbeddedSubtitles = preferences.downloadSubtitle && preferences.embedSubtitle
+    val effectiveMergeToMkv = preferences.mergeToMkv || forceMkvForEmbeddedSubtitles
 
     androidx.compose.foundation.layout.Box {
         SettingsPageScaffold(title = stringResource(Res.string.format), onBack = onBack) {
@@ -163,9 +167,12 @@ internal fun FormatSettingsPage(
             title = stringResource(Res.string.remux_container_mkv),
             description = stringResource(Res.string.remux_container_mkv_desc),
             icon = Icons.Rounded.VideoFile,
-            checked = preferences.mergeToMkv,
-            enabled = !preferences.extractAudio,
+            checked = effectiveMergeToMkv,
+            enabled = !preferences.extractAudio && !forceMkvForEmbeddedSubtitles,
         ) { checked -> onUpdate { it.copy(mergeToMkv = checked) } }
+        if (forceMkvForEmbeddedSubtitles && !preferences.extractAudio) {
+            PreferenceInfo(text = stringResource(Res.string.embed_subtitles_mkv_msg))
+        }
 
         PreferenceSubtitle(text = stringResource(Res.string.advanced_settings))
 
