@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -60,6 +61,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.size
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.back
@@ -116,6 +119,7 @@ internal fun CookiesSettingsPage(
 
     val cookiesFilePath = DesktopYtDlpPaths.cookiesFile()
     val scope = rememberCoroutineScope()
+    val cookiesListState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -207,10 +211,12 @@ internal fun CookiesSettingsPage(
             )
         },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding,
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(end = PlatformVerticalScrollbarGutter),
+                state = cookiesListState,
+                contentPadding = innerPadding,
+            ) {
             item {
                 val interactionSource = remember { MutableInteractionSource() }
                 Row(
@@ -291,6 +297,16 @@ internal fun CookiesSettingsPage(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                 )
             }
+            }
+            PlatformVerticalScrollbar(
+                state = cookiesListState,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + 4.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 4.dp,
+                    ),
+            )
         }
     }
 

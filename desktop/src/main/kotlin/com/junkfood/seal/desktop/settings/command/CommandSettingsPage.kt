@@ -3,12 +3,14 @@ package com.junkfood.seal.desktop.settings.command
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -64,6 +66,7 @@ import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.settings.PreferenceSwitchWithContainer
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.confirm
@@ -320,6 +323,7 @@ private fun CommandShortcutsDialog(
     onUpdateShortcuts: (List<String>) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
+    val shortcutsScrollState = rememberScrollState()
 
     AnimatedAlertDialog(
         visible = visible,
@@ -333,26 +337,29 @@ private fun CommandShortcutsDialog(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(shortcutsScrollState).padding(end = 10.dp)
                     ) {
-                        shortcuts.forEach { item ->
-                            InputChip(
-                                selected = false,
-                                onClick = { onUpdateShortcuts(shortcuts.filter { it != item }) },
-                                label = { Text(item) },
-                                trailingIcon = { Icon(Icons.Outlined.Edit, null) }
-                            )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            shortcuts.forEach { item ->
+                                InputChip(
+                                    selected = false,
+                                    onClick = { onUpdateShortcuts(shortcuts.filter { it != item }) },
+                                    label = { Text(item) },
+                                    trailingIcon = { Icon(Icons.Outlined.Edit, null) }
+                                )
+                            }
                         }
                     }
+                    PlatformVerticalScrollbar(
+                        state = shortcutsScrollState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(

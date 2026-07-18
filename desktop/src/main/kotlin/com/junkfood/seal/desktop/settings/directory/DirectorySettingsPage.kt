@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.settings.directory
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,7 @@ import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
@@ -276,6 +278,7 @@ private fun OutputTemplateDialog(
         )
     }
     var error by remember { mutableIntStateOf(0) }
+    val templateScrollState = rememberScrollState()
     
     AnimatedAlertDialog(
         visible = visible,
@@ -289,42 +292,48 @@ private fun OutputTemplateDialog(
                         modifier = Modifier.padding(bottom = 12.dp),
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        DialogSingleChoiceItem(
-                            text = OUTPUT_TEMPLATE_DEFAULT,
-                            selected = selectedItem == 1,
-                            onClick = { selectedItem = 1 }
-                        )
-                        DialogSingleChoiceItem(
-                            text = OUTPUT_TEMPLATE_ID,
-                            selected = selectedItem == 2,
-                            onClick = { selectedItem = 2 }
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = selectedItem == 3,
-                                onClick = { selectedItem = 3 },
-                                modifier = Modifier.clearAndSetSemantics {}
+                    Box {
+                        Column(modifier = Modifier.verticalScroll(templateScrollState).padding(end = 10.dp)) {
+                            DialogSingleChoiceItem(
+                                text = OUTPUT_TEMPLATE_DEFAULT,
+                                selected = selectedItem == 1,
+                                onClick = { selectedItem = 1 }
                             )
-                            OutlinedTextField(
-                                value = editingTemplate,
-                                onValueChange = {
-                                    error = if (!it.contains(BASENAME)) 1 else if (!it.endsWith(EXTENSION)) 2 else 0
-                                    editingTemplate = it
-                                },
-                                isError = error != 0,
-                                modifier = Modifier.weight(1f),
-                                label = { Text(stringResource(Res.string.custom)) },
-                                supportingText = {
-                                    Text("Required: $BASENAME, $EXTENSION", fontFamily = FontFamily.Monospace)
-                                }
+                            DialogSingleChoiceItem(
+                                text = OUTPUT_TEMPLATE_ID,
+                                selected = selectedItem == 2,
+                                onClick = { selectedItem = 2 }
                             )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = selectedItem == 3,
+                                    onClick = { selectedItem = 3 },
+                                    modifier = Modifier.clearAndSetSemantics {}
+                                )
+                                OutlinedTextField(
+                                    value = editingTemplate,
+                                    onValueChange = {
+                                        error = if (!it.contains(BASENAME)) 1 else if (!it.endsWith(EXTENSION)) 2 else 0
+                                        editingTemplate = it
+                                    },
+                                    isError = error != 0,
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text(stringResource(Res.string.custom)) },
+                                    supportingText = {
+                                        Text("Required: $BASENAME, $EXTENSION", fontFamily = FontFamily.Monospace)
+                                    }
+                                )
+                            }
                         }
+                        PlatformVerticalScrollbar(
+                            state = templateScrollState,
+                            modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                        )
                     }
                 }
             },

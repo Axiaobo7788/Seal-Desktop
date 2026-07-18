@@ -35,9 +35,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
@@ -107,6 +109,8 @@ import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.download
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.media_info
 import com.junkfood.seal.shared.generated.resources.audio
@@ -136,6 +140,8 @@ fun DownloadQueueScreenShared(
     var sheetItemId by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
 
     val filteredItems = state.items.filter { item ->
         when (state.filter) {
@@ -176,38 +182,62 @@ fun DownloadQueueScreenShared(
                 EmptyPlaceholderShared(strings = strings, modifier = Modifier.fillMaxSize())
             }
         } else {
-            if (state.viewMode == DownloadQueueViewMode.Grid) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(240.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    items(filteredItems, key = { it.id }) { item ->
-                        QueueCardShared(
-                            item = item,
-                            strings = strings,
-                            onMoreClick = { sheetItemId = item.id },
-                            onClick = { sheetItemId = item.id },
-                            onOverlayAction = { action -> onItemAction(item.id, action) },
-                            modifier = Modifier.padding(bottom = 12.dp),
-                        )
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                if (state.viewMode == DownloadQueueViewMode.Grid) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(240.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        state = gridState,
+                        contentPadding = PaddingValues(
+                            start = 20.dp,
+                            end = 20.dp + PlatformVerticalScrollbarGutter,
+                            top = 12.dp,
+                            bottom = 12.dp,
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            QueueCardShared(
+                                item = item,
+                                strings = strings,
+                                onMoreClick = { sheetItemId = item.id },
+                                onClick = { sheetItemId = item.id },
+                                onOverlayAction = { action -> onItemAction(item.id, action) },
+                                modifier = Modifier.padding(bottom = 12.dp),
+                            )
+                        }
                     }
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(filteredItems, key = { it.id }) { item ->
-                        QueueListItemShared(
-                            item = item,
-                            strings = strings,
-                            onMoreClick = { sheetItemId = item.id },
-                            onClick = { sheetItemId = item.id },
-                            onOverlayAction = { action -> onItemAction(item.id, action) },
-                            modifier = Modifier,
-                        )
+                    PlatformVerticalScrollbar(
+                        state = gridState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(
+                            start = 20.dp,
+                            end = 20.dp + PlatformVerticalScrollbarGutter,
+                            top = 12.dp,
+                            bottom = 12.dp,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            QueueListItemShared(
+                                item = item,
+                                strings = strings,
+                                onMoreClick = { sheetItemId = item.id },
+                                onClick = { sheetItemId = item.id },
+                                onOverlayAction = { action -> onItemAction(item.id, action) },
+                                modifier = Modifier,
+                            )
+                        }
                     }
+                    PlatformVerticalScrollbar(
+                        state = listState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
                 }
             }
         }
@@ -622,30 +652,37 @@ expect fun DownloadThumbnail(url: String?, modifier: Modifier = Modifier, conten
 
 @Composable
 private fun EmptyPlaceholderShared(strings: DownloadQueueStrings, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(32.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val painter = rememberVectorPainter(image = DynamicColorImageVectors.download())
-        Image(
-            painter = painter,
-            contentDescription = null,
-            modifier = Modifier.padding(vertical = 20.dp).fillMaxWidth(0.5f).widthIn(max = 240.dp),
-        )
-        Text(
-            strings.emptyTitle,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            strings.emptyBody,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp),
-            textAlign = TextAlign.Center,
+    val scrollState = rememberScrollState()
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val painter = rememberVectorPainter(image = DynamicColorImageVectors.download())
+            Image(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier.padding(vertical = 20.dp).fillMaxWidth(0.5f).widthIn(max = 240.dp),
+            )
+            Text(
+                strings.emptyTitle,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                strings.emptyBody,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+                textAlign = TextAlign.Center,
+            )
+        }
+        PlatformVerticalScrollbar(
+            state = scrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
         )
     }
 }
@@ -665,12 +702,18 @@ private fun ActionSheetShared(
     onDismiss: () -> Unit,
 ) {
     val actionListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val sheetListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(bottom = 20.dp),
-    ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            state = sheetListState,
+            contentPadding = PaddingValues(
+                end = PlatformVerticalScrollbarGutter,
+                bottom = 20.dp,
+            ),
+        ) {
         item {
             ActionSheetTitle(item = item, strings = strings)
         }
@@ -795,15 +838,20 @@ private fun ActionSheetShared(
             }
         }
 
-        if (item.errorMessage?.isNotBlank() == true) {
-            item {
-                ErrorInfoBlock(
-                    message = item.errorMessage,
-                    onCopy = { onAction(DownloadQueueAction.CopyError) },
-                    copyLabel = strings.copyErrorLabel,
-                )
+            if (item.errorMessage?.isNotBlank() == true) {
+                item {
+                    ErrorInfoBlock(
+                        message = item.errorMessage,
+                        onCopy = { onAction(DownloadQueueAction.CopyError) },
+                        copyLabel = strings.copyErrorLabel,
+                    )
+                }
             }
         }
+        PlatformVerticalScrollbar(
+            state = sheetListState,
+            modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+        )
     }
 }
 

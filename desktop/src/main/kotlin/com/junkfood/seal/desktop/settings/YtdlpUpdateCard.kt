@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +51,7 @@ import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.additional_settings
 import com.junkfood.seal.shared.generated.resources.auto_update
@@ -208,6 +210,7 @@ internal fun DesktopYtdlpUpdateChannelDialog(
     var updateChannel by remember { mutableStateOf(settings.ytDlpUpdateChannel) }
     var autoUpdate by remember { mutableStateOf(settings.ytDlpAutoUpdate) }
     var updateInterval by remember { mutableStateOf(settings.ytDlpUpdateInterval) }
+    val dialogScrollState = rememberScrollState()
 
     val intervalList = listOf(
         INTERVAL_DAY to Res.string.every_day,
@@ -223,7 +226,8 @@ internal fun DesktopYtdlpUpdateChannelDialog(
             Text(stringResource(Res.string.update))
         },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Box {
+                Column(modifier = Modifier.verticalScroll(dialogScrollState).padding(end = 10.dp)) {
                 Text(
                     text = stringResource(Res.string.update_channel),
                     modifier =
@@ -304,6 +308,11 @@ internal fun DesktopYtdlpUpdateChannelDialog(
                         }
                     }
                 }
+                }
+                PlatformVerticalScrollbar(
+                    state = dialogScrollState,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                )
             }
         },
         dismissButton = {

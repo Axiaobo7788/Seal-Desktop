@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.io.BufferedReader
 import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -123,12 +124,18 @@ fun DesktopEnvironmentSetupDialog(
                                 LaunchedEffect(logOutput) {
                                     scrollState.animateScrollTo(scrollState.maxValue)
                                 }
-                                SelectionContainer {
-                                    Text(
-                                        text = logOutput,
-                                        fontFamily = FontFamily.Monospace,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(12.dp).verticalScroll(scrollState)
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    SelectionContainer {
+                                        Text(
+                                            text = logOutput,
+                                            fontFamily = FontFamily.Monospace,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(12.dp, 12.dp, 20.dp, 12.dp)
+                                        )
+                                    }
+                                    PlatformVerticalScrollbar(
+                                        state = scrollState,
+                                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
                                     )
                                 }
                             }

@@ -1,10 +1,13 @@
 package com.junkfood.seal.desktop.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.rounded.BugReport
@@ -22,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
@@ -45,6 +49,8 @@ import com.junkfood.seal.shared.generated.resources.settings
 import com.junkfood.seal.shared.generated.resources.settings_before_download
 import com.junkfood.seal.shared.generated.resources.trouble_shooting
 import com.junkfood.seal.shared.generated.resources.trouble_shooting_desc
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -56,6 +62,7 @@ internal fun SettingsHome(
     onOpenPage: (SettingsPage) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val listState = rememberLazyListState()
     val entries =
         listOf(
             SettingsEntry(
@@ -135,19 +142,31 @@ internal fun SettingsHome(
     ) { innerPadding ->
         val contentPadding = PaddingValues(
             start = 16.dp,
-            end = 16.dp,
+            end = 16.dp + PlatformVerticalScrollbarGutter,
             top = innerPadding.calculateTopPadding() + 4.dp,
             bottom = innerPadding.calculateBottomPadding() + 12.dp,
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(entries) { entry ->
-                SettingRow(entry)
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = contentPadding,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(entries) { entry ->
+                    SettingRow(entry)
+                }
             }
+            PlatformVerticalScrollbar(
+                state = listState,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + 4.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 4.dp,
+                    ),
+            )
         }
     }
 }

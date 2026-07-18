@@ -57,6 +57,7 @@ import com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.ui.download.queue.DownloadQueueAction
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
 import com.junkfood.seal.ui.download.queue.DownloadQueueScreenShared
@@ -465,6 +466,7 @@ fun DesktopDownloadScreen(
     }
 
     detailsDialogItem?.let { item ->
+        val detailsScrollState = rememberScrollState()
         val statusText =
             when (item.status) {
                 com.junkfood.seal.ui.download.queue.DownloadQueueStatus.Running -> stringResource(Res.string.status_downloading)
@@ -482,25 +484,31 @@ fun DesktopDownloadScreen(
             onDismissRequest = { detailsItem = null },
             title = { Text(text = item.title.ifBlank { item.url }) },
             text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text("${stringResource(Res.string.video_url)}: ${item.url}")
-                    Text("${stringResource(Res.string.desktop_download_detail_status)}: $statusText")
-                    item.filePath?.takeIf { it.isNotBlank() }?.let { Text("${stringResource(Res.string.file)}: $it") }
-                    fileSizeText?.let { Text("${stringResource(Res.string.video_file_size)}: $it") }
-                    item.exitCode?.let { Text("${stringResource(Res.string.desktop_download_detail_exit_code)}: $it") }
-                    if (cliArgs.isNotBlank()) {
-                        Text("${stringResource(Res.string.desktop_download_detail_args)}: $cliArgs", style = MaterialTheme.typography.bodySmall)
+                Box {
+                    Column(
+                        modifier = Modifier.verticalScroll(detailsScrollState).padding(end = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text("${stringResource(Res.string.video_url)}: ${item.url}")
+                        Text("${stringResource(Res.string.desktop_download_detail_status)}: $statusText")
+                        item.filePath?.takeIf { it.isNotBlank() }?.let { Text("${stringResource(Res.string.file)}: $it") }
+                        fileSizeText?.let { Text("${stringResource(Res.string.video_file_size)}: $it") }
+                        item.exitCode?.let { Text("${stringResource(Res.string.desktop_download_detail_exit_code)}: $it") }
+                        if (cliArgs.isNotBlank()) {
+                            Text("${stringResource(Res.string.desktop_download_detail_args)}: $cliArgs", style = MaterialTheme.typography.bodySmall)
+                        }
+                        item.errorMessage?.takeIf { it.isNotBlank() }?.let {
+                            Text("${stringResource(Res.string.desktop_download_detail_error)}: $it")
+                        }
+                        if (logPreview.isNotBlank()) {
+                            Text("${stringResource(Res.string.logs)}:")
+                            Text(logPreview, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
-                    item.errorMessage?.takeIf { it.isNotBlank() }?.let {
-                        Text("${stringResource(Res.string.desktop_download_detail_error)}: $it")
-                    }
-                    if (logPreview.isNotBlank()) {
-                        Text("${stringResource(Res.string.logs)}:")
-                        Text(logPreview, style = MaterialTheme.typography.bodySmall)
-                    }
+                    PlatformVerticalScrollbar(
+                        state = detailsScrollState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
                 }
             },
             confirmButton = {

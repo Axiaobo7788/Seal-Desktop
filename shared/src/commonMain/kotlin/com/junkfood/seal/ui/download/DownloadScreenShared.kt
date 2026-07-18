@@ -3,19 +3,23 @@
 package com.junkfood.seal.ui.download
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.shared.generated.resources.Res
@@ -23,6 +27,8 @@ import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.fetching_info
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.video_url
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -31,6 +37,7 @@ fun DownloadScreenShared(
     onEvent: (DownloadEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val logListState = rememberLazyListState()
     Column(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -65,10 +72,22 @@ fun DownloadScreenShared(
 
         Text(state.status, style = MaterialTheme.typography.bodyMedium)
 
-        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            items(state.logLines) { line ->
-                Text(line, style = MaterialTheme.typography.bodySmall)
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = logListState,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    end = PlatformVerticalScrollbarGutter,
+                ),
+            ) {
+                items(state.logLines) { line ->
+                    Text(line, style = MaterialTheme.typography.bodySmall)
+                }
             }
+            PlatformVerticalScrollbar(
+                state = logListState,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+            )
         }
 
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(4.dp))

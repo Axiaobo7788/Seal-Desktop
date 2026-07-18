@@ -3,6 +3,7 @@ package com.junkfood.seal.desktop.settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,8 @@ import com.junkfood.seal.shared.generated.resources.back
 import com.junkfood.seal.shared.generated.resources.format_selection_desc
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.confirm
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -77,6 +80,7 @@ internal fun SettingsPageScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit,
 ) {
+    val contentScrollState = rememberScrollState()
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
             state = rememberTopAppBarState(),
@@ -97,20 +101,29 @@ internal fun SettingsPageScaffold(
             )
         },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding())
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 4.dp,
-                    bottom = 12.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding()),
         ) {
-            content()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(contentScrollState)
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp + PlatformVerticalScrollbarGutter,
+                        top = 4.dp,
+                        bottom = 12.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                content()
+            }
+            PlatformVerticalScrollbar(
+                state = contentScrollState,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+            )
         }
     }
 }
@@ -339,6 +352,7 @@ internal fun <T> ChoiceDialog(
     footer: @Composable ((T) -> Unit)? = null,
 ) {
     var currentSelection by remember(selected, visible) { mutableStateOf(selected) }
+    val optionsScrollState = rememberScrollState()
 
     AnimatedAlertDialog(
         visible = visible,
@@ -360,15 +374,21 @@ internal fun <T> ChoiceDialog(
         },
         title = { Text(title) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                options.forEach { (label, value) ->
-                    DialogSingleChoiceItem(
-                        text = label,
-                        selected = value == currentSelection,
-                        onClick = { currentSelection = value }
-                    )
+            Box {
+                Column(modifier = Modifier.verticalScroll(optionsScrollState).padding(end = 10.dp)) {
+                    options.forEach { (label, value) ->
+                        DialogSingleChoiceItem(
+                            text = label,
+                            selected = value == currentSelection,
+                            onClick = { currentSelection = value }
+                        )
+                    }
+                    footer?.invoke(currentSelection)
                 }
-                footer?.invoke(currentSelection)
+                PlatformVerticalScrollbar(
+                    state = optionsScrollState,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                )
             }
         },
     )

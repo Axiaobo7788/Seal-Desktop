@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -117,6 +118,8 @@ import com.junkfood.seal.shared.generated.resources.title
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_only
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.SubtitleFormat
@@ -419,14 +422,20 @@ private fun FormatPageImpl(
             }
         },
     ) { paddingValues ->
-        LazyVerticalGrid(
-            modifier = Modifier.padding(paddingValues),
-            state = lazyGridState,
-            columns = GridCells.Adaptive(220.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(12.dp),
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            LazyVerticalGrid(
+                modifier = Modifier.fillMaxSize(),
+                state = lazyGridState,
+                columns = GridCells.Adaptive(220.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(
+                    start = 12.dp,
+                    top = 12.dp,
+                    end = 12.dp + PlatformVerticalScrollbarGutter,
+                    bottom = 12.dp,
+                ),
+            ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 FormatPreviewHeader(
                     videoInfo = videoInfo,
@@ -597,7 +606,12 @@ private fun FormatPageImpl(
                 }
             }
      
-            item { Spacer(Modifier.height(64.dp)) }
+                item { Spacer(Modifier.height(64.dp)) }
+            }
+            PlatformVerticalScrollbar(
+                state = lazyGridState,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 88.dp),
+            )
         }
     }
 
@@ -1084,6 +1098,7 @@ private fun SubtitleSelectionDialog(
     onConfirm: (subs: List<String>, autoSubs: List<String>) -> Unit,
 ) {
     var searchText by remember(visible) { mutableStateOf("") }
+    val subtitleListState = rememberLazyListState()
     val dialogSelectedSubtitles =
         remember(visible, selectedSubtitles) {
             mutableStateListOf<String>().apply { addAll(selectedSubtitles) }
@@ -1122,45 +1137,56 @@ private fun SubtitleSelectionDialog(
                     )
                 }
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    if (suggestedFiltered.isNotEmpty()) {
-                        item {
-                            DialogSectionTitle(text = stringResource(Res.string.suggested))
+                Box(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = subtitleListState,
+                        contentPadding = PaddingValues(
+                            end = PlatformVerticalScrollbarGutter,
+                            top = 8.dp,
+                            bottom = 8.dp,
+                        ),
+                    ) {
+                        if (suggestedFiltered.isNotEmpty()) {
+                            item {
+                                DialogSectionTitle(text = stringResource(Res.string.suggested))
+                            }
                         }
-                    }
-                    suggestedFiltered.forEach { (code, formats) ->
-                        item(key = "suggested-$code") {
-                            DialogCheckBoxItem(
-                                modifier = Modifier.animateItem(),
-                                text = formats.subtitleLabel(code),
-                                checked = suggestedSelection.contains(code),
-                                onCheckedChange = { checked ->
-                                    suggestedSelection.updateSelection(code, checked)
-                                },
-                            )
+                        suggestedFiltered.forEach { (code, formats) ->
+                            item(key = "suggested-$code") {
+                                DialogCheckBoxItem(
+                                    modifier = Modifier.animateItem(),
+                                    text = formats.subtitleLabel(code),
+                                    checked = suggestedSelection.contains(code),
+                                    onCheckedChange = { checked ->
+                                        suggestedSelection.updateSelection(code, checked)
+                                    },
+                                )
+                            }
                         }
-                    }
 
-                    if (autoCaptionsFiltered.isNotEmpty()) {
-                        item {
-                            DialogSectionTitle(text = stringResource(Res.string.auto_subtitle))
+                        if (autoCaptionsFiltered.isNotEmpty()) {
+                            item {
+                                DialogSectionTitle(text = stringResource(Res.string.auto_subtitle))
+                            }
+                        }
+                        autoCaptionsFiltered.forEach { (code, formats) ->
+                            item(key = "auto-$code") {
+                                DialogCheckBoxItem(
+                                    modifier = Modifier.animateItem(),
+                                    text = formats.subtitleLabel(code),
+                                    checked = dialogSelectedAutoCaptions.contains(code),
+                                    onCheckedChange = { checked ->
+                                        dialogSelectedAutoCaptions.updateSelection(code, checked)
+                                    },
+                                )
+                            }
                         }
                     }
-                    autoCaptionsFiltered.forEach { (code, formats) ->
-                        item(key = "auto-$code") {
-                            DialogCheckBoxItem(
-                                modifier = Modifier.animateItem(),
-                                text = formats.subtitleLabel(code),
-                                checked = dialogSelectedAutoCaptions.contains(code),
-                                onCheckedChange = { checked ->
-                                    dialogSelectedAutoCaptions.updateSelection(code, checked)
-                                },
-                            )
-                        }
-                    }
+                    PlatformVerticalScrollbar(
+                        state = subtitleListState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
                 }
                 HorizontalDivider()
             }

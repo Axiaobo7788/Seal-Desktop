@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -84,6 +85,8 @@ import com.junkfood.seal.desktop.settings.DesktopAppSettingsState
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.settings.DesktopSettingsState
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.confirm
@@ -126,6 +129,7 @@ fun DesktopCustomCommandScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val tasks = DesktopCustomCommandTaskManager.tasks
     val clipboardManager = LocalClipboardManager.current
+    val taskListState = rememberLazyListState()
 
     var showNewTaskDialog by remember { mutableStateOf(false) }
     var logDialogTask by remember { mutableStateOf<DesktopCustomCommandTask?>(null) }
@@ -197,7 +201,13 @@ fun DesktopCustomCommandScreen(
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                state = taskListState,
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp + PlatformVerticalScrollbarGutter,
+                    top = 8.dp,
+                    bottom = 88.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(tasks, key = { it.id }) { task ->
@@ -226,6 +236,10 @@ fun DesktopCustomCommandScreen(
                     )
                 }
             }
+            PlatformVerticalScrollbar(
+                state = taskListState,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+            )
 
             DesktopCustomCommandNotificationOverlay(
                 onOpenLog = { task -> logDialogTask = task },
@@ -249,22 +263,29 @@ fun DesktopCustomCommandScreen(
     }
 
     logDialogTask?.let { task ->
+        val logScrollState = rememberScrollState()
         AnimatedAlertDialog(
             visible = true,
             onDismissRequest = { logDialogTask = null },
             title = { Text(task.templateLabel) },
             text = {
-                Column(
-                    modifier = Modifier.height(360.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(stringResource(Res.string.logs), style = MaterialTheme.typography.labelLarge)
-                    SelectionContainer {
-                        Text(
-                            text = task.output.ifBlank { task.currentLine },
-                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        )
+                Box(modifier = Modifier.fillMaxWidth().height(360.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(logScrollState).padding(end = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(stringResource(Res.string.logs), style = MaterialTheme.typography.labelLarge)
+                        SelectionContainer {
+                            Text(
+                                text = task.output.ifBlank { task.currentLine },
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            )
+                        }
                     }
+                    PlatformVerticalScrollbar(
+                        state = logScrollState,
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                    )
                 }
             },
             dismissButton = {},
@@ -621,42 +642,49 @@ private fun TemplateSelectionDialog(
     selectedId: Int,
     onSelect: (Int) -> Unit
 ) {
+    val templateListState = rememberLazyListState()
     AnimatedAlertDialog(
         visible = visible,
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Code, null) },
         title = { Text(stringResource(Res.string.template_selection)) },
         text = {
-            LazyColumn(modifier = Modifier.height(300.dp)) {
-                items(templates, key = { it.id }) { template ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
+            Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+                LazyColumn(modifier = Modifier.fillMaxSize(), state = templateListState) {
+                    items(templates, key = { it.id }) { template ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = template.id == selectedId,
+                                    onClick = {
+                                        onSelect(template.id)
+                                        onDismiss()
+                                    }
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
                                 selected = template.id == selectedId,
-                                onClick = {
-                                    onSelect(template.id)
-                                    onDismiss()
-                                }
+                                onClick = null
                             )
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = template.id == selectedId,
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(template.label, style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                template.template,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(Modifier.width(16.dp))
+                            Column {
+                                Text(template.label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    template.template,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
+                PlatformVerticalScrollbar(
+                    state = templateListState,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                )
             }
         },
         dismissButton = {},

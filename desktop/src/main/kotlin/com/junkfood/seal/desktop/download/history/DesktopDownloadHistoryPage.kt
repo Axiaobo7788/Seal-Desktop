@@ -18,6 +18,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -105,6 +106,8 @@ import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 import com.junkfood.seal.ui.svg.DynamicColorImageVectors
 import com.junkfood.seal.ui.svg.drawablevectors.videoSteaming
 import java.awt.Desktop
@@ -156,6 +159,7 @@ fun DesktopDownloadHistoryPage(
     val clipboard = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val historyListState = rememberLazyListState()
     val importedSnackbarTemplate = stringResource(Res.string.download_history_imported)
 
     LaunchedEffect(showImportDialog) {
@@ -264,7 +268,10 @@ fun DesktopDownloadHistoryPage(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(start = 16.dp, end = 16.dp + PlatformVerticalScrollbarGutter),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (isEmptyAll) {
@@ -349,14 +356,21 @@ fun DesktopDownloadHistoryPage(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surface,
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(filtered, key = { it.id }) { entry ->
-                            HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            state = historyListState,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(filtered, key = { it.id }) { entry ->
+                                HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
+                            }
+                            item { Spacer(Modifier.height(12.dp)) }
                         }
-                        item { Spacer(Modifier.height(12.dp)) }
+                        PlatformVerticalScrollbar(
+                            state = historyListState,
+                            modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+                        )
                     }
                 }
             }

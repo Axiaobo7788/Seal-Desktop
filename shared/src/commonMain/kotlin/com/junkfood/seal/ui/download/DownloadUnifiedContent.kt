@@ -40,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
+import com.junkfood.seal.ui.PlatformVerticalScrollbar
+import com.junkfood.seal.ui.PlatformVerticalScrollbarGutter
 
 /**
  * 共享的下载页正文布局，力求贴近 Android DownloadPage 主体。
@@ -63,71 +65,81 @@ fun DownloadUnifiedContent(
     extraContent: @Composable () -> Unit = {},
     inputTrailingIcon: @Composable (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-    ) {
-        TitleWithProgressIndicatorShared(
-            showProgressIndicator = state.showProgressIndicator,
-            showDownloadText = state.showDownloadText,
-            isDownloadingPlaylist = state.isDownloadingPlaylist,
-            currentIndex = state.currentIndex,
-            downloadItemCount = state.downloadItemCount,
-            title = state.title,
-            badge = state.badge,
-            onHistoryClick = onHistoryClick,
-            historyLabel = strings.historyLabel,
-            downloadIndicatorText = downloadIndicatorText,
-        )
-
-        Column(Modifier.padding(horizontal = 24.dp).padding(top = 24.dp)) {
-            if (state.showVideoCard) {
-                AnimatedVisibility(visible = true) { Box { videoCard() } }
-            }
-
-            actionButtons()
-
-            InputUrlShared(
-                url = state.url,
-                error = state.hasError,
-                showDownloadProgress = state.showDownloadProgress && !state.showVideoCard,
-                progress = state.progress,
-                onDone = onDownloadClick,
-                showCancelButton = state.showCancelButton && !state.showVideoCard,
-                onCancel = onCancelClick,
-                onValueChange = onUrlChange,
-                videoUrlLabel = strings.videoUrlLabel,
-                cancelLabel = strings.cancelLabel,
-                trailingIcon = inputTrailingIcon,
+    val contentScrollState = rememberScrollState()
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(contentScrollState),
+        ) {
+            TitleWithProgressIndicatorShared(
+                showProgressIndicator = state.showProgressIndicator,
+                showDownloadText = state.showDownloadText,
+                isDownloadingPlaylist = state.isDownloadingPlaylist,
+                currentIndex = state.currentIndex,
+                downloadItemCount = state.downloadItemCount,
+                title = state.title,
+                badge = state.badge,
+                onHistoryClick = onHistoryClick,
+                historyLabel = strings.historyLabel,
+                downloadIndicatorText = downloadIndicatorText,
             )
 
-            AnimatedVisibility(
-                modifier = Modifier.fillMaxWidth(),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-                visible = state.progressText.isNotEmpty() && state.showOutput,
+            Column(
+                Modifier.padding(start = 24.dp, end = 24.dp + PlatformVerticalScrollbarGutter)
+                    .padding(top = 24.dp),
             ) {
-                Text(
-                    modifier = Modifier.padding(bottom = 12.dp),
-                    text = state.progressText,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
+                if (state.showVideoCard) {
+                    AnimatedVisibility(visible = true) { Box { videoCard() } }
+                }
+
+                actionButtons()
+
+                InputUrlShared(
+                    url = state.url,
+                    error = state.hasError,
+                    showDownloadProgress = state.showDownloadProgress && !state.showVideoCard,
+                    progress = state.progress,
+                    onDone = onDownloadClick,
+                    showCancelButton = state.showCancelButton && !state.showVideoCard,
+                    onCancel = onCancelClick,
+                    onValueChange = onUrlChange,
+                    videoUrlLabel = strings.videoUrlLabel,
+                    cancelLabel = strings.cancelLabel,
+                    trailingIcon = inputTrailingIcon,
                 )
+
+                AnimatedVisibility(
+                    modifier = Modifier.fillMaxWidth(),
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                    visible = state.progressText.isNotEmpty() && state.showOutput,
+                ) {
+                    Text(
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        text = state.progressText,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                if (state.hasError) {
+                    ErrorMessageShared(
+                        title = state.errorTitle,
+                        errorReport = state.errorReport,
+                        copyLabel = strings.copyErrorLabel,
+                        onCopy = onCopyErrorClick,
+                    )
+                }
+
+                extraContent()
+
+                Spacer(modifier = Modifier.height(160.dp))
             }
-
-            if (state.hasError) {
-                ErrorMessageShared(
-                    title = state.errorTitle,
-                    errorReport = state.errorReport,
-                    copyLabel = strings.copyErrorLabel,
-                    onCopy = onCopyErrorClick,
-                )
-            }
-
-            extraContent()
-
-            Spacer(modifier = Modifier.height(160.dp))
         }
+        PlatformVerticalScrollbar(
+            state = contentScrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).padding(top = 4.dp, bottom = 4.dp),
+        )
     }
 }
 
