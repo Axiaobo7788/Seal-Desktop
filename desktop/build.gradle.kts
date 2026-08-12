@@ -139,6 +139,16 @@ tasks.register<JavaExec>("desktopStorageSelfCheck") {
         }
 }
 
+tasks.register<JavaExec>("desktopDependencyDownloadSelfCheck") {
+    group = "verification"
+    description = "Downloads and executes desktop yt-dlp, ffmpeg, and ffprobe in an isolated directory."
+    dependsOn(tasks.named("classes"))
+
+    val mainSourceSet = sourceSets.named("main").get()
+    classpath = mainSourceSet.runtimeClasspath
+    mainClass.set("com.junkfood.seal.desktop.ytdlp.DesktopDependencyDownloadSelfCheckMainKt")
+}
+
 // Override the bundled ProGuard version to one that understands Java 21 class files.
 configurations.all {
     resolutionStrategy {

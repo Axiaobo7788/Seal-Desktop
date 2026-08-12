@@ -121,6 +121,27 @@ jobs:
 
           rm -f dist-bin/ffmpeg.zip dist-bin/ffprobe.zip
 
+      - name: Verify downloaded tools (macOS ${{ matrix.arch }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./dist-bin/yt-dlp_macos --version
+          ./dist-bin/ffmpeg -version | head -n 1
+          ./dist-bin/ffprobe -version | head -n 1
+          file dist-bin/yt-dlp_macos dist-bin/ffmpeg dist-bin/ffprobe
+          expected_arch="${{ matrix.arch }}"
+          for tool in dist-bin/ffmpeg dist-bin/ffprobe; do
+            archs="$(lipo -archs "$tool")"
+            if [[ "$expected_arch" == "x64" && "$archs" != *"x86_64"* ]]; then
+              echo "$tool does not contain x86_64: $archs"
+              exit 1
+            fi
+            if [[ "$expected_arch" == "arm64" && "$archs" != *"arm64"* ]]; then
+              echo "$tool does not contain arm64: $archs"
+              exit 1
+            fi
+          done
+
       - name: Build Lite installers (macOS ${{ matrix.arch }})
         shell: bash
         run: |
@@ -129,6 +150,29 @@ jobs:
           
           mkdir -p dist-installers-lite
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-lite/ || true
+
+      - name: Smoke test Lite app and installed PKG (macOS ${{ matrix.arch }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          smoke_app() {
+            local app_bundle="$1"
+            local label="$2"
+            local executable
+            executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
+            bash .github/scripts/smoke_unix_app_image.sh \
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label"
+          }
+
+          app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
+          pkg="$(find dist-installers-lite -type f -name '*.pkg' | head -n 1)"
+          [[ -n "$app_bundle" && -n "$pkg" ]]
+          smoke_app "$app_bundle" "Lite app image (${{ matrix.arch }})"
+
+          sudo rm -rf /Applications/Seal.app
+          sudo installer -pkg "$pkg" -target /
+          smoke_app /Applications/Seal.app "Installed Lite PKG (${{ matrix.arch }})"
+          sudo rm -rf /Applications/Seal.app
 
       - name: Inject tools for Full version
         shell: bash
@@ -146,6 +190,38 @@ jobs:
           
           mkdir -p dist-installers-full
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-full/ || true
+
+      - name: Smoke test Full app, bundled tools, and installed PKG (macOS ${{ matrix.arch }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          smoke_app() {
+            local app_bundle="$1"
+            local label="$2"
+            local executable
+            executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
+            bash .github/scripts/smoke_unix_app_image.sh \
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label"
+          }
+
+          app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
+          pkg="$(find dist-installers-full -type f -name '*.pkg' | head -n 1)"
+          [[ -n "$app_bundle" && -n "$pkg" ]]
+
+          for name in yt-dlp_macos ffmpeg ffprobe; do
+            packaged_tool="$(find "$app_bundle" -type f -name "$name" | head -n 1)"
+            if [[ -z "$packaged_tool" ]]; then
+              echo "Bundled tool not found in app: $name"
+              exit 1
+            fi
+            chmod +x "$packaged_tool"
+          done
+          smoke_app "$app_bundle" "Full app image (${{ matrix.arch }})"
+
+          sudo rm -rf /Applications/Seal.app
+          sudo installer -pkg "$pkg" -target /
+          smoke_app /Applications/Seal.app "Installed Full PKG (${{ matrix.arch }})"
+          sudo rm -rf /Applications/Seal.app
 
       - name: Print jpackage logs on failure
         if: failure()

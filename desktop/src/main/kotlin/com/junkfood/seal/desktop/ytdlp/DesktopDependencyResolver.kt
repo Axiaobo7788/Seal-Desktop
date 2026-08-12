@@ -182,6 +182,15 @@ object DesktopDependencyResolver {
         }
 
     private fun auxiliaryDirectory(): Path {
+        System.getProperty("seal.desktop.auxiliaryDir")
+            ?.takeIf { it.isNotBlank() }
+            ?.let(Path::of)
+            ?.let { return it }
+        System.getenv("SEAL_DESKTOP_AUXILIARY_DIR")
+            ?.takeIf { it.isNotBlank() }
+            ?.let(Path::of)
+            ?.let { return it }
+
         val osName = System.getProperty("os.name").lowercase()
         val userHome = System.getProperty("user.home")
         return when {
@@ -228,7 +237,7 @@ private fun detectDependencyPlatform(): DependencyPlatform {
     val os = System.getProperty("os.name").lowercase()
     val arch = System.getProperty("os.arch").lowercase()
     val isArm = arch.contains("aarch64") || arch.contains("arm64")
-    val isX86 = arch.contains("x86") || arch.contains("i386") || arch.contains("i686")
+    val isX86 = arch == "x86" || arch.contains("i386") || arch.contains("i686")
     val isMac = os.contains("mac") || os.contains("darwin")
     val isWin = os.contains("win")
 

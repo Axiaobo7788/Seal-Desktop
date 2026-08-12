@@ -83,12 +83,7 @@ if ($exited) {
     Write-Host "----- end stderr -----"
   }
 
-  if ($process.ExitCode -ne 0) {
-    throw "$Label exited during smoke test with code $($process.ExitCode)."
-  }
-
-  Write-Host "$Label exited cleanly during smoke test."
-  exit 0
+  throw "$Label exited before the $TimeoutSeconds-second smoke-test window completed with code $($process.ExitCode)."
 }
 
 Write-Host "$Label stayed alive for $TimeoutSeconds seconds; treating app-image startup as successful."

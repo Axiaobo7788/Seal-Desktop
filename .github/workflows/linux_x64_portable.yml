@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "dist-bin/ffmpeg" ]; then
+          if [ -f "dist-bin/ffmpeg" ] && [ -f "dist-bin/ffprobe" ]; then
             echo "ffmpeg cache hit: dist-bin/ffmpeg"
             exit 0
           fi
@@ -79,6 +79,15 @@ jobs:
             cp "$ffprobe_path" dist-bin/ffprobe
             chmod +x dist-bin/ffprobe
           fi
+
+      - name: Verify downloaded tools (Linux)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./dist-bin/yt-dlp --version
+          ./dist-bin/ffmpeg -version | head -n 1
+          ./dist-bin/ffprobe -version | head -n 1
+          file dist-bin/yt-dlp dist-bin/ffmpeg dist-bin/ffprobe
 
       - name: Build Lite installers (Linux)
         shell: bash
@@ -156,6 +165,31 @@ jobs:
           mkdir -p "$workspace/dist-portable"
           cp -r "$app_root" "$workspace/dist-portable/app"
           echo "PORTABLE_DIR=$workspace/dist-portable/app" >> "$GITHUB_ENV"
+
+      - name: Smoke test Full app image and bundled tools (Linux)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+          fi
+
+          app_root="$PORTABLE_DIR"
+          launcher="$(find "$app_root/bin" -maxdepth 1 -type f -executable \
+            ! -name '*.so' ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1)"
+          [[ -n "$launcher" ]]
+
+          for name in yt-dlp ffmpeg ffprobe; do
+            packaged_tool="$(find "$app_root" -type f -name "$name" | head -n 1)"
+            if [[ -z "$packaged_tool" ]]; then
+              echo "Bundled tool not found in app image: $name"
+              exit 1
+            fi
+          done
+
+          xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
+            "$app_root" "$launcher" "Full app image (Linux x64)"
 
       - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v6

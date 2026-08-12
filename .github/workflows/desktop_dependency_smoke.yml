@@ -1,0 +1,65 @@
+name: desktop-dependency-download-smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * 3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  download-and-run-tools:
+    name: ${{ matrix.platform }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            arch: x64
+            os: ubuntu-latest
+          - platform: windows
+            arch: x64
+            os: windows-latest
+          - platform: macos
+            arch: x64
+            os: macos-15-intel
+          - platform: macos
+            arch: arm64
+            os: macos-15
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: jetbrains
+          java-version: 21
+          cache: gradle
+
+      - name: Download and execute application-managed dependencies
+        shell: bash
+        env:
+          SEAL_DESKTOP_AUXILIARY_DIR: ${{ runner.temp }}/seal-dependency-smoke
+        run: ./gradlew :desktop:desktopDependencyDownloadSelfCheck --stacktrace
+
+      - name: Print downloaded binary metadata
+        if: always()
+        shell: bash
+        env:
+          SEAL_DESKTOP_AUXILIARY_DIR: ${{ runner.temp }}/seal-dependency-smoke
+        run: |
+          if [[ -d "$SEAL_DESKTOP_AUXILIARY_DIR" ]]; then
+            find "$SEAL_DESKTOP_AUXILIARY_DIR" -maxdepth 1 -type f -print
+            if command -v file >/dev/null 2>&1; then
+              find "$SEAL_DESKTOP_AUXILIARY_DIR" -maxdepth 1 -type f -exec file {} \;
+            fi
+          fi

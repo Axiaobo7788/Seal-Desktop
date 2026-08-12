@@ -79,7 +79,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          if (Test-Path "dist-bin/ffmpeg.exe") {
+          if ((Test-Path "dist-bin/ffmpeg.exe") -and (Test-Path "dist-bin/ffprobe.exe")) {
             Write-Host "ffmpeg cache hit: dist-bin/ffmpeg.exe"
             exit 0
           }
@@ -100,6 +100,16 @@ jobs:
           if ($ffprobeExe) {
             Copy-Item $ffprobeExe.FullName -Destination (Join-Path "dist-bin" "ffprobe.exe") -Force
           }
+
+      - name: Verify downloaded tools (Windows)
+        shell: pwsh
+        run: |
+          & "dist-bin\yt-dlp.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "yt-dlp version check failed: $LASTEXITCODE" }
+          & "dist-bin\ffmpeg.exe" -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { throw "ffmpeg version check failed: $LASTEXITCODE" }
+          & "dist-bin\ffprobe.exe" -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { throw "ffprobe version check failed: $LASTEXITCODE" }
 
       # 如需 x86/arm64 可再加下载，改文件名存放到 dist-bin/ 并在后续打包时挑选
       # - name: Download yt-dlp (arm64)
@@ -157,6 +167,20 @@ jobs:
             $isccArgs += "/DMyAppLaunchThroughCmd=1"
           }
           & iscc @isccArgs ".github/scripts/windows_setup.iss"
+
+      - name: Smoke test installed Lite EXE (Windows)
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "dist-installers-lite" -File -Filter "*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Lite installer not found." }
+          $installDir = Join-Path "$env:RUNNER_TEMP" "Seal-Lite"
+          $arguments = @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOICONS", "/DIR=$installDir")
+          $process = Start-Process -FilePath $installer.FullName -ArgumentList $arguments -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Lite installer exited with code $($process.ExitCode)." }
+          & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
+            -AppRoot $installDir `
+            -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
+            -Label "Installed Lite EXE"
 
       - name: Inject tools for Full version
         shell: bash
@@ -218,6 +242,25 @@ jobs:
             $isccArgs += "/DMyAppLaunchThroughCmd=1"
           }
           & iscc @isccArgs ".github/scripts/windows_setup.iss"
+
+      - name: Smoke test installed Full EXE and bundled tools (Windows)
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "dist-installers-full" -File -Filter "*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Full installer not found." }
+          $installDir = Join-Path "$env:RUNNER_TEMP" "Seal-Full"
+          $arguments = @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOICONS", "/DIR=$installDir")
+          $process = Start-Process -FilePath $installer.FullName -ArgumentList $arguments -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Full installer exited with code $($process.ExitCode)." }
+
+          foreach ($name in @("yt-dlp.exe", "ffmpeg.exe", "ffprobe.exe")) {
+            $tool = Get-ChildItem $installDir -Recurse -File -Filter $name | Select-Object -First 1
+            if (-not $tool) { throw "Bundled tool not found in installed app: $name" }
+          }
+          & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
+            -AppRoot $installDir `
+            -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
+            -Label "Installed Full EXE"
 
       - name: Prepare Full, Lite, Min distributions (Windows)
         shell: pwsh
