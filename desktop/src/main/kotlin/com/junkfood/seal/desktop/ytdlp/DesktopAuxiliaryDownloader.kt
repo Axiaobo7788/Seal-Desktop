@@ -41,22 +41,32 @@ object DesktopAuxiliaryDownloader {
         }
     }
 
-    suspend fun downloadPortableDependencies(
+    internal suspend fun downloadPortableDependencies(
         isWin: Boolean,
         isMac: Boolean,
         onLog: (String) -> Unit,
         ytDlpUpdateChannel: Int = YT_DLP_CHANNEL_STABLE,
+        selection: PortableDependencySelection = PortableDependencySelection.All,
     ): Boolean = withContext(Dispatchers.IO) {
         val dir = auxiliaryDirectory(isWin, isMac)
+
+        if (selection.isEmpty) {
+            onLog("已使用检测到的系统依赖，无需下载 Seal 自管副本。")
+            return@withContext true
+        }
 
         if (!Files.exists(dir)) {
             Files.createDirectories(dir)
         }
 
-        val ffmpegDownloads = getFfmpegDownloads(isWin, isMac)
+        val ffmpegDownloads = if (selection.ffmpeg) getFfmpegDownloads(isWin, isMac) else emptyList()
 
         try {
-            downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
+            if (selection.ytDlp) {
+                downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
+            } else {
+                onLog("已检测到可用的 yt-dlp，跳过自管副本下载。")
+            }
 
             for (download in ffmpegDownloads) {
                 onLog("正在下载 ${download.tools.joinToString()} (来源: ${download.source})...")
@@ -86,21 +96,20 @@ object DesktopAuxiliaryDownloader {
     }
 
     internal fun auxiliaryDirectory(isWin: Boolean, isMac: Boolean): Path {
-        System.getProperty(AUXILIARY_DIR_PROPERTY)
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-        System.getenv(AUXILIARY_DIR_ENVIRONMENT)
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-
-        val userHome = System.getProperty("user.home")
-        return when {
-            isWin -> Path.of(System.getenv("LOCALAPPDATA") ?: "$userHome\\AppData\\Local", "Seal", "bin")
-            isMac -> Path.of(userHome, "Library", "Application Support", "Seal", "bin")
-            else -> Path.of(userHome, ".local", "bin")
+        val osName = System.getProperty("os.name").lowercase()
+        val actualIsWindows = osName.contains("win")
+        val actualIsMac = osName.contains("mac") || osName.contains("darwin")
+        if (isWin == actualIsWindows && isMac == actualIsMac) {
+            return DesktopDependencyPaths.appPrivateDirectory()
         }
+
+        return DesktopDependencyPaths.defaultAppPrivateDirectory(
+            isWindows = isWin,
+            isMac = isMac,
+            userHome = System.getProperty("user.home"),
+            xdgDataHome = System.getenv("XDG_DATA_HOME"),
+            localAppData = System.getenv("LOCALAPPDATA"),
+        )
     }
 
     private fun downloadYtDlpTo(
@@ -261,8 +270,18 @@ object DesktopAuxiliaryDownloader {
         }
     }
 
-    private const val AUXILIARY_DIR_PROPERTY = "seal.desktop.auxiliaryDir"
-    private const val AUXILIARY_DIR_ENVIRONMENT = "SEAL_DESKTOP_AUXILIARY_DIR"
+}
+
+internal data class PortableDependencySelection(
+    val ytDlp: Boolean,
+    val ffmpeg: Boolean,
+) {
+    val isEmpty: Boolean
+        get() = !ytDlp && !ffmpeg
+
+    companion object {
+        val All = PortableDependencySelection(ytDlp = true, ffmpeg = true)
+    }
 }
 
 internal data class PortableDependencyDownload(

@@ -15,6 +15,7 @@ concurrency:
 env:
   TOOLS_CACHE_VERSION: v3
   DESKTOP_TARGET_FORMATS: pkg
+  DESKTOP_RELEASE_PROGUARD: "true"
   YT_DLP_MACOS_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_macos
   GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
 
@@ -31,7 +32,7 @@ jobs:
             os: macos-15
             ffmpeg_url: https://www.osxexperts.net/ffmpeg81arm.zip
             ffprobe_url: https://www.osxexperts.net/ffprobe81arm.zip
-            
+
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -47,6 +48,13 @@ jobs:
       - name: Set tools cache epoch
         shell: bash
         run: echo "TOOLS_CACHE_EPOCH=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
+
+      - name: Verify release shrinker configuration
+        shell: bash
+        run: |
+          release_proguard="$(./gradlew -q :desktop:printDesktopReleaseProguardEnabled)"
+          echo "Desktop release ProGuard enabled: $release_proguard"
+          [[ "$release_proguard" == "true" ]]
 
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
@@ -110,7 +118,7 @@ jobs:
           }
 
           mkdir -p dist-bin
-          
+
           echo "Downloading FFmpeg from ${{ matrix.ffmpeg_url }}"
           download_with_retry "${{ matrix.ffmpeg_url }}" dist-bin/ffmpeg.zip
           extract_binary dist-bin/ffmpeg.zip ffmpeg
@@ -147,7 +155,7 @@ jobs:
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
-          
+
           mkdir -p dist-installers-lite
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-lite/ || true
 
@@ -161,7 +169,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label"
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -187,7 +195,7 @@ jobs:
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
-          
+
           mkdir -p dist-installers-full
           cp desktop/build/compose/binaries/main-release/pkg/*.pkg dist-installers-full/ || true
 
@@ -201,7 +209,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label"
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -247,13 +255,11 @@ jobs:
           set -euo pipefail
           workspace="$GITHUB_WORKSPACE"
           desktop_build="$workspace/desktop/build"
-          
+
           if [ ! -d "$desktop_build" ]; then
             echo "Build directory not found: $desktop_build"
             exit 1
           fi
-
-
 
           # Locate app bundle
           app_bundle=$(find "$desktop_build/compose/binaries" -type d -name "*.app" | head -n 1 || true)
@@ -262,7 +268,7 @@ jobs:
             exit 1
           fi
           echo "Resolved app bundle: $app_bundle"
-          
+
           # Portable
           mkdir -p "$workspace/dist-portable"
           cp -R "$app_bundle" "$workspace/dist-portable/"

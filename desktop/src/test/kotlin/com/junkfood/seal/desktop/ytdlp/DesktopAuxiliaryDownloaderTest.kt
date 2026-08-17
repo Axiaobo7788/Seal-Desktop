@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.ytdlp
 
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.createTempDirectory
@@ -12,6 +13,62 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class DesktopAuxiliaryDownloaderTest {
+    @Test
+    fun `linux app-private directory does not overlap user PATH bin`() {
+        val directory =
+            DesktopDependencyPaths.defaultAppPrivateDirectory(
+                isWindows = false,
+                isMac = false,
+                userHome = "/home/tester",
+                xdgDataHome = null,
+                localAppData = null,
+            )
+
+        assertEquals(Path.of("/home/tester/.local/share/Seal/bin"), directory)
+    }
+
+    @Test
+    fun `linux app-private directory honors absolute XDG data home`() {
+        val directory =
+            DesktopDependencyPaths.defaultAppPrivateDirectory(
+                isWindows = false,
+                isMac = false,
+                userHome = "/home/tester",
+                xdgDataHome = "/data/tester",
+                localAppData = null,
+            )
+
+        assertEquals(Path.of("/data/tester/Seal/bin"), directory)
+    }
+
+    @Test
+    fun `windows app-private directory stays below local app data`() {
+        val directory =
+            DesktopDependencyPaths.defaultAppPrivateDirectory(
+                isWindows = true,
+                isMac = false,
+                userHome = "C:\\Users\\Tester",
+                xdgDataHome = null,
+                localAppData = "C:\\Users\\Tester\\AppData\\Local",
+            )
+
+        assertEquals(Path.of("C:\\Users\\Tester\\AppData\\Local", "Seal", "bin"), directory)
+    }
+
+    @Test
+    fun `macOS app-private directory stays below application support`() {
+        val directory =
+            DesktopDependencyPaths.defaultAppPrivateDirectory(
+                isWindows = false,
+                isMac = true,
+                userHome = "/Users/tester",
+                xdgDataHome = null,
+                localAppData = null,
+            )
+
+        assertEquals(Path.of("/Users/tester/Library/Application Support/Seal/bin"), directory)
+    }
+
     @Test
     fun `macOS downloads ffmpeg and ffprobe from architecture-specific archives`() {
         val intel = DesktopAuxiliaryDownloader.getFfmpegDownloads(isWin = false, isMac = true, arch = "x86_64")

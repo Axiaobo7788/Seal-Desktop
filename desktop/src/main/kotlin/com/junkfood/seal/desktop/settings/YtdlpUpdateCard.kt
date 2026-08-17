@@ -50,6 +50,7 @@ import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
+import com.junkfood.seal.desktop.ytdlp.YtDlpUpdateResult
 import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
 import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
@@ -61,6 +62,9 @@ import com.junkfood.seal.shared.generated.resources.dismiss
 import com.junkfood.seal.shared.generated.resources.every_day
 import com.junkfood.seal.shared.generated.resources.every_month
 import com.junkfood.seal.shared.generated.resources.every_week
+import com.junkfood.seal.shared.generated.resources.env_pref_system
+import com.junkfood.seal.shared.generated.resources.env_setup_missing
+import com.junkfood.seal.shared.generated.resources.env_setup_sys_title
 import com.junkfood.seal.shared.generated.resources.update
 import com.junkfood.seal.shared.generated.resources.update_channel
 import com.junkfood.seal.shared.generated.resources.yt_dlp_update_fail
@@ -86,6 +90,9 @@ internal fun YtdlpUpdateCard(
     val ytdlpUpdateText = stringResource(Res.string.ytdlp_update)
     val ytdlpVersionLabel = stringResource(Res.string.ytdlp_version)
     val ytdlpUpdateFailText = stringResource(Res.string.yt_dlp_update_fail)
+    val systemPathText = stringResource(Res.string.env_pref_system)
+    val packageManagerText = stringResource(Res.string.env_setup_sys_title)
+    val missingEnvironmentText = stringResource(Res.string.env_setup_missing)
 
     val scope = rememberCoroutineScope()
     val fetcher =
@@ -99,7 +106,13 @@ internal fun YtdlpUpdateCard(
     LaunchedEffect(fetcher, ytdlpUpdateText, ytdlpVersionLabel) {
         ytDlpDesc =
             withContext(Dispatchers.IO) {
-                buildDependencyDescription(fetcher, ytdlpVersionLabel, ytdlpUpdateText)
+                buildDependencyDescription(
+                    fetcher = fetcher,
+                    ytdlpVersionLabel = ytdlpVersionLabel,
+                    fallback = ytdlpUpdateText,
+                    systemManagedText = "$systemPathText · $packageManagerText",
+                    systemMissingText = "$systemPathText · $missingEnvironmentText",
+                )
             }
     }
 
@@ -120,8 +133,8 @@ internal fun YtdlpUpdateCard(
                     val updated =
                         withContext(Dispatchers.IO) {
                             runCatching {
-                                val success =
-                                    fetcher.invalidateCachedBinary(
+                                val result =
+                                    fetcher.updateBinary(
                                         ytDlpUpdateChannel = appSettings.ytDlpUpdateChannel,
                                         onLog = { line ->
                                             scope.launch {
@@ -129,8 +142,14 @@ internal fun YtdlpUpdateCard(
                                             }
                                         },
                                     )
-                                if (!success) error(ytdlpUpdateFailText)
-                                buildDependencyDescription(fetcher, ytdlpVersionLabel, ytdlpUpdateText)
+                                if (result == YtDlpUpdateResult.Failed) error(ytdlpUpdateFailText)
+                                buildDependencyDescription(
+                                    fetcher = fetcher,
+                                    ytdlpVersionLabel = ytdlpVersionLabel,
+                                    fallback = ytdlpUpdateText,
+                                    systemManagedText = "$systemPathText · $packageManagerText",
+                                    systemMissingText = "$systemPathText · $missingEnvironmentText",
+                                )
                             }
                         }
 
@@ -179,11 +198,24 @@ private suspend fun buildDependencyDescription(
     fetcher: YtDlpFetcher,
     ytdlpVersionLabel: String,
     fallback: String,
+    systemManagedText: String,
+    systemMissingText: String,
 ): String {
     val resolution = fetcher.resolveDependencies()
-    val ytDlp = resolution.ytDlp ?: return "yt-dlp: missing"
+    val ytDlp =
+        resolution.ytDlp
+            ?: return if (resolution.environmentPreference == EnvPrefSystem) {
+                systemMissingText
+            } else {
+                "yt-dlp: missing"
+            }
     val version = readYtDlpVersion(ytDlp.path)?.takeIf { it.isNotBlank() } ?: "unknown"
-    return "yt-dlp (${ytDlp.source.label()}): $ytdlpVersionLabel: $version".ifBlank { fallback }
+    val versionDescription = "yt-dlp (${ytDlp.source.label()}): $ytdlpVersionLabel: $version".ifBlank { fallback }
+    return if (ytDlp.source == DesktopDependencySource.SystemPath) {
+        "$versionDescription\n$systemManagedText"
+    } else {
+        versionDescription
+    }
 }
 
 private fun String.toStatusLine(): String =

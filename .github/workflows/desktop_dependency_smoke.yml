@@ -45,6 +45,10 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Test dependency source and package-manager policies
+        shell: bash
+        run: ./gradlew :desktop:test --tests 'com.junkfood.seal.desktop.ytdlp.*' --stacktrace
+
       - name: Download and execute application-managed dependencies
         shell: bash
         env:

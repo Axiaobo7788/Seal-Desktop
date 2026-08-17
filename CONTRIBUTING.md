@@ -46,7 +46,28 @@ To avoid multiple pull requests resolving the same issue, let others know you ar
 Scan through our [existing issues](https://github.com/Axiaobo7788/Seal-Desktop/issues) to find one that interests you. The [👋 good first issue](https://github.com/JunkFood02/Seal/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) is a good place to start exploring issues that are up-for-grab for newcomers. (Do not hesitate to ask for more details or clarifying questions on the issue!)
 
 
+## Desktop and KMP Development
+
+Seal Desktop has project-specific rules for module ownership, Android/Desktop parity, localization, dependency sources, validation, and progress reporting. Read the repository [`AGENTS.md`](AGENTS.md) and [`docs/development-guidelines.md`](docs/development-guidelines.md) before changing code.
+
+In particular, product strings are authored in `app/src/main/res/values*/strings.xml` and synchronized into Compose resources. A visible Desktop option must also be connected through persistence and execution, or be clearly disabled/unsupported.
+
+
 
 ## Building From Source
 
-Fork this project, import and compile it with the latest version of [Android Studio Canary](https://developer.android.com/studio/preview). 
+Use JDK 21 and the checked-in Gradle wrapper. Android Studio or IntelliJ IDEA can import the complete project.
+
+For a Desktop change, start with:
+
+```bash
+./gradlew :desktop:compileKotlin :desktop:test
+```
+
+For shared KMP logic, also run:
+
+```bash
+./gradlew :shared:allTests :desktop:compileKotlin
+```
+
+The full validation requirement depends on the affected area; use the matrix in [`docs/development-guidelines.md`](docs/development-guidelines.md#8-validation-matrix).

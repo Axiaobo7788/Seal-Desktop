@@ -333,6 +333,10 @@ private fun DesktopApp(
         visible = showEnvSetupDialog,
         onDismissRequest = { showEnvSetupDialog = false },
         ytDlpUpdateChannel = appSettingsState.settings.ytDlpUpdateChannel,
+        environmentPreference = appSettingsState.settings.environmentPreference,
+        onEnvironmentPreferenceChange = { preference ->
+            appSettingsState.update { it.copy(environmentPreference = preference) }
+        },
     )
 
     androidx.compose.runtime.LaunchedEffect(appSettingsState, settingsState) {

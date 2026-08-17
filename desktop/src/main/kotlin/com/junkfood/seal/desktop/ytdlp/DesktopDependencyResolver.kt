@@ -4,7 +4,6 @@ import com.junkfood.seal.desktop.settings.EnvPrefAuto
 import com.junkfood.seal.desktop.settings.EnvPrefBundled
 import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import com.junkfood.seal.desktop.storage.DesktopSqliteStorage
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
@@ -38,6 +37,12 @@ data class DesktopDependencyResolution(
                 if (ytDlp == null) add("yt-dlp")
                 if (ffmpeg == null) add("ffmpeg")
             }
+
+    internal fun missingPortableDependencies(): PortableDependencySelection =
+        PortableDependencySelection(
+            ytDlp = ytDlp == null,
+            ffmpeg = ffmpeg == null,
+        )
 }
 
 object DesktopDependencyResolver {
@@ -138,28 +143,12 @@ object DesktopDependencyResolver {
     }
 
     private fun findSystemBinary(name: String, fileName: String): ResolvedDesktopDependency? {
-        val pathEnv = System.getenv("PATH") ?: return null
-        for (dir in pathEnv.split(File.pathSeparator)) {
-            if (dir.isBlank()) continue
-            val candidate =
-                runCatching { Path.of(dir).resolve(fileName) }
-                    .getOrNull()
-                    ?: continue
-            if (candidate.exists() && (platform.isWindows || candidate.isExecutable())) {
-                return ResolvedDesktopDependency(name, candidate, DesktopDependencySource.SystemPath)
-            }
-        }
-        return null
+        val candidate = DesktopSystemPaths.findExecutable(fileName) ?: return null
+        return ResolvedDesktopDependency(name, candidate, DesktopDependencySource.SystemPath)
     }
 
     private fun privateRoots(): List<Path> =
         buildList {
-            runCatching {
-                val cwd = Path.of(System.getProperty("user.dir"))
-                add(cwd)
-                add(cwd.resolve("bin"))
-            }
-
             runCatching {
                 System.getProperty("compose.application.resources.dir")
                     ?.takeIf { it.isNotBlank() }
@@ -178,30 +167,8 @@ object DesktopDependencyResolver {
                 }
             }
 
-            add(auxiliaryDirectory())
+            add(DesktopDependencyPaths.appPrivateDirectory())
         }
-
-    private fun auxiliaryDirectory(): Path {
-        System.getProperty("seal.desktop.auxiliaryDir")
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-        System.getenv("SEAL_DESKTOP_AUXILIARY_DIR")
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-
-        val osName = System.getProperty("os.name").lowercase()
-        val userHome = System.getProperty("user.home")
-        return when {
-            osName.contains("win") ->
-                Path.of(System.getenv("LOCALAPPDATA") ?: "$userHome\\AppData\\Local", "Seal", "bin")
-            osName.contains("mac") || osName.contains("darwin") ->
-                Path.of(userHome, "Library", "Application Support", "Seal", "bin")
-            else ->
-                Path.of(userHome, ".local", "bin")
-        }
-    }
 
     private fun ensureExecutable(target: Path) {
         if (platform.isWindows || target.isExecutable()) return

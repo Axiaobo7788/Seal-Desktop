@@ -14,6 +14,7 @@ concurrency:
 
 env:
   TOOLS_CACHE_VERSION: v2
+  DESKTOP_RELEASE_PROGUARD: "true"
   YT_DLP_LINUX_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_linux
   FFMPEG_LINUX_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz
   GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
@@ -35,6 +36,13 @@ jobs:
       - name: Set tools cache epoch
         shell: bash
         run: echo "TOOLS_CACHE_EPOCH=$(date -u +%G-W%V)" >> "$GITHUB_ENV"
+
+      - name: Verify release shrinker configuration
+        shell: bash
+        run: |
+          release_proguard="$(./gradlew -q :desktop:printDesktopReleaseProguardEnabled)"
+          echo "Desktop release ProGuard enabled: $release_proguard"
+          [[ "$release_proguard" == "true" ]]
 
       - name: Cache tools (yt-dlp/ffmpeg)
         uses: actions/cache@v5
@@ -94,10 +102,52 @@ jobs:
         run: |
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
-          
+
           mkdir -p dist-installers-lite
           cp desktop/build/compose/binaries/main-release/deb/*.deb dist-installers-lite/ || true
           cp desktop/build/compose/binaries/main-release/rpm/*.rpm dist-installers-lite/ || true
+
+      - name: Smoke test Lite app image and extracted DEB (Linux)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+          fi
+
+          find_app_root() {
+            local search_root="$1"
+            find "$search_root" -type d | while read -r candidate; do
+              if [[ -d "$candidate/bin" && -d "$candidate/lib" ]]; then
+                local launcher
+                launcher="$(find "$candidate/bin" -maxdepth 1 -type f -executable \
+                  ! -name '*.so' ! -name 'yt-dlp' ! -name 'ffmpeg' ! -name 'ffprobe' | head -n 1 || true)"
+                if [[ -n "$launcher" ]]; then
+                  echo "$candidate"
+                  break
+                fi
+              fi
+            done
+          }
+
+          app_root="$(find_app_root desktop/build/compose/binaries)"
+          [[ -n "$app_root" ]]
+          launcher="$(find "$app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
+          xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
+            "$app_root" "$launcher" "Lite app image (Linux x64)" 12 true
+
+          deb="$(find dist-installers-lite -type f -name '*.deb' | head -n 1)"
+          [[ -n "$deb" ]]
+          extracted_root="$RUNNER_TEMP/seal-lite-deb"
+          rm -rf "$extracted_root"
+          mkdir -p "$extracted_root"
+          dpkg-deb -x "$deb" "$extracted_root"
+          installed_app_root="$(find_app_root "$extracted_root")"
+          [[ -n "$installed_app_root" ]]
+          installed_launcher="$(find "$installed_app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
+          xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
+            "$installed_app_root" "$installed_launcher" "Extracted Lite DEB (Linux x64)" 12 true
 
       - name: Inject tools for Full version
         shell: bash
@@ -112,7 +162,7 @@ jobs:
           ./gradlew :desktop:createReleaseDistributable --stacktrace
           ./gradlew :desktop:packageReleaseDistributionForCurrentOS --stacktrace
           ./gradlew :desktop:packageUberJarForCurrentOS --stacktrace
-          
+
           mkdir -p dist-installers-full
           cp desktop/build/compose/binaries/main-release/deb/*.deb dist-installers-full/ || true
           cp desktop/build/compose/binaries/main-release/rpm/*.rpm dist-installers-full/ || true
@@ -189,7 +239,7 @@ jobs:
           done
 
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$app_root" "$launcher" "Full app image (Linux x64)"
+            "$app_root" "$launcher" "Full app image (Linux x64)" 12 true
 
       - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v6

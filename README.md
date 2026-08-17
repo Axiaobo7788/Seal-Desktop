@@ -134,7 +134,7 @@ You can help translate Seal on [Hosted Weblate](https://hosted.weblate.org/proje
 	
 >[!Note]
 >
->For submitting bug reports, feature requests, questions, or any other ideas to improve, please read [CONTRIBUTING.md](https://github.com/JunkFood02/Seal/blob/main/CONTRIBUTING.md) for instructions and guidelines first.
+>For submitting bug reports, feature requests, questions, or any other ideas to improve, please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Code contributors should also follow the project-specific [development guidelines](docs/development-guidelines.md).
 
 ## ⭐️ Star History
 

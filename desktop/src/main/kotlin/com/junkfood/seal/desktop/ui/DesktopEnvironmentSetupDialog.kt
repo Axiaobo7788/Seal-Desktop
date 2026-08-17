@@ -25,6 +25,12 @@ import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.io.BufferedReader
 import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
+import com.junkfood.seal.desktop.settings.EnvPrefAuto
+import com.junkfood.seal.desktop.settings.EnvPrefBundled
+import com.junkfood.seal.desktop.settings.EnvPrefSystem
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
+import com.junkfood.seal.desktop.ytdlp.DesktopSystemPaths
+import com.junkfood.seal.desktop.ytdlp.systemDependencyInstallCommands
 import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.*
@@ -42,6 +48,8 @@ fun DesktopEnvironmentSetupDialog(
     visible: Boolean,
     onDismissRequest: () -> Unit,
     ytDlpUpdateChannel: Int = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE,
+    environmentPreference: Int = EnvPrefAuto,
+    onEnvironmentPreferenceChange: (Int) -> Unit = {},
 ) {
     if (!visible) return
 
@@ -186,8 +194,18 @@ fun DesktopEnvironmentSetupDialog(
                         state = SetupDialogState.Installing
                         logOutput = logStart
                         scope.launch {
-                            val success = runInstallProcess(selectedOption, isWin, isMac, ytDlpUpdateChannel) { log ->
-                                logOutput += log + "\n"
+                            val success =
+                                runInstallProcess(
+                                    option = selectedOption,
+                                    isWin = isWin,
+                                    isMac = isMac,
+                                    ytDlpUpdateChannel = ytDlpUpdateChannel,
+                                    environmentPreference = environmentPreference,
+                                ) { log ->
+                                    logOutput += log + "\n"
+                                }
+                            if (success && selectedOption == 1 && environmentPreference == EnvPrefSystem) {
+                                onEnvironmentPreferenceChange(EnvPrefAuto)
                             }
                             state = if (success) SetupDialogState.Success else SetupDialogState.Failed
                         }
@@ -219,30 +237,44 @@ private suspend fun runInstallProcess(
     isWin: Boolean,
     isMac: Boolean,
     ytDlpUpdateChannel: Int,
+    environmentPreference: Int,
     onLog: (String) -> Unit
 ): Boolean = withContext(Dispatchers.IO) {
     if (option == 0) {
-        // System Package Manager
-        val command = when {
-            isWin -> listOf("winget", "install", "yt-dlp", "ffmpeg", "--accept-package-agreements", "--accept-source-agreements")
-            isMac -> listOf("brew", "install", "yt-dlp", "ffmpeg")
-            else -> return@withContext false // Linux not fully supported for zero-interaction sudo
+        val systemResolution = DesktopDependencyResolver.resolve(EnvPrefSystem)
+        if (systemResolution.isComplete) {
+            onLog("系统 PATH 中的 yt-dlp 和 ffmpeg 已可用，无需重复调用包管理器。")
+            return@withContext true
         }
-        
-        onLog("执行系统命令: ${command.joinToString(" ")}")
+
+        val packageManagerName = if (isWin) "winget.exe" else "brew"
+        val packageManagerExecutable = DesktopSystemPaths.findExecutable(packageManagerName)?.toString()
+        val commands =
+            systemDependencyInstallCommands(
+                isWindows = isWin,
+                isMac = isMac,
+                resolution = systemResolution,
+                packageManagerExecutable = packageManagerExecutable,
+            )
+        if (commands.isEmpty()) return@withContext false
+
         try {
-            val process = ProcessBuilder(command).redirectErrorStream(true).start()
-            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    withContext(Dispatchers.Main) {
-                        onLog(line ?: "")
+            for (command in commands) {
+                onLog("执行系统命令: ${command.joinToString(" ")}")
+                val process = ProcessBuilder(command).redirectErrorStream(true).start()
+                BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        withContext(Dispatchers.Main) {
+                            onLog(line ?: "")
+                        }
                     }
                 }
+                val exitCode = process.waitFor()
+                onLog("\n安装进程退出，代码 $exitCode")
+                if (exitCode != 0) return@withContext false
             }
-            val exitCode = process.waitFor()
-            onLog("\n安装进程退出，代码 $exitCode")
-            return@withContext exitCode == 0
+            return@withContext true
         } catch (e: Exception) {
             onLog("执行出错: ${e.message}")
             return@withContext false
@@ -250,12 +282,18 @@ private suspend fun runInstallProcess(
     } else {
         // Portable download
         onLog("开始下载便携版依赖 (直连 GitHub，请耐心等待)...\n")
+        val detectionPreference = if (environmentPreference == EnvPrefBundled) EnvPrefBundled else EnvPrefAuto
+        val selection =
+            DesktopDependencyResolver
+                .resolve(detectionPreference)
+                .missingPortableDependencies()
         val success =
             DesktopAuxiliaryDownloader.downloadPortableDependencies(
                 isWin = isWin,
                 isMac = isMac,
                 onLog = onLog,
                 ytDlpUpdateChannel = ytDlpUpdateChannel,
+                selection = selection,
             )
         return@withContext success
     }

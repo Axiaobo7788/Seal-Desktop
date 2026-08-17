@@ -1,6 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.jvm.tasks.Jar
+import java.util.zip.ZipFile
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -39,7 +41,82 @@ kotlin {
     }
 }
 
+val desktopBuildOsName = System.getProperty("os.name").lowercase()
+val desktopBuildArchName = System.getProperty("os.arch").lowercase()
+
+fun sqliteNativeOsQualifier(osName: String): String =
+    when {
+        osName.contains("win") -> "Windows"
+        osName.contains("mac") -> "Mac"
+        osName.contains("linux") -> "Linux"
+        else -> error("Unsupported SQLite desktop build OS: $osName")
+    }
+
+fun sqliteNativeArchQualifier(archName: String): String =
+    when (archName) {
+        "amd64", "x86_64" -> "x86_64"
+        "aarch64", "arm64" -> "aarch64"
+        else -> error("Unsupported SQLite desktop build architecture: $archName")
+    }
+
+val sqliteNativeQualifier =
+    "${sqliteNativeOsQualifier(desktopBuildOsName)}/${sqliteNativeArchQualifier(desktopBuildArchName)}"
+val sqliteJdbcSource by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+val platformSqliteJdbc by tasks.registering(Jar::class) {
+    group = "build setup"
+    description = "Repackages sqlite-jdbc with only the current desktop platform native library."
+
+    archiveFileName.set("sqlite-jdbc-${sqliteNativeQualifier.replace('/', '-')}.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("generated/sqlite-jdbc"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+    inputs.property("sqliteNativeQualifier", sqliteNativeQualifier)
+
+    val sqliteArchives = providers.provider {
+        sqliteJdbcSource.files.map { zipTree(it) }
+    }
+    from(sqliteArchives) {
+        exclude("org/sqlite/native/**")
+        // Repacking invalidates any upstream archive signature metadata.
+        exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    }
+    from(sqliteArchives) {
+        include("org/sqlite/native/$sqliteNativeQualifier/**")
+    }
+
+    doLast {
+        val output = archiveFile.get().asFile
+        val targetPrefix = "org/sqlite/native/$sqliteNativeQualifier/"
+        val nativeEntries = ZipFile(output).use { archive ->
+            archive.entries().asSequence()
+                .filterNot { it.isDirectory }
+                .map { it.name }
+                .filter { it.startsWith("org/sqlite/native/") }
+                .toList()
+        }
+        check(nativeEntries.isNotEmpty()) {
+            "sqlite-jdbc does not contain a native library for $sqliteNativeQualifier"
+        }
+        check(nativeEntries.all { it.startsWith(targetPrefix) }) {
+            "Platform sqlite-jdbc unexpectedly contains other native targets: $nativeEntries"
+        }
+
+        val sourceBytes = sqliteJdbcSource.singleFile.length()
+        logger.lifecycle(
+            "Prepared ${output.name} for $sqliteNativeQualifier " +
+                "(${sourceBytes / 1024} KiB -> ${output.length() / 1024} KiB)",
+        )
+    }
+}
+
 dependencies {
+    add(sqliteJdbcSource.name, libs.sqlite.jdbc)
+
     implementation(project(":shared"))
     
     implementation(compose.desktop.currentOs)
@@ -49,7 +126,7 @@ dependencies {
     implementation(compose.components.resources)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.sqlite.jdbc)
+    implementation(files(platformSqliteJdbc.flatMap { it.archiveFile }).builtBy(platformSqliteJdbc))
 
     testImplementation(kotlin("test"))
 }
@@ -77,8 +154,7 @@ val desktopWindowsDebugLauncher =
             ?: providers.environmentVariable("DESKTOP_WINDOWS_DEBUG_LAUNCHER").orNull
     )?.asGradleBoolean() ?: false
 
-val desktopBuildOsName = System.getProperty("os.name").lowercase()
-val desktopReleaseProguardDefault = !desktopBuildOsName.contains("win")
+val desktopReleaseProguardDefault = true
 val desktopReleaseProguardEnabled =
     (
         providers.gradleProperty("desktopReleaseProguard").orNull

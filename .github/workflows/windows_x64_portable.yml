@@ -20,6 +20,7 @@ concurrency:
 
 env:
   TOOLS_CACHE_VERSION: v2
+  DESKTOP_RELEASE_PROGUARD: "true"
   YT_DLP_URL: https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe
   FFMPEG_URL: https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip
   GITHUB_TOKEN: ${{ secrets.JB_TOKEN }}
@@ -42,15 +43,24 @@ jobs:
       - name: Resolve desktop versions
         shell: bash
         run: |
+          proguard_args=()
+          if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "1" ]]; then
+            proguard_args+=("-PdesktopReleaseProguard=false")
+          fi
           package_version="$(./gradlew -q :desktop:printDesktopPackageVersion)"
           version_name="$(./gradlew -q :desktop:printDesktopVersionName)"
-          release_proguard="$(./gradlew -q :desktop:printDesktopReleaseProguardEnabled)"
+          release_proguard="$(./gradlew -q :desktop:printDesktopReleaseProguardEnabled "${proguard_args[@]}")"
           echo "DESKTOP_PACKAGE_VERSION=$package_version" >> "$GITHUB_ENV"
           echo "DESKTOP_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
           echo "Desktop package version: $package_version"
           echo "Desktop version name: $version_name"
           echo "Desktop release ProGuard enabled: $release_proguard"
           echo "Windows debug launcher: $DESKTOP_WINDOWS_DEBUG_LAUNCHER"
+          if [[ "$DESKTOP_WINDOWS_DEBUG_LAUNCHER" == "0" ]]; then
+            [[ "$release_proguard" == "true" ]]
+          else
+            [[ "$release_proguard" == "false" ]]
+          fi
 
       - name: Set tools cache epoch
         shell: bash
@@ -144,7 +154,8 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot "$env:LITE_INSTALLER_SRC" `
             -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Lite app image"
+            -Label "Lite app image" `
+            -VerifySqlite
 
       - name: Package Lite installer (Windows)
         shell: pwsh
@@ -180,7 +191,8 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot $installDir `
             -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Installed Lite EXE"
+            -Label "Installed Lite EXE" `
+            -VerifySqlite
 
       - name: Inject tools for Full version
         shell: bash
@@ -219,7 +231,8 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot "$env:FULL_INSTALLER_SRC" `
             -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Full app image"
+            -Label "Full app image" `
+            -VerifySqlite
 
       - name: Package Full installer (Windows)
         shell: pwsh
@@ -260,7 +273,8 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot $installDir `
             -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Installed Full EXE"
+            -Label "Installed Full EXE" `
+            -VerifySqlite
 
       - name: Prepare Full, Lite, Min distributions (Windows)
         shell: pwsh

@@ -21,4 +21,6 @@ local.properties
 .gradle.properties
 /desktop/build
 /shared/build
-/docs
+# Keep engineering Markdown in Git while ignoring local screenshots or scratch assets.
+/docs/*
+!/docs/*.md
