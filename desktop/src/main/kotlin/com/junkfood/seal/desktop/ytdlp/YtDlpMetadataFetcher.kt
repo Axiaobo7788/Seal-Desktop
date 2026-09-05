@@ -12,6 +12,7 @@ class YtDlpMetadataFetcher(
     fun fetch(
         url: String,
         proxyUrl: String? = null,
+        cookiesPath: Path? = null,
         extraEnv: Map<String, String> = emptyMap(),
     ): VideoInfo {
         val dependencies = fetcher.resolveDependencies()
@@ -26,6 +27,7 @@ class YtDlpMetadataFetcher(
                 ffmpegPath = dependencies.ffmpeg?.path,
                 url = url,
                 proxyUrl = proxyUrl,
+                cookiesPath = cookiesPath,
             )
         val processBuilder = ProcessBuilder(command)
         if (extraEnv.isNotEmpty()) {
@@ -47,6 +49,7 @@ internal fun buildMetadataCommand(
     ffmpegPath: Path?,
     url: String,
     proxyUrl: String? = null,
+    cookiesPath: Path? = null,
 ): List<String> =
     buildList {
         add(ytDlpPath.toAbsolutePath().toString())
@@ -59,6 +62,10 @@ internal fun buildMetadataCommand(
         proxyUrl?.trim()?.takeIf { it.isNotBlank() }?.let {
             add("--proxy")
             add(it)
+        }
+        cookiesPath?.let {
+            add("--cookies")
+            add(it.toAbsolutePath().toString())
         }
         add(url)
     }
