@@ -197,6 +197,7 @@ class DesktopDownloadController(
             metadataFetcher.fetch(
                 url,
                 proxyUrl = runtimeProxy,
+                cookiesPath = if (basePreferences.cookies) DesktopYtDlpPaths.cookiesFile() else null,
             )
         }
     }
@@ -596,11 +597,27 @@ class DesktopDownloadController(
         }
     }
 
-    fun resumeIfPossible(itemId: String) {
+    fun resumeIfPossible(itemId: String, currentPreferences: DownloadPreferences? = null) {
         if (runningJobsByItemId[itemId]?.isActive == true) return
         if (runningProcessesByItemId.containsKey(itemId)) return
         canceledItemIds.remove(itemId)
-        val request = requestByItemId[itemId] ?: return
+        val existing = requestByItemId[itemId] ?: return
+        val request =
+            if (currentPreferences != null) {
+                val appSettings = appSettingsProvider()
+                val refreshed =
+                    existing.copy(
+                        preferences =
+                            DesktopProxyResolver.applyToPreferences(
+                                preferencesForType(currentPreferences, existing.type),
+                                appSettings,
+                            ),
+                    )
+                requestByItemId[itemId] = refreshed
+                refreshed
+            } else {
+                existing
+            }
         startDownloadInternal(itemId, request, reuseExisting = true)
     }
 
@@ -640,6 +657,7 @@ class DesktopDownloadController(
                         metadataFetcher.fetch(
                             trimmed,
                             proxyUrl = runtimeProxy,
+                            cookiesPath = if (effectivePreferences.cookies) DesktopYtDlpPaths.cookiesFile() else null,
                         )
                     }
                 } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
