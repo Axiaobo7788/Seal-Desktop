@@ -1,11 +1,11 @@
 # Android/Desktop Backend Defects
 
-> 兼容入口（2026-07-08）：这份旧缺陷清单已合并到 `docs/desktop-project-audit-2026-06-15.md`。
+This file is kept as a compatibility entry for old links and IDE tabs.
 
-请以后优先维护：
+For current work:
 
-- `docs/desktop-project-audit-2026-06-15.md`：当前唯一行动清单，覆盖后端缺陷、Android/Desktop parity、UI 动画、i18n、CI/release、冗余代码和清理策略。
-- `docs/project-map.md`：项目导航和模块地图。
-- `docs/android-desktop-progress-tracker.md`：2026-04 历史基线，仅保留早期迁移过程和决策记录。
+- read [`current-progress.md`](current-progress.md) for the current resume point and priorities;
+- read [`project-memory.md`](project-memory.md) for durable project context;
+- use [`desktop-project-audit-2026-06-15.md`](desktop-project-audit-2026-06-15.md) only for detailed historical investigations and backlog evidence.
 
-不要在本文继续新增独立缺陷条目，避免同一问题在多份 Markdown 中漂移。
+Do not maintain a second defect list in this file.
