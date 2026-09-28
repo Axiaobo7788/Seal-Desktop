@@ -40,6 +40,19 @@ Every Android/Desktop comparison should be classified as one of:
 
 Do not copy Android-only behavior merely to make a Desktop screen look complete.
 
+### Desktop cookies
+
+Desktop Cookies is a **Desktop adaptation**, not an Android WebView port.
+
+- Android may use Cookie Profiles and an embedded WebView.
+- Desktop must use the user's installed/system browser session as the primary cookie/authentication source.
+- Do not introduce an embedded Desktop WebView merely to mimic Android.
+- Manual Netscape-cookie-file import can remain a fallback.
+- Metadata lookup, final download and retry/resume must consume one coherent resolved cookie state.
+- The presence of a Cookies screen or cookies file does not mean the Desktop cookies feature is complete.
+
+The detailed capability state belongs in `feature-roadmap.md`.
+
 ### Dependency ownership
 
 - `system`: user/OS-owned PATH or package-manager binary; detect but never overwrite.
@@ -65,6 +78,7 @@ Human evidence is expected for visual/animation claims.
 
 These have repeatedly caused false-completion or maintenance problems:
 
+- treating planned/partial migration work as if a mature feature regressed;
 - visible settings whose values never reach execution;
 - Android-specific binary/path assumptions leaking into Desktop;
 - platform adaptations being judged only by screenshots;
@@ -74,7 +88,7 @@ These have repeatedly caused false-completion or maintenance problems:
 - stale dated validation evidence being read as a current pass;
 - one very large audit document mixing current priorities with historical investigation.
 
-Before acting on an old audit item, re-check current code.
+Before acting on an old audit item or external bug report, re-check current code and `feature-roadmap.md`.
 
 ## 5. Packaging And Release Memory
 
@@ -90,12 +104,13 @@ For release/shrinking work:
 
 ## 6. Documentation Model
 
-The project uses four documentation layers:
+The project uses five documentation layers:
 
 1. `AGENTS.md`: mandatory short execution contract.
 2. `docs/project-memory.md`: durable project facts and decisions.
-3. `docs/current-progress.md`: current resume point, priorities and verification debt.
-4. dated audit/history documents: detailed evidence, old investigations and migration history.
+3. `docs/feature-roadmap.md`: product capability state and planned Desktop adaptations.
+4. `docs/current-progress.md`: current resume point, priorities and verification debt.
+5. dated audit/history documents: detailed evidence, old investigations and migration history.
 
 `docs/development-guidelines.md` contains detailed engineering rules.
 `docs/project-map.md` contains navigation and stable code entry points.
@@ -106,12 +121,13 @@ This separation is intentional. Avoid growing a single "everything" document aga
 
 After a long pause:
 
-1. read `AGENTS.md`, this file, and `current-progress.md`;
+1. read `AGENTS.md`, this file, `feature-roadmap.md`, and `current-progress.md`;
 2. inspect the current branch/head and recent commits;
-3. revalidate active P0/P1 items against current code before implementing them;
-4. compare relevant upstream changes when parity or dependencies may have moved;
-5. run the smallest useful compile/test smoke before trusting old status;
-6. update `current-progress.md` with the new resume point.
+3. classify issue reports as bug vs partial/planned/decision-needed before implementation;
+4. revalidate active P0/P1 items against current code;
+5. compare relevant upstream changes when parity or dependencies may have moved;
+6. run the smallest useful compile/test smoke before trusting old status;
+7. update `current-progress.md` with the new resume point.
 
 ## 8. Updating This Memory
 
