@@ -12,14 +12,17 @@ This document defines how changes are designed and accepted. It is not a progres
 
 | Document | Role | May contain |
 | --- | --- | --- |
-| `AGENTS.md` | Mandatory execution contract | Hard boundaries, minimum validation, completion rules |
+| `AGENTS.md` | Mandatory execution contract | Hard boundaries, operating mode, minimum validation, completion rules |
+| `docs/project-memory.md` | Durable memory | Stable architecture/product decisions and recurring traps |
+| `docs/current-progress.md` | Current resume point | Active priorities, verification debt, current confirmed gaps |
 | `docs/development-guidelines.md` | Detailed engineering specification | Architecture, parity, i18n, testing, task templates |
 | `docs/project-map.md` | Navigation | Module locations, key flows, stable entry points |
-| `docs/desktop-project-audit-2026-06-15.md` | Current action list | Defects, priorities, checkboxes, dated verification evidence |
+| `docs/agent-workflow.md` | Agent workflow | Self-iteration loop, stop conditions, human review packets |
+| `docs/desktop-project-audit-2026-06-15.md` | Historical audit/backlog evidence | Dated investigations, detailed backlog context, old verification evidence |
 | `docs/android-desktop-progress-tracker.md` | Historical baseline | Old migration decisions and snapshots |
-| `docs/android-desktop-backend-defects.md` | Compatibility link | Redirect to the current audit only |
+| `docs/android-desktop-backend-defects.md` | Compatibility link | Redirect to current progress and historical audit |
 
-Rules must not be invented inside a dated progress section. If an audit reveals a reusable boundary, add it here and keep only the defect/status entry in the audit.
+Rules must not be invented inside a dated progress section. Put durable decisions in `project-memory.md`, current status in `current-progress.md`, and reusable engineering boundaries here. Dated audit documents are evidence/history, not the first source of current truth.
 
 ## 2. Change Contract
 
@@ -222,7 +225,7 @@ Use the smallest sufficient command during iteration, then run the full affected
 
 ## 9. Progress And Evidence
 
-The audit document records state, not rules. Each completed checkbox should include:
+`docs/current-progress.md` records the current resume state. Dated audit documents may retain detailed historical evidence. For completed work that needs durable verification evidence, record:
 
 ```md
 - [x] Outcome stated in user terms.
