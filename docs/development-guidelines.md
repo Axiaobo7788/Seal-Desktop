@@ -2,7 +2,7 @@
 
 > Status: active engineering specification
 >
-> Updated: 2026-08-12
+> Updated: 2026-09-28
 >
 > Scope: Android, shared KMP, Desktop JVM, CI, packaging, resources, and project documentation
 
