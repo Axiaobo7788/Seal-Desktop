@@ -2,20 +2,33 @@
 
 This file is the mandatory entry point for code and documentation changes in this repository.
 
-The repository separates **durable project memory**, **current progress**, **engineering rules**, and **historical evidence**. Do not collapse them back into one growing audit file.
+The repository separates **durable project memory**, **product roadmap**, **current progress**, **engineering rules**, and **historical evidence**. Do not collapse them back into one growing audit file.
 
 ## Read Order
 
 1. Read this file before editing.
 2. Read [`docs/project-memory.md`](docs/project-memory.md) for durable project context and known traps.
-3. Read [`docs/current-progress.md`](docs/current-progress.md) for the current resume point, priorities, and verification debt.
-4. Read [`docs/development-guidelines.md`](docs/development-guidelines.md) for the affected engineering area.
-5. Use [`docs/project-map.md`](docs/project-map.md) to locate modules and flows.
-6. Read [`docs/agent-workflow.md`](docs/agent-workflow.md) when deciding iteration/review behavior.
-7. Use [`docs/desktop-project-audit-2026-06-15.md`](docs/desktop-project-audit-2026-06-15.md) as historical evidence and detailed backlog context, not as the first source of current truth.
-8. Treat [`docs/android-desktop-progress-tracker.md`](docs/android-desktop-progress-tracker.md) as historical migration context only.
+3. Read [`docs/feature-roadmap.md`](docs/feature-roadmap.md) when a request, issue, or Android comparison may represent a planned/partial feature rather than a bug.
+4. Read [`docs/current-progress.md`](docs/current-progress.md) for the current resume point, priorities, and verification debt.
+5. Read [`docs/development-guidelines.md`](docs/development-guidelines.md) for the affected engineering area.
+6. Use [`docs/project-map.md`](docs/project-map.md) to locate modules and flows.
+7. Read [`docs/agent-workflow.md`](docs/agent-workflow.md) when deciding iteration/review behavior.
+8. Use [`docs/desktop-project-audit-2026-06-15.md`](docs/desktop-project-audit-2026-06-15.md) as historical evidence and detailed backlog context, not as the first source of current truth.
+9. Treat [`docs/android-desktop-progress-tracker.md`](docs/android-desktop-progress-tracker.md) as historical migration context only.
 
-When documents disagree, current code and tests win. Update the stale current-state document in the same change.
+When documents disagree, current code and tests win on implementation facts; documented product decisions still require an explicit product change before being silently redefined. Update stale current-state documentation in the same change.
+
+## Issue And Gap Classification
+
+Before "fixing" a reported bug in this pre-release port, classify it:
+
+- **Implemented -> broken**: bug.
+- **Partial**: finish or repair the end-to-end feature contract; do not patch one symptom and mark the feature complete.
+- **Planned**: feature work, not regression repair.
+- **Decision needed**: switch to human-check mode before choosing product semantics.
+- **Deferred / Unsupported**: keep the UI honest and do not revive it accidentally.
+
+Use [`docs/feature-roadmap.md`](docs/feature-roadmap.md) as the product-capability source. Reporter wording does not override the roadmap.
 
 ## Operating Mode
 
@@ -27,7 +40,7 @@ This is the default for normal implementation and maintenance work.
 
 The agent may repeat this loop without asking for approval between each attempt:
 
-`inspect -> change contract -> implement -> focused validation -> diagnose -> repair -> broader validation -> docs sync`
+`inspect -> classify -> change contract -> implement -> focused validation -> diagnose -> repair -> broader validation -> docs sync`
 
 Rules:
 
@@ -70,6 +83,7 @@ Detailed mode behavior lives in [`docs/agent-workflow.md`](docs/agent-workflow.m
 
 - Inspect `git status` and preserve unrelated or user-authored changes.
 - State the requested outcome and affected modules before widening scope.
+- Classify the request against `docs/feature-roadmap.md` when it touches a partially ported or Android-reference feature.
 - Trace the complete path from UI to persisted settings, plan generation, platform adapter, execution, and user feedback.
 - Compare Android behavior when parity is requested, but classify the result as exact parity, Desktop adaptation, intentionally deferred, or unsupported.
 - Identify affected strings, storage schema, dependency source, packaging, and platform workflows before implementation.
@@ -128,6 +142,7 @@ Detailed mode behavior lives in [`docs/agent-workflow.md`](docs/agent-workflow.m
 ## Documentation And Completion
 
 - Update [`docs/current-progress.md`](docs/current-progress.md) whenever the current resume point, priority, or verification debt changes.
+- Update [`docs/feature-roadmap.md`](docs/feature-roadmap.md) when product capability status or intended Desktop semantics change.
 - Add durable architecture/product facts to [`docs/project-memory.md`](docs/project-memory.md), not to the rolling progress page.
 - Add reusable engineering rules here or in [`docs/development-guidelines.md`](docs/development-guidelines.md).
 - Keep long historical investigations and dated evidence in the audit/history documents; do not make new agents read them first.
