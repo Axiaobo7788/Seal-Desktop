@@ -1,8 +1,10 @@
 # Seal Desktop 项目自查报告（2026-06-15）
 
-> 当前状态（2026-08-17）：本文已合并 `project-map`、`android-desktop-progress-tracker` 与后续自查结论，作为当前唯一行动清单。`project-map` 保留为项目导航，`android-desktop-progress-tracker` 保留为 2026-04 历史基线，不再代表当前剩余缺口数量。
+> 状态更新（2026-09-28）：本文保留为**历史审计、详细 backlog 和验证证据库**，不再作为恢复项目时的第一/current truth 入口。当前恢复点、优先级和验证债请先看 `docs/current-progress.md`；长期项目事实请看 `docs/project-memory.md`。
 >
-> 规范边界（2026-08-12）：本文只记录缺陷、优先级、进度和验证证据。代码操作、模块边界、多语言、依赖来源和 Definition of Done 以根目录 `AGENTS.md` 与 `docs/development-guidelines.md` 为准。
+> 本文中更早写下的“当前唯一行动清单”等表述均视为历史语境，不覆盖上述 2026-09-28 状态。
+>
+> 规范边界：代码操作、模块边界、Agent 工作模式、多语言、依赖来源和 Definition of Done 以根目录 `AGENTS.md`、`docs/agent-workflow.md` 与 `docs/development-guidelines.md` 为准。
 
 ## 结论先读
 
