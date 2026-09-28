@@ -4,7 +4,7 @@
 >
 > 本文用于回答三件事：这个项目在做什么、模块在哪里、当前行动清单看哪里。
 >
-> 当前恢复点、优先级和验证债统一维护在 `docs/current-progress.md`；长期项目事实与关键决策维护在 `docs/project-memory.md`。旧的 `docs/desktop-project-audit-2026-06-15.md` 保留详细历史证据和长清单，不再作为新 Agent 的第一入口。
+> 当前恢复点、优先级和验证债统一维护在 `docs/current-progress.md`；长期项目事实与关键决策维护在 `docs/project-memory.md`；“这是 Bug 还是尚未完成的规划能力”由 `docs/feature-roadmap.md` 统一定义。旧的 `docs/desktop-project-audit-2026-06-15.md` 保留详细历史证据和长清单，不再作为新 Agent 的第一入口。
 > 代码操作、模块边界、多语言、Agent 工作模式和验证规范统一由根目录 `AGENTS.md`、`docs/agent-workflow.md` 与 `docs/development-guidelines.md` 管理。
 
 ## Overview
@@ -26,10 +26,10 @@ Seal-Desktop 是 Seal 的桌面移植与跨端演进项目：围绕 yt-dlp 下�
 | `desktop/` | Desktop 产品端 | 下载 UI、自定义命令、设置、存储、进程执行、平台打包 |
 | `shared/` | 跨端共享层 | 模型、下载计划、选择合并、平台无关 UI 和契约 |
 | `color/` | 主题/色彩支持 | 颜色与视觉支持 |
-| `docs/` | 工程治理 | 项目记忆、当前进度、开发规范、项目地图、历史审计 |
+| `docs/` | 工程治理 | 项目记忆、功能路线图、当前进度、开发规范、项目地图、历史审计 |
 | `translations/` | 多语言文档 | README 多语种版本 |
 
-当前完成度、缺陷和优先级只在 `docs/current-progress.md` 更新，本文不维护百分比或日期计划。
+当前工作优先级只在 `docs/current-progress.md` 更新；产品能力状态只在 `docs/feature-roadmap.md` 更新；本文不维护百分比或日期计划。
 
 ## 模块依赖图
 
@@ -52,9 +52,12 @@ flowchart LR
   end
 
   subgraph Docs[工程治理]
+    Memory[project-memory]
+    Roadmap[feature-roadmap]
+    Current[current-progress]
     Guide[development-guidelines]
     PMAP[project-map]
-    Audit[desktop-project-audit]
+    Audit[historical audit]
   end
 
   Shared --> AppUI
@@ -66,15 +69,11 @@ flowchart LR
   DUI --> DExec
   DExec --> DStore
 
-  DStore -.回归结果.-> Audit
-  AppDB -.对照基线.-> Audit
+  Memory --> Roadmap
+  Roadmap --> Current
   Guide --> PMAP
-  PMAP --> Audit
-
-  classDef critical fill:#ffe8e8,stroke:#c23b3b,stroke-width:1.2px;
-  classDef progress fill:#e8f5ff,stroke:#2f6fab,stroke-width:1.2px;
-  class DExec,DStore,Audit critical;
-  class Shared,Guide,PMAP progress;
+  PMAP --> Current
+  Current -.详细证据.-> Audit
 ```
 
 ## Modules（按业务域）
@@ -109,13 +108,18 @@ flowchart LR
 ### 1. 普通下载流程
 `页面输入 URL -> 拉取元数据 -> 选择格式/偏好 -> 生成 DownloadPlan -> 平台执行器执行 -> 队列状态更新 -> 历史持久化 -> 通知反馈`
 
-### 2. 自定义命令流程（Desktop）
+### 2. Desktop Cookies 目标流程
+`选择/使用系统浏览器登录态 -> 解析/提取 Cookies -> metadata 与最终下载共享 Cookies 上下文 -> 失败/状态反馈`
+
+Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roadmap.md`。
+
+### 3. 自定义命令流程（Desktop）
 `选择模板 -> 输入 URL -> DesktopCustomCommandTaskManager 启动任务 -> 实时日志/进度 -> 完成或失败通知 -> 任务快照持久化`
 
-### 3. 存储后端流程（Desktop）
+### 4. 存储后端流程（Desktop）
 `状态变更 -> (json/dual/sqlite) 写入策略 -> 原子写/SQLite 写入 -> 事件日志 -> 重启恢复`
 
-### 4. 跨端共享流程
+### 5. 跨端共享流程
 `Android 资源/业务规则 -> shared 模型与逻辑 -> app/desktop 各自适配执行`
 
 ## 关键代码入口
@@ -125,17 +129,20 @@ flowchart LR
 | Desktop 应用和窗口生命周期 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/Main.kt` |
 | Desktop 下载调度 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt` |
 | Desktop 依赖来源解析 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopDependencyResolver.kt` |
+| Desktop Cookies UI | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt` |
+| Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |
 | Android 语言选项 | `app/src/main/java/com/junkfood/seal/util/LanguageSettings.kt` |
 | Desktop 语言映射 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/i18n/DesktopLocaleOptions.kt` |
 | 产品字符串事实源 | `app/src/main/res/values*/strings.xml` |
 
-变更任务模板、Definition of Done 和验证矩阵见 `docs/development-guidelines.md`，Agent 迭代/人工核对规则见 `docs/agent-workflow.md`，当前任务排序见 `docs/current-progress.md`。
+变更任务模板、Definition of Done 和验证矩阵见 `docs/development-guidelines.md`，Agent 迭代/人工核对规则见 `docs/agent-workflow.md`，产品能力状态见 `docs/feature-roadmap.md`，当前任务排序见 `docs/current-progress.md`。
 
 ## 关联文档
-- `AGENTS.md`（每次代码操作必须先读的边界、模式与最低验证要求）
+- `AGENTS.md`（每次代码操作必须先读的边界、分类、模式与最低验证要求）
 - `docs/project-memory.md`（长期项目事实、关键决策和反复踩坑点）
+- `docs/feature-roadmap.md`（规划能力、Partial/Planned/Bug/Decision needed 分类）
 - `docs/current-progress.md`（当前恢复点、任务优先级和验证债）
 - `docs/agent-workflow.md`（自我迭代模式与人工核对模式）
 - `docs/development-guidelines.md`（模块、parity、i18n、依赖、存储和验证详细规范）
