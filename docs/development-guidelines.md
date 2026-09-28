@@ -14,7 +14,7 @@ This document defines how changes are designed and accepted. It is not a progres
 | --- | --- | --- |
 | `AGENTS.md` | Mandatory execution contract | Hard boundaries, operating mode, minimum validation, completion rules |
 | `docs/project-memory.md` | Durable memory | Stable architecture/product decisions and recurring traps |
-| `docs/current-progress.md` | Current resume point | Active priorities, verification debt, current confirmed gaps |
+| `docs/feature-roadmap.md` | Product capability roadmap | Implemented/Partial/Planned/Bug/Decision-needed capability status and Desktop adaptations |\n| `docs/current-progress.md` | Current resume point | Active priorities, verification debt, current confirmed gaps |
 | `docs/development-guidelines.md` | Detailed engineering specification | Architecture, parity, i18n, testing, task templates |
 | `docs/project-map.md` | Navigation | Module locations, key flows, stable entry points |
 | `docs/agent-workflow.md` | Agent workflow | Self-iteration loop, stop conditions, human review packets |
@@ -22,7 +22,7 @@ This document defines how changes are designed and accepted. It is not a progres
 | `docs/android-desktop-progress-tracker.md` | Historical baseline | Old migration decisions and snapshots |
 | `docs/android-desktop-backend-defects.md` | Compatibility link | Redirect to current progress and historical audit |
 
-Rules must not be invented inside a dated progress section. Put durable decisions in `project-memory.md`, current status in `current-progress.md`, and reusable engineering boundaries here. Dated audit documents are evidence/history, not the first source of current truth.
+Rules must not be invented inside a dated progress section. Put durable decisions in `project-memory.md`, capability state and planned Desktop semantics in `feature-roadmap.md`, current active status in `current-progress.md`, and reusable engineering boundaries here. Dated audit documents are evidence/history, not the first source of current truth.
 
 ## 2. Change Contract
 
@@ -249,5 +249,5 @@ A change is complete only when all applicable statements are true:
 - Required strings use the resource chain and qualifier mapping.
 - Focused automated tests and the affected validation matrix pass.
 - Required native platforms are verified, or the missing evidence is disclosed.
-- Audit status and durable documentation are synchronized.
+- Current progress, feature-roadmap status, and durable documentation are synchronized when applicable.
 - The diff contains no unrelated reversions, generated noise, secrets, machine-local paths, or temporary debugging behavior.
