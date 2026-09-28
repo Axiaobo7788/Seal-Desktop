@@ -11,6 +11,8 @@ Describe the user-visible result, not only the files or refactor performed.
 ## Scope
 
 - Affected modules:
+- Capability status before change: Implemented / Partial / Planned / Decision needed / Deferred / Unsupported
+- Roadmap impact: none / update `docs/feature-roadmap.md`
 - Android reference behavior:
 - Desktop classification: exact parity / platform adaptation / deferred / unsupported
 - Explicit non-goals:
