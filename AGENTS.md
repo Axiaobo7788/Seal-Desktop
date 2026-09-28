@@ -1,16 +1,70 @@
 # Seal Desktop Engineering Contract
 
-This file is the mandatory entry point for code changes in this repository. Detailed rationale, matrices, and examples live in [`docs/development-guidelines.md`](docs/development-guidelines.md).
+This file is the mandatory entry point for code and documentation changes in this repository.
+
+The repository separates **durable project memory**, **current progress**, **engineering rules**, and **historical evidence**. Do not collapse them back into one growing audit file.
 
 ## Read Order
 
 1. Read this file before editing.
-2. Read [`docs/development-guidelines.md`](docs/development-guidelines.md) for the affected area.
-3. Use [`docs/project-map.md`](docs/project-map.md) to locate modules and flows.
-4. Use [`docs/desktop-project-audit-2026-06-15.md`](docs/desktop-project-audit-2026-06-15.md) only for current status and unfinished work.
-5. Treat [`docs/android-desktop-progress-tracker.md`](docs/android-desktop-progress-tracker.md) as historical context, not current truth.
+2. Read [`docs/project-memory.md`](docs/project-memory.md) for durable project context and known traps.
+3. Read [`docs/current-progress.md`](docs/current-progress.md) for the current resume point, priorities, and verification debt.
+4. Read [`docs/development-guidelines.md`](docs/development-guidelines.md) for the affected engineering area.
+5. Use [`docs/project-map.md`](docs/project-map.md) to locate modules and flows.
+6. Read [`docs/agent-workflow.md`](docs/agent-workflow.md) when deciding iteration/review behavior.
+7. Use [`docs/desktop-project-audit-2026-06-15.md`](docs/desktop-project-audit-2026-06-15.md) as historical evidence and detailed backlog context, not as the first source of current truth.
+8. Treat [`docs/android-desktop-progress-tracker.md`](docs/android-desktop-progress-tracker.md) as historical migration context only.
 
-When documents disagree, current code and tests win over progress notes. Update the stale document in the same change.
+When documents disagree, current code and tests win. Update the stale current-state document in the same change.
+
+## Operating Mode
+
+Every task runs in one of two modes.
+
+### Self-iteration mode
+
+This is the default for normal implementation and maintenance work.
+
+The agent may repeat this loop without asking for approval between each attempt:
+
+`inspect -> change contract -> implement -> focused validation -> diagnose -> repair -> broader validation -> docs sync`
+
+Rules:
+
+- Keep the loop scoped to the requested outcome and affected modules.
+- Prefer the smallest focused check while iterating; run the required validation row before completion.
+- A failed validation is a reason to diagnose and retry, not a reason to silently weaken the check.
+- Do not rewrite unrelated code merely because it is nearby.
+- Do not merge, release, publish, force-push, delete user data, rotate secrets, or make irreversible external changes unless explicitly requested.
+- Stop self-iteration and switch to a human checkpoint when a product decision, visual judgement, destructive migration, platform-only verification, credential, or unclear scope boundary is required.
+- Record what remains unverified instead of inventing evidence.
+
+### Human-check mode
+
+Use this mode when the user explicitly asks for manual review/checking, or when a human judgement is part of the Definition of Done.
+
+Typical triggers:
+
+- UI appearance, animation feel, interaction parity, accessibility feel, or screenshot/recording comparison.
+- Choosing between Desktop adaptation and exact Android parity when product intent is not already documented.
+- Destructive or non-trivial data migration.
+- Installer/package behavior that requires a native OS not available to the agent.
+- New dependency/update provenance, signing, release, or security-sensitive behavior.
+- Any change whose correctness depends on a real account, credential, hardware device, or external service state.
+
+Before the checkpoint, finish all safe automated work that can reduce the review burden. Then produce a **Human Review Packet** containing:
+
+- outcome and affected path;
+- exact files/areas changed;
+- automated checks and results;
+- exact manual steps;
+- expected result for each step;
+- screenshots/recordings/logs worth capturing;
+- unresolved risk and rollback path.
+
+Do not mark a human-only item verified until the human evidence exists.
+
+Detailed mode behavior lives in [`docs/agent-workflow.md`](docs/agent-workflow.md).
 
 ## Before Editing
 
@@ -19,7 +73,8 @@ When documents disagree, current code and tests win over progress notes. Update 
 - Trace the complete path from UI to persisted settings, plan generation, platform adapter, execution, and user feedback.
 - Compare Android behavior when parity is requested, but classify the result as exact parity, Desktop adaptation, intentionally deferred, or unsupported.
 - Identify affected strings, storage schema, dependency source, packaging, and platform workflows before implementation.
-- Do not turn an audit-only request into code changes without approval.
+- Do not turn an audit-only or review-only request into code changes without approval.
+- Check [`docs/current-progress.md`](docs/current-progress.md) before reviving an old TODO: stale audit items must be revalidated against current code first.
 
 ## Module Boundaries
 
@@ -72,8 +127,8 @@ When documents disagree, current code and tests win over progress notes. Update 
 
 ## Documentation And Completion
 
-- Update the audit checkbox only after the implementation and required validation are complete.
-- Record the exact validation command and result; keep historical results dated and separate from current claims.
-- Add durable rules here or in `docs/development-guidelines.md`, not in the progress checklist.
-- Add current defects and completion status only to `docs/desktop-project-audit-2026-06-15.md`.
+- Update [`docs/current-progress.md`](docs/current-progress.md) whenever the current resume point, priority, or verification debt changes.
+- Add durable architecture/product facts to [`docs/project-memory.md`](docs/project-memory.md), not to the rolling progress page.
+- Add reusable engineering rules here or in [`docs/development-guidelines.md`](docs/development-guidelines.md).
+- Keep long historical investigations and dated evidence in the audit/history documents; do not make new agents read them first.
 - A completed change must include implementation, failure handling, targeted tests, affected localization, platform verification, and documentation synchronization. Explicitly list anything that remains unverified.
