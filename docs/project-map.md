@@ -4,8 +4,8 @@
 >
 > 本文用于回答三件事：这个项目在做什么、模块在哪里、当前行动清单看哪里。
 >
-> 当前细粒度缺陷、Android parity、冗余代码和清理任务已经合并到 `docs/desktop-project-audit-2026-06-15.md`。本文只保留项目地图和导航，不再作为缺陷状态的唯一来源。
-> 代码操作、模块边界、多语言和验证规范统一由根目录 `AGENTS.md` 与 `docs/development-guidelines.md` 管理。
+> 当前恢复点、优先级和验证债统一维护在 `docs/current-progress.md`；长期项目事实与关键决策维护在 `docs/project-memory.md`。旧的 `docs/desktop-project-audit-2026-06-15.md` 保留详细历史证据和长清单，不再作为新 Agent 的第一入口。
+> 代码操作、模块边界、多语言、Agent 工作模式和验证规范统一由根目录 `AGENTS.md`、`docs/agent-workflow.md` 与 `docs/development-guidelines.md` 管理。
 
 ## Overview
 Seal-Desktop 是 Seal 的桌面移植与跨端演进项目：围绕 yt-dlp 下载能力，构建 Android + Desktop 的统一业务模型、可复用下载流程和可持续收尾路线。
@@ -26,10 +26,10 @@ Seal-Desktop 是 Seal 的桌面移植与跨端演进项目：围绕 yt-dlp 下�
 | `desktop/` | Desktop 产品端 | 下载 UI、自定义命令、设置、存储、进程执行、平台打包 |
 | `shared/` | 跨端共享层 | 模型、下载计划、选择合并、平台无关 UI 和契约 |
 | `color/` | 主题/色彩支持 | 颜色与视觉支持 |
-| `docs/` | 工程治理 | 开发规范、项目地图、缺陷清单、历史记录 |
+| `docs/` | 工程治理 | 项目记忆、当前进度、开发规范、项目地图、历史审计 |
 | `translations/` | 多语言文档 | README 多语种版本 |
 
-当前完成度、缺陷和优先级只在 `docs/desktop-project-audit-2026-06-15.md` 更新，本文不维护百分比或日期计划。
+当前完成度、缺陷和优先级只在 `docs/current-progress.md` 更新，本文不维护百分比或日期计划。
 
 ## 模块依赖图
 
@@ -131,10 +131,13 @@ flowchart LR
 | Desktop 语言映射 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/i18n/DesktopLocaleOptions.kt` |
 | 产品字符串事实源 | `app/src/main/res/values*/strings.xml` |
 
-变更任务模板、Definition of Done 和验证矩阵见 `docs/development-guidelines.md`，当前任务排序见审计文档。
+变更任务模板、Definition of Done 和验证矩阵见 `docs/development-guidelines.md`，Agent 迭代/人工核对规则见 `docs/agent-workflow.md`，当前任务排序见 `docs/current-progress.md`。
 
 ## 关联文档
-- `AGENTS.md`（每次代码操作必须先读的边界与最低验证要求）
+- `AGENTS.md`（每次代码操作必须先读的边界、模式与最低验证要求）
+- `docs/project-memory.md`（长期项目事实、关键决策和反复踩坑点）
+- `docs/current-progress.md`（当前恢复点、任务优先级和验证债）
+- `docs/agent-workflow.md`（自我迭代模式与人工核对模式）
 - `docs/development-guidelines.md`（模块、parity、i18n、依赖、存储和验证详细规范）
-- `docs/desktop-project-audit-2026-06-15.md`（当前唯一行动清单：缺陷、parity、冗余代码、清理策略）
+- `docs/desktop-project-audit-2026-06-15.md`（历史审计与详细证据，不再作为第一入口）
 - `docs/android-desktop-progress-tracker.md`（2026-04 历史基线，保留迁移过程与早期决策）
