@@ -2,6 +2,12 @@
 
 Describe the user-visible result, not only the files or refactor performed.
 
+## Agent Mode
+
+- Mode used: self-iteration / human-check
+- Human checkpoint required: yes / no
+- If yes, link or summarize the Human Review Packet/evidence.
+
 ## Scope
 
 - Affected modules:
@@ -19,7 +25,9 @@ Describe the user-visible result, not only the files or refactor performed.
 - [ ] Affected Gradle compile/test tasks pass.
 - [ ] Workflow or packaging changes were validated on each affected native runner.
 - [ ] UI changes were checked for state, window size, theme, locale, input, scrolling, and animation, or gaps are listed below.
-- [ ] The current audit checkbox and validation evidence were updated when applicable.
+- [ ] `docs/current-progress.md` was updated when the resume point, priority, or verification debt changed.
+- [ ] Durable decisions were added to `docs/project-memory.md` only when they are expected to survive across tasks.
+- [ ] Human-only claims (visual/native/product judgement) are not marked verified without human/native evidence.
 - [ ] The diff contains no unrelated reversions, generated noise, secrets, local paths, or temporary debug behavior.
 
 ## Verification
