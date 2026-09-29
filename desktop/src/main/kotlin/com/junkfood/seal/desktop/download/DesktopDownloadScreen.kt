@@ -244,7 +244,7 @@ fun DesktopDownloadScreen(
                                             actionErrorMessage = itemNotFoundMessage
                                         }
                                     }
-                                    DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId)
+                                    DownloadQueueAction.Resume -> controller.resumeIfPossible(itemId, preferences)
                                     DownloadQueueAction.OpenFile -> {
                                         val localPathResolution = resolveLocalPathFromItem(item)
                                         val localPath = localPathResolution.selectedPath

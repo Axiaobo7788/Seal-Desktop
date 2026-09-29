@@ -72,6 +72,12 @@ import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_in_database
 import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.cookies_usage_msg
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_delete_file_desc
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_export_dialog_title
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_extract_description
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_import_dialog_title
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_import_from_file
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_select_browser
 import com.junkfood.seal.shared.generated.resources.export_to_file
 import com.junkfood.seal.shared.generated.resources.generate_new_cookies
 import com.junkfood.seal.shared.generated.resources.got_it
@@ -79,6 +85,7 @@ import com.junkfood.seal.shared.generated.resources.how_does_it_work
 import com.junkfood.seal.shared.generated.resources.show_more_actions
 import com.junkfood.seal.shared.generated.resources.ua_header
 import com.junkfood.seal.shared.generated.resources.use_cookies
+import com.junkfood.seal.shared.generated.resources.url_label
 import com.junkfood.seal.util.DownloadPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -118,6 +125,8 @@ internal fun CookiesSettingsPage(
     var cookiesStats by remember { mutableStateOf(DesktopCookiesStats(0, 0)) }
 
     val cookiesFilePath = DesktopYtDlpPaths.cookiesFile()
+    val exportCookiesDialogTitle = stringResource(Res.string.desktop_cookies_export_dialog_title)
+    val importCookiesDialogTitle = stringResource(Res.string.desktop_cookies_import_dialog_title)
     val scope = rememberCoroutineScope()
     val cookiesListState = rememberLazyListState()
 
@@ -164,7 +173,7 @@ internal fun CookiesSettingsPage(
                             )
                             DropdownMenuItem(
                                 leadingIcon = { Icon(Icons.Outlined.Add, null) },
-                                text = { Text("从文件导入 (Fallback)") },
+                                text = { Text(stringResource(Res.string.desktop_cookies_import_from_file)) },
                                 onClick = {
                                     showMenu = false
                                     showImportDialog = true
@@ -181,7 +190,7 @@ internal fun CookiesSettingsPage(
                                             val dialog =
                                                 FileDialog(
                                                     null as Frame?,
-                                                    "Export Cookies",
+                                                    exportCookiesDialogTitle,
                                                     FileDialog.SAVE,
                                                 )
                                             dialog.file = "cookies.txt"
@@ -319,14 +328,14 @@ internal fun CookiesSettingsPage(
         text = {
             Column {
                 Text(
-                    text = "输入目标网站 URL 并选择浏览器以提取 Cookies",
+                    text = stringResource(Res.string.desktop_cookies_extract_description),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = extractUrl,
                     onValueChange = { extractUrl = it },
-                    label = { Text("URL") },
+                    label = { Text(stringResource(Res.string.url_label)) },
                     singleLine = true,
                     enabled = !isExtracting,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
@@ -341,7 +350,7 @@ internal fun CookiesSettingsPage(
                         value = extractBrowser.displayName,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("选择浏览器") },
+                        label = { Text(stringResource(Res.string.desktop_cookies_select_browser)) },
                         trailingIcon = {
                             androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                         },
@@ -424,7 +433,7 @@ internal fun CookiesSettingsPage(
         onDismissRequest = { showClearConfirmDialog = false },
         icon = { Icon(Icons.Outlined.DeleteForever, null) },
         title = { Text(stringResource(Res.string.clear_all_cookies)) },
-        text = { Text("This will delete the cookies file, and yt-dlp will no longer use stored cookies.") },
+        text = { Text(stringResource(Res.string.desktop_cookies_delete_file_desc)) },
         dismissButton = {
             TextButton(onClick = { showClearConfirmDialog = false }) {
                 Text(stringResource(Res.string.cancel))
@@ -474,7 +483,7 @@ internal fun CookiesSettingsPage(
                             val dialog =
                                 FileDialog(
                                     null as Frame?,
-                                    "Import Cookies",
+                                    importCookiesDialogTitle,
                                     FileDialog.LOAD,
                                 )
                             dialog.isVisible = true

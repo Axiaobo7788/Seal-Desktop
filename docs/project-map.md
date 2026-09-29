@@ -15,7 +15,7 @@ Seal-Desktop 是 Seal 的桌面移植与跨端演进项目：围绕 yt-dlp 下�
 - 后端：Kotlin、Kotlin Coroutines、yt-dlp 执行编排（Android: youtubedl-android，Desktop: JVM 执行器）
 - 数据库/存储：
   - Android：Room (SQLite) + MMKV
-  - Desktop：SQLite (xerial) + JSON 兼容层（json/dual/sqlite 三后端）
+  - Desktop：queue/history/app-settings 使用 SQLite (xerial) + JSON 兼容层（json/dual/sqlite 三后端）；`DownloadPreferences` 暂时仍使用独立 `settings.json`
   - 跨端数据：kotlinx-serialization
 
 ## 项目结构地图
@@ -48,6 +48,7 @@ flowchart LR
   subgraph Desktop[Desktop 端]
     DUI[desktop UI 与自定义命令]
     DExec[desktop 执行器与队列]
+    DDeps[desktop 依赖与认证解析]
     DStore[desktop storage json/dual/sqlite]
   end
 
@@ -67,6 +68,8 @@ flowchart LR
   AppUI --> AppDB
 
   DUI --> DExec
+  DUI --> DDeps
+  DDeps --> DExec
   DExec --> DStore
 
   Memory --> Roadmap
@@ -89,11 +92,17 @@ flowchart LR
 
 ### `desktop/customcommand/`
 - 自定义命令模板、任务管理、日志视图
-- 任务快照落盘与重启恢复（当前语义：Running -> Canceled）
+- 任务快照落盘与重启恢复（当前语义：Running -> Interrupted）
 
 ### `desktop/storage/`
-- 三后端存储（json/dual/sqlite）
+- queue/history/app-settings 三后端存储（json/dual/sqlite）
 - 原子写、损坏隔离、事件日志、自检任务
+- 下载偏好当前由 `DesktopSettingsState` 单独写 `settings.json`，尚未纳入三后端
+
+### `desktop/ytdlp/` + `desktop/network/`
+- system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
+- yt-dlp/ffmpeg 执行配置、metadata 获取、Cookies 文件和 proxy 运行环境
+- 当前重点缺口：认证上下文未贯通 metadata 与下载；依赖仅检查存在性，尚未区分 Healthy/Broken
 
 ### `app/download/` + `app/util/`
 - Android 任务编排、服务保活、通知动作、平台能力集成
@@ -109,9 +118,10 @@ flowchart LR
 `页面输入 URL -> 拉取元数据 -> 选择格式/偏好 -> 生成 DownloadPlan -> 平台执行器执行 -> 队列状态更新 -> 历史持久化 -> 通知反馈`
 
 ### 2. Desktop Cookies 目标流程
-`选择/使用系统浏览器登录态 -> 解析/提取 Cookies -> metadata 与最终下载共享 Cookies 上下文 -> 失败/状态反馈`
+`已登录的系统浏览器或外部 Netscape 文件 -> 解析统一认证上下文 -> metadata/格式页/正式下载/自定义命令/重试 -> 失败/状态反馈`
 
 Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roadmap.md`。
+浏览器提取是主入口，文件导入是 fallback；当前认证上下文尚未贯通全部请求。
 
 ### 3. 自定义命令流程（Desktop）
 `选择模板 -> 输入 URL -> DesktopCustomCommandTaskManager 启动任务 -> 实时日志/进度 -> 完成或失败通知 -> 任务快照持久化`
@@ -122,6 +132,11 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 ### 5. 跨端共享流程
 `Android 资源/业务规则 -> shared 模型与逻辑 -> app/desktop 各自适配执行`
 
+### 6. Desktop 依赖与打包流程
+`环境偏好(system/selfhost/auto) -> resolver -> health/source 状态 -> 执行器或环境修复 UI`
+
+`Lite: 应用运行时 -> smoke`；`Full: 显式准备平台工具 -> 注入 appResources -> 打包 -> staged/installed tool smoke`。普通本地打包不会自动变成 Full。
+
 ## 关键代码入口
 
 | 场景 | 入口 |
@@ -129,8 +144,10 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 | Desktop 应用和窗口生命周期 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/Main.kt` |
 | Desktop 下载调度 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt` |
 | Desktop 依赖来源解析 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopDependencyResolver.kt` |
-| Desktop Cookies UI | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt` |
+| Desktop 依赖安装与 Full 工具来源 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopAuxiliaryDownloader.kt`、`.github/workflows/*_portable.yml` |
 | Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
+| Desktop Cookies UI 与全局文件 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`DesktopYtDlpPaths.kt` |
+| Desktop 队列快照 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |
 | Android 语言选项 | `app/src/main/java/com/junkfood/seal/util/LanguageSettings.kt` |

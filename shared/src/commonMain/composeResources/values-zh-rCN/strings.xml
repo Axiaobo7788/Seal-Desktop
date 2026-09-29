@@ -189,6 +189,7 @@
     <string name="desktop_exit_confirm_running_count">当前有 %1$d 个下载任务正在运行，退出将中断下载。</string>
     <string name="desktop_exit_confirm_running_generic">当前仍有下载任务未完成，退出将中断下载。</string>
     <string name="restart">重新开始</string>
+    <string name="retry">重试</string>
     <string name="status_error">发生错误</string>
     <string name="copy_link">复制链接</string>
     <string name="copy_error_report">复制报告</string>
@@ -213,6 +214,13 @@
     <string name="aria2_desc">使用 aria2c 下载器进行下载</string>
     <string name="cookies">Cookies</string>
     <string name="cookies_desc">使用 Netscape 规范的 Cookies 文件进行下载</string>
+    <string name="desktop_cookies_import_from_file">从文件导入</string>
+    <string name="desktop_cookies_export_dialog_title">导出 Cookies</string>
+    <string name="desktop_cookies_import_dialog_title">导入 Cookies</string>
+    <string name="desktop_cookies_extract_description">输入目标网站 URL 并选择用于提取 Cookies 的浏览器</string>
+    <string name="desktop_cookies_select_browser">选择浏览器</string>
+    <string name="desktop_cookies_delete_file_desc">这将删除已保存的 Cookies 文件，yt-dlp 将不再使用这些 Cookies。</string>
+    <string name="desktop_cookies_browser_source">Cookies 将从 %1$s 读取</string>
     <string name="clear_temp_files">清除临时文件</string>
     <string name="clear_temp_files_desc">删除临时目录下的所有临时文件</string>
     <string name="clear_temp_files_count">共清除了 %1$d 个临时文件</string>
@@ -351,6 +359,8 @@
     <string name="desktop_auto_proxy_detect_desc">启用后会自动检测本地 Xray 端口并覆盖上方代理地址</string>
     <string name="desktop_auto_proxy_detect_result">当前检测结果：%1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">未检测到可用的 Xray 代理</string>
+    <string name="desktop_dependency_status_detecting">正在检测…</string>
+    <string name="desktop_dependency_status_missing">缺失</string>
     <string name="legacy">兼容优先</string>
     <string name="quality">质量优先</string>
     <string name="enable_notifications">启用通知？</string>

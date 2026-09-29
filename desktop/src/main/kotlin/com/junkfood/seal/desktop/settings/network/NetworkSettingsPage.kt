@@ -40,6 +40,13 @@ import com.junkfood.seal.shared.generated.resources.concurrent_download_desc
 import com.junkfood.seal.shared.generated.resources.concurrent_download_num
 import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_desc
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_desc
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_not_found
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_result
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_title
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_browser_source
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_detecting
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_missing
 import com.junkfood.seal.shared.generated.resources.force_ipv4
 import com.junkfood.seal.shared.generated.resources.force_ipv4_desc
 import com.junkfood.seal.shared.generated.resources.general_settings
@@ -81,13 +88,15 @@ internal fun NetworkSettingsPage(
     }
     val aria2cDependency = dependencyResolution?.aria2c
     val aria2cAvailable = dependencyResolution == null || aria2cDependency != null
+    val dependencyDetecting = stringResource(Res.string.desktop_dependency_status_detecting)
+    val dependencyMissing = stringResource(Res.string.desktop_dependency_status_missing)
     val aria2Description =
         aria2cDependency?.let { dependency ->
             "aria2c: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
         } ?: if (dependencyResolution == null) {
-            "aria2c: detecting..."
+            "aria2c: $dependencyDetecting"
         } else {
-            "${stringResource(Res.string.aria2_desc)}\naria2c: missing"
+            "${stringResource(Res.string.aria2_desc)}\naria2c: $dependencyMissing"
         }
 
     LaunchedEffect(dependencyResolution, preferences.aria2c) {
@@ -151,15 +160,16 @@ internal fun NetworkSettingsPage(
         )
 
         ToggleCard(
-            title = "自动检测本机代理（Xray）",
-            description = "开启后自动检测本机 xray 端口并覆盖上方代理地址",
+            title = stringResource(Res.string.desktop_auto_proxy_detect_title),
+            description = stringResource(Res.string.desktop_auto_proxy_detect_desc),
             icon = Icons.Rounded.SignalWifi4Bar,
             checked = appSettings.autoProxyEnabled,
             enabled = preferences.proxy,
         ) { checked -> onUpdateAppSettings { it.copy(autoProxyEnabled = checked) } }
 
         if (preferences.proxy && appSettings.autoProxyEnabled) {
-            PreferenceInfo(text = "当前检测结果：${detectedProxy ?: "未检测到可用 xray 代理"}")
+            val proxyResult = detectedProxy ?: stringResource(Res.string.desktop_auto_proxy_detect_not_found)
+            PreferenceInfo(text = stringResource(Res.string.desktop_auto_proxy_detect_result, proxyResult))
         }
 
         SelectionCard(
@@ -194,7 +204,7 @@ internal fun NetworkSettingsPage(
         if (preferences.cookies) {
             val cookieInfoText = if (preferences.cookiesBrowser.isNotEmpty()) {
                 val browserName = SupportedBrowser.fromName(preferences.cookiesBrowser)?.displayName ?: preferences.cookiesBrowser
-                "Cookies 将自动从 $browserName 提取"
+                stringResource(Res.string.desktop_cookies_browser_source, browserName)
             } else {
                 cookiePath
             }

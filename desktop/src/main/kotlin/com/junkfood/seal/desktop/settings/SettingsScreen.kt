@@ -82,6 +82,7 @@ fun DesktopSettingsScreen(
     themeState: DesktopThemeState,
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
+    var cookiesParentPage by remember { mutableStateOf(SettingsPage.Network) }
     var templateEditId by remember { mutableStateOf<Int?>(null) }
     val saveableStateHolder = rememberSaveableStateHolder()
 
@@ -180,7 +181,10 @@ fun DesktopSettingsScreen(
                     onUpdate = settingsState::update,
                     appSettings = appSettingsState.settings,
                     onUpdateAppSettings = appSettingsState::update,
-                    onOpenCookies = { currentPage = SettingsPage.Cookies },
+                    onOpenCookies = {
+                        cookiesParentPage = SettingsPage.Network
+                        currentPage = SettingsPage.Cookies
+                    },
                     onBack = { currentPage = null },
                 )
 
@@ -188,7 +192,7 @@ fun DesktopSettingsScreen(
                 com.junkfood.seal.desktop.settings.network.CookiesSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
-                    onBack = { currentPage = SettingsPage.Network }
+                    onBack = { currentPage = cookiesParentPage },
                 )
 
             SettingsPage.Commands ->
@@ -244,6 +248,10 @@ fun DesktopSettingsScreen(
                     onUpdateAppSettings = appSettingsState::update,
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    onOpenCookies = {
+                        cookiesParentPage = SettingsPage.Troubleshooting
+                        currentPage = SettingsPage.Cookies
+                    },
                     onBack = { currentPage = null },
                 )
 

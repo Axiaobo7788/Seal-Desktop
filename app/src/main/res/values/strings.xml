@@ -198,6 +198,7 @@
     <string name="desktop_exit_confirm_running_count">There are %1$d download task(s) running. Exiting will interrupt downloads.</string>
     <string name="desktop_exit_confirm_running_generic">There are unfinished tasks. Exiting will interrupt downloads.</string>
     <string name="restart">Restart</string>
+    <string name="retry">Retry</string>
     <string name="status_error">Error</string>
     <string name="copy_link">Copy link</string>
     <string name="copy_error_report">Copy report</string>
@@ -225,6 +226,14 @@
     <string name="cookies">Cookies</string>
     <string name="cookies_desc">Use Netscape formatted cookies for downloads</string>
     <string name="cookies_file_name" translatable="false">cookies.txt</string>
+    <string name="desktop_cookies_import_from_file">Import from file</string>
+    <string name="desktop_cookies_export_dialog_title">Export cookies</string>
+    <string name="desktop_cookies_import_dialog_title">Import cookies</string>
+    <string name="desktop_cookies_extract_description">Enter the target website URL and select a browser to extract cookies</string>
+    <string name="desktop_cookies_select_browser">Select browser</string>
+    <string name="desktop_cookies_delete_file_desc">This will delete the stored cookies file. yt-dlp will no longer use these cookies.</string>
+    <string name="desktop_cookies_browser_source">Cookies will be read from %1$s</string>
+    <string name="url_label" translatable="false">URL</string>
     <string name="clear_temp_files">Clear temporary files</string>
     <string name="clear_temp_files_desc">Delete all temporary files from the temporary directory</string>
     <string name="clear_temp_files_count">Deleted %1$d temporary file(s)</string>
@@ -363,6 +372,8 @@
     <string name="desktop_auto_proxy_detect_desc">When enabled, Seal will detect local Xray ports and override proxy URL above</string>
     <string name="desktop_auto_proxy_detect_result">Current detection: %1$s</string>
     <string name="desktop_auto_proxy_detect_not_found">No available Xray proxy detected</string>
+    <string name="desktop_dependency_status_detecting">detecting…</string>
+    <string name="desktop_dependency_status_missing">missing</string>
     <string name="legacy">Legacy</string>
     <string name="quality">Quality</string>
     <string name="enable_notifications">Enable notifications?</string>

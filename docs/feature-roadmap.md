@@ -46,8 +46,11 @@ Android may continue to use Cookie Profiles + embedded WebView. Desktop is inten
 - Manual Netscape-cookie import/export exists as a fallback.
 - `BrowserCookieExtractor.kt` currently only defines supported browser names.
 - The generated cookies file is consumed by the final download plan when `preferences.cookies` is enabled.
+- A successful browser extraction currently does not persist the selected browser or enable Cookies, and extraction stdout/stderr is discarded instead of becoming user feedback.
+- The settings-page User-Agent checkbox is local UI state and does not affect extraction or persisted preferences.
 - Metadata fetch currently does not consume the resolved cookies context.
-- Retry currently reuses the original request preference snapshot.
+- Normal downloads resolve Cookies as the global Netscape file, while custom commands may emit `--cookies-from-browser`; there is no shared Desktop cookie-context resolver yet.
+- Retry now refreshes the current cookie/browser fields together with other live runtime settings while preserving original task intent, but the metadata and source-resolution contract is still incomplete.
 
 Therefore the feature has a visible skeleton but is **not end-to-end complete**.
 
@@ -137,10 +140,12 @@ The page exists but is not finished parity.
 
 Known planned gaps include:
 
-- pass download type into the actual format UI and filter audio/video choices correctly;
+- validate the current download-type wiring and audio/video filtering on a working build host;
 - regex-like subtitle preference matching;
 - better clip-range editing;
 - remaining visual/interaction parity and localization.
+
+The active worktree now passes `downloadType` into `FormatPageImpl` as `audioOnly`/`allowMultiAudio`, but that restored user change has not compiled on the 2026-09-28 host because dependency resolution is blocked. Treat it as implementation present, not verified completion.
 
 Visual parity items require human-check mode.
 
@@ -184,21 +189,21 @@ The reporter found a real failure path, but the deeper problem is that Desktop c
 
 Do not implement this as an isolated `--cookies` patch and call Cookies complete. Metadata, extraction/source selection, final download, retry and user feedback must share one cookies contract.
 
-### 2. Retry reuses stale preferences
+### 2. Retry stale preference semantics
 
-**Classification: Bug**
+**Classification: Bug — implementation present, validation blocked**
 
-This is broader than cookies. Retry can ignore newly changed debug/proxy/cookie/etc. preferences because it reuses the queued request snapshot.
+This was broader than Cookies: retry reused the queued request snapshot and could ignore changed debug/proxy/cookie/etc. preferences.
 
-Fix semantics must explicitly decide which settings should be refreshed on retry and which request-specific choices must remain frozen.
+The current repair preserves original task intent while refreshing live runtime settings. `privateMode` is merged fail-closed and the merged request replaces the controller's running/queue-persistence snapshot. Focused tests were added, but the 2026-09-28 host could not resolve all Gradle dependencies because JVM HTTPS handshakes failed before source compilation.
 
 ### 3. SponsorBlock empty category emits an invalid argument
 
-**Classification: Bug**
+**Classification: Bug — implementation present, validation blocked**
 
 SponsorBlock is already an implemented user-facing feature. Enabling it with the default/empty category state must not generate an invalid yt-dlp command.
 
-The fix should be locked with a shared plan/CLI test.
+The current repair omits `--sponsorblock-remove` when the category is blank and preserves explicit non-empty categories. Focused shared plan tests were added, but could not run on the 2026-09-28 host because dependency resolution failed before compilation. Blank is deliberately not interpreted as `all`; broader SponsorBlock product semantics remain a separate decision.
 
 ### 4. Fresh local `createDistributable` can fall back to a broken PATH yt-dlp
 

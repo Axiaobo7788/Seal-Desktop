@@ -70,8 +70,6 @@ import com.junkfood.seal.shared.generated.resources.output_template
 import com.junkfood.seal.shared.generated.resources.output_template_desc
 import com.junkfood.seal.shared.generated.resources.playlist_title
 import com.junkfood.seal.shared.generated.resources.privacy
-import com.junkfood.seal.shared.generated.resources.private_directory
-import com.junkfood.seal.shared.generated.resources.private_directory_desc
 import com.junkfood.seal.shared.generated.resources.restrict_filenames
 import com.junkfood.seal.shared.generated.resources.restrict_filenames_desc
 import com.junkfood.seal.shared.generated.resources.subdirectory

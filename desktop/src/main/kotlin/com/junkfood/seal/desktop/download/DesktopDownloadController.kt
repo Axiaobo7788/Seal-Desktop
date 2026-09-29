@@ -462,7 +462,7 @@ class DesktopDownloadController(
                     selection.videoInfo,
                     effectivePreferences,
                     playlistUrl = trimmed,
-                    playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    playlistItem = 0,
                     aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 
@@ -596,12 +596,18 @@ class DesktopDownloadController(
         }
     }
 
-    fun resumeIfPossible(itemId: String) {
+    fun resumeIfPossible(itemId: String, currentPreferences: DownloadPreferences) {
         if (runningJobsByItemId[itemId]?.isActive == true) return
         if (runningProcessesByItemId.containsKey(itemId)) return
         canceledItemIds.remove(itemId)
         val request = requestByItemId[itemId] ?: return
-        startDownloadInternal(itemId, request, reuseExisting = true)
+        val retryRequest =
+            request.copy(
+                preferences = request.preferences.withRetryRuntimePreferences(currentPreferences),
+            )
+        // Queue persistence must observe the same fail-closed privacy state as this retry.
+        requestByItemId[itemId] = retryRequest
+        startDownloadInternal(itemId, retryRequest, reuseExisting = true)
     }
 
     private fun startDownloadInternal(
@@ -682,7 +688,7 @@ class DesktopDownloadController(
                     videoInfo,
                     preferencesWithProxy,
                     playlistUrl = trimmed,
-                    playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    playlistItem = 0,
                     aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 

@@ -63,10 +63,10 @@ fun DownloadPageV2(
     var filter by remember { mutableStateOf(DownloadQueueFilter.All) }
     var viewMode by remember { mutableStateOf(DownloadQueueViewMode.Grid) }
 
-    val queueItems =
-        remember(taskMap.size, filter, viewMode) {
-            taskMap.toList().map { (task, state) -> task.toQueueItemState(state) }
-        }
+    val queueItems = taskMap.map { (task, state) -> task.toQueueItemState(state) }
+
+    val videoLabel = stringResource(R.string.video)
+    val audioLabel = stringResource(R.string.audio)
 
     val strings =
         DownloadQueueStrings(
@@ -78,8 +78,28 @@ fun DownloadPageV2(
             filterFinished = stringResource(R.string.status_completed),
             emptyTitle = stringResource(R.string.you_ll_find_your_downloads_here),
             emptyBody = stringResource(R.string.download_hint),
-            gridLabel = "Grid",
-            listLabel = "List",
+            gridLabel = stringResource(R.string.desktop_view_grid),
+            listLabel = stringResource(R.string.desktop_view_list),
+            statusIdle = stringResource(R.string.status_enqueued),
+            statusFetchingInfo = stringResource(R.string.status_fetching_video_info),
+            statusReady = stringResource(R.string.status_enqueued),
+            statusRunning = stringResource(R.string.status_downloading),
+            statusCompleted = stringResource(R.string.status_completed),
+            statusCanceled = stringResource(R.string.status_canceled),
+            statusPaused = stringResource(R.string.status_paused),
+            statusError = stringResource(R.string.status_error),
+            videoCountLabel = { count -> "$videoLabel: $count" },
+            audioCountLabel = { count -> "$audioLabel: $count" },
+            openActionsLabel = stringResource(R.string.show_more_actions),
+            resumeLabel = stringResource(R.string.resume),
+            cancelLabel = stringResource(R.string.cancel),
+            deleteLabel = stringResource(R.string.delete),
+            openFileLabel = stringResource(R.string.open_file),
+            shareFileLabel = stringResource(R.string.share),
+            copyUrlLabel = stringResource(R.string.copy_link),
+            openUrlLabel = stringResource(R.string.open_url),
+            openThumbLabel = stringResource(R.string.thumbnail),
+            copyErrorLabel = stringResource(R.string.copy_error_report),
             showDetailsLabel = "",
         )
 

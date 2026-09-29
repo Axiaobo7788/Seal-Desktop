@@ -10,7 +10,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.room)
     alias(libs.plugins.ktfmt.gradle)
 }
 
@@ -68,8 +67,12 @@ android {
         }
     }
 
-    room { schemaDirectory("$projectDir/schemas") }
-    ksp { arg("room.incremental", "true") }
+    ksp {
+        // Room's Gradle plugin uses a command-line provider that rejects paths containing spaces
+        // with this KSP version. A regular KSP option preserves the same schema input/output path.
+        arg("room.schemaLocation", project.layout.projectDirectory.dir("schemas").asFile.absolutePath)
+        arg("room.incremental", "true")
+    }
 
     androidComponents {
         onVariants { variant ->

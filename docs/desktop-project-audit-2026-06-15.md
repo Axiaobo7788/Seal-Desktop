@@ -6,11 +6,137 @@
 >
 > 规范边界：代码操作、模块边界、Agent 工作模式、多语言、依赖来源和 Definition of Done 以根目录 `AGENTS.md`、`docs/agent-workflow.md` 与 `docs/development-guidelines.md` 为准。
 
-## 结论先读
+## 阅读方式
 
-初始审计没有改业务代码，只做了跨模块自查、命令验证和风险归类。当时 `:desktop:compileKotlin` 通过，`desktopStorageSelfCheck` 的 `json`、`dual`、`sqlite` 三种后端也都通过，说明项目不是“整体不稳”，而是集中存在几类可拆修的问题：Windows installer 启动链、下载参数与设置落地、Desktop/Android UI 语义对齐、i18n 资源覆盖、CI/release 可复现性。
+- 下方“2026-08-25 行动快照”只记录当时的开工排序；当前排序和验证债以 `docs/current-progress.md` 为准。
+- 日期章节是当时的实现与验证快照。旧命令通过不等于当前代码、当前平台或当前安装包仍然通过。
+- 后续编号章节保存代码证据和验收边界。若与顶部表冲突，以当前代码、测试和顶部表为准，并在同一修改中修正文档。
+- `[x]` 只表示该条描述的范围已经实现并完成当时要求的验证，不代表同一功能域没有新的缺陷。例如 SponsorBlock 的“保存弹窗结果”已修，但分类语义仍未收敛。
+- `docs/android-desktop-progress-tracker.md` 是 2026-04 历史快照，不能继续引用其中“Cookies 已完成”或剩余问题数量作为当前结论。
 
-建议先修 P0/P1，因为它们会直接造成用户可见错误或 release 风险。
+## 2026-08-25 行动快照
+
+| ID | 优先级 | 当前状态 | 范围 | 下一步与完成边界 |
+| --- | --- | --- | --- | --- |
+| A-01 | P0 | 已实现待设备复验 | Android 可用性基线 | 保留当前编译、lint、release 修复；补真机/模拟器启动、实际下载、通知动作、文件打开和前台服务 smoke。 |
+| A-02 | P1 | 待设计 | Android 前台服务所有权 | 将旧命令、V2 队列和 Quick Download 的全局 start/stop 收敛为 owner/lease 语义，并做多任务与断连测试。 |
+| D-01 | P0 | 待设计 | Cookies 与请求认证 | 浏览器提取是 Desktop 主入口，文件导入是 fallback；建立 metadata、格式页、正式下载、自定义命令和重试共用的认证上下文，并修复当前无效的 UA 开关。 |
+| D-02 | P0 | 待决策 | SponsorBlock | 先确定 Disabled、Default、All、Custom 的产品语义和旧空字符串迁移；禁止继续生成空 `--sponsorblock-remove`，不能静默把空值解释为 `all`。 |
+| D-03 | P1 | 待设计 | 队列继续与重试 | 保留任务创建时快照；拆分“继续/按原设置重试”和“编辑后重试”，记录失败阶段，不把当前 `workingPreferences` 静默覆盖旧任务。 |
+| D-04 | P1 | 部分完成 | 依赖健康与本地 Lite/Full | 生成的 `desktop/appResources/` 已忽略；仍需可运行性探测、Missing/Broken 区分和明确的本地 Lite/Full 构建入口。 |
+| D-05 | P1 | 待实现 | 下载归档 | 增加查看、编辑、清空和重复跳过反馈；执行层已有 archive 文件不等于用户闭环。 |
+| D-06 | P1 | 待实现 | 播放列表条目选择 | 增加条目选择并传 `--playlist-items`，或在短期 UI 中明确“下载整个播放列表”。 |
+| D-07 | P1 | 部分完成 | 自定义格式页 | 音频模式已过滤视频格式；仍需字幕 pattern 预选、剪切范围以及搜索/清空/选中动画 parity。 |
+| I-01 | P1 | 部分完成 | Desktop i18n | 格式页加载/错误/空状态和提示已资源化；仍需清理 Cookies、依赖安装、通知、文件选择器和其他错误弹窗，并补 locale fallback 参数化测试。 |
+| R-01 | P1 | 待实现 | Release 可复现性 | release 绑定 commit/tag；pin yt-dlp/ffmpeg 来源和 provenance；统一 action pin 策略。 |
+| R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |
+| S-01 | P2 | 待实现 | DownloadPreferences 存储 | 当前偏好仍走独立 `settings.json`，尚未纳入 json/dual/sqlite 与平台原生 state path 迁移。 |
+| UI-01 | P2 | 待人工复验 | UI/动画 parity | 用 Android/Desktop 录屏和窗口/主题/locale 矩阵验收下载 sheet、格式页、队列、历史、设置页和滚动条。 |
+| U-01 | 延期 | 产品决定 | Desktop 应用自动更新 | 按当前决定留待后续；延期期间入口必须明确为未实现或手动下载，不能让无动作按钮看起来可用。 |
+
+## 2026-08-25 低争议修复与项目收敛复核
+
+- [x] `.gitignore` 忽略 Full 打包阶段生成的 `desktop/appResources/`，避免 yt-dlp/ffmpeg payload 被误提交。
+- [x] Troubleshooting 的 Cookies 卡片接入已有 Cookies 页面，并按 Network/Troubleshooting 来源返回原父页面。
+- [x] 自定义格式页接收音频模式：隐藏 video-only/video+audio 列表；推荐格式只有在全部为纯音频时才可在音频模式显示。
+- [x] 格式页加载、错误、空链接、重试、返回和音视频合并提示改用 Compose Resources；新增 `retry` 默认、简中、繁中资源，其余 locale 有意回退默认英文。
+- [x] Network/Cookies 页面的代理检测、浏览器提取、文件导入导出和清除提示已改用 Android XML 资源；默认、简中、繁中有明确文案，其他 locale 在上游 Weblate 提供已校对译文前有意回退默认英文，不批量复制英文伪装覆盖。
+- [x] `DownloadPlanFactoryTest` 锁定分章节下载的 typed chapter template、最终 output template 及 `--split-chapters`。
+- [x] 删除 `DirectorySettingsPage` 的无效 private-directory 资源 import，并把两个恒为 `0` 的 playlist 占位条件简化为直接赋值；播放列表条目选择本身仍属于 D-06。
+
+本轮验证：
+
+- 通过（Network/Cookies i18n 增量）：`./gradlew :shared:syncAndroidStringsToComposeResources :desktop:compileKotlin --stacktrace`。
+- 通过：`./gradlew :shared:syncAndroidStringsToComposeResources :shared:desktopTest --tests com.junkfood.seal.download.DownloadPlanFactoryTest :desktop:compileKotlin --stacktrace`。
+- 通过：`./gradlew :shared:allTests :desktop:test --stacktrace`。
+- 通过：`git diff --check`、生成 `appResources` ignore 检查、目标硬编码扫描、资源镜像检查、Markdown 相对链接和重复标题检查。
+- 未验证：Desktop UI 的 Windows/macOS/Linux 实机点击、音频格式页截图和返回动画；编译通过不能替代视觉与交互验收。
+
+### 真正未完善
+
+| 范围 | 当前实质缺口 | 收敛边界 |
+| --- | --- | --- |
+| 认证、SponsorBlock、重试 | D-01 至 D-03 仍缺统一模型或产品决策 | 不接受调用点临时补参数；先定模型、迁移和失败反馈。 |
+| 依赖与打包 | D-04 只完成生成目录防误提交 | health probe、显式 Lite/Full 任务和原生安装后 smoke 完成后才能关闭。 |
+| 归档、播放列表、格式页 | D-05 至 D-07 仍有用户闭环缺口 | 优先补可见反馈和执行语义，再做视觉精修。 |
+| i18n 与 UI parity | I-01、UI-01 只完成局部页面 | 资源扫描和录屏矩阵分别验收，不能用编译代替。 |
+| Android 与 release | A-01/A-02、R-01/R-02 需要设备或原生 runner | 不从 Linux 编译结果推断 Android、Windows 或 macOS 可用。 |
+
+### 疑似过度或待收敛
+
+这些结构暂不删除；先冻结新增耦合，并为迁移或下线定义出口。
+
+| 结构 | 为什么显得过度 | 当前处理 |
+| --- | --- | --- |
+| Desktop 自动更新设置页 | 已有启用开关、channel 和“检查更新”按钮，但没有更新执行后端 | 按产品决定延期；不继续扩充假状态，后续改成真实后端或诚实的手动入口。 |
+| json/dual/sqlite 三后端加独立 `settings.json` | 迁移期同时维护多条读写路径，但 `DownloadPreferences` 又不在同一存储闭环 | 保留兼容读取；先完成 S-01 并定义 dual 退出条件，再删除旧路径。 |
+| 单体 `DownloadPreferences` | 混合共享、Android-only、Desktop-only 和迁移字段，容易产生有字段无平台语义的入口 | 先分类和标记 owner，不做一次性大拆分；新功能不得继续塞入未分类字段。 |
+| Desktop 本地复刻 UI 组件 | 搜索栏、弹窗和格式卡片与 Android 接近但各自维护，视觉修复容易重复 | 先建立 parity component map 和录屏基线；只抽共享 token/纯组件，不把 Android API 推进 commonMain。 |
+| 超长审计历史 | 当前行动项与多轮完成证据共存在单文件，搜索成本持续上升 | 顶部表保持唯一当前入口；待工作树稳定后再把已完成日期快照迁入归档，不能先删证据。 |
+
+## 2026-08-25 外部 Issue #4 复核
+
+复核对象：[`Cookies not applied to metadata fetch or retry, plus SponsorBlock crash on empty category #4`](https://github.com/Axiaobo7788/Seal-Desktop/issues/4)。四个现象都有可用线索，但没有一项适合直接复制 Issue 中的补丁。
+
+### I4-1. Metadata Cookies：现象成立，修复范围过窄
+
+- `YtDlpMetadataFetcher` 当前只接收 proxy，格式页的 `fetchVideoInfo()` 因而无法访问需要登录态的 metadata。
+- 普通下载链对 metadata 异常会构造最小 `VideoInfo` 后继续执行，所以 Issue 所说“所有下载都在正式命令前终止”并不完全准确；自定义格式页则会直接进入错误状态。
+- Desktop 没有 Android WebView/Cookie Profile 登录系统。主流程应是从已登录浏览器生成全局 Netscape `cookies.txt`，手动文件导入只作为 fallback；生成后正式执行可以读文件，不要求每次重新启动浏览器。
+- 正确修复不是给两个调用点临时加 `cookiesPath`，而是建立统一认证上下文，覆盖 metadata、格式选择、普通下载、自定义命令和重试，并同时处理 UA、文件缺失、过期/失败提示和敏感文件说明。
+- 当前 Cookies 页的 UA checkbox 只修改局部 Compose state，没有写回 `userAgentString`，属于独立的可见假功能。
+
+### I4-2. Retry：快照存在是事实，“改用当前设置”不是默认正确语义
+
+- Desktop 和 Android 都把任务创建时的 `DownloadPreferences` 作为任务快照保存。Android `Task.restartImpl()` 只恢复阶段，不会套用当前全局偏好。
+- 当前 Desktop 的真实缺口是 `Canceled` 与 `Error` 共用一个 `Resume` 动作，且没有持久化失败发生在 metadata 还是 download 阶段。
+- Issue 建议把整个 `workingPreferences` 覆盖进旧请求，会无提示改写格式、字幕、目录、标题、隐私、SponsorBlock 等任务意图，并破坏 Android parity。
+- 应保留“按原设置继续/重试”，另设“编辑并重试”；工具路径、自动代理、Cookies 文件可用性等运行环境可以重新解析，但必须和任务意图字段分开。
+
+### I4-3. SponsorBlock：空参数是实错，fallback 到 `all` 不可接受
+
+- `sponsorBlock=true` 且分类为空时会生成无效的 `--sponsorblock-remove ""`，这是确定的执行错误。
+- yt-dlp 当前 `remove` 语义中，`default` 表示 `all,-filler`，`all` 会包含更激进的 `filler`；自定义类别又是第三种语义，不能简单并类。
+- UI 和持久化应建模为 `Disabled`、`Default`、`All`、`Custom(non-empty set)`。旧 `""` 迁移成 Disabled 还是 Default 需要产品决定，不能静默改成 All。
+- 当前固定类别列表还缺少上游新增的 `hook`，说明类别 token、显示文案、上游兼容和未知旧值都需要单独处理。
+
+### I4-4. 本地打包：Lite/Full 边界不清和依赖健康检测是两个问题
+
+- `desktop/appResources` 已通过 `appResourcesRootDir` 接入 Gradle；三平台 workflow 先构建无工具 Lite，再注入工具构建 Full。直接本地打包得到 Lite 是当前流程设计，不等于 Full release 漏打工具。
+- 本地开发体验仍有缺口：任务名没有明确表达 Lite/Full，资源准备不在 Gradle 任务图中；生成目录缺少 ignore 的问题已在本轮修复。
+- `DesktopDependencyResolver` 只检查文件存在/可执行，确实可能把无法独立运行的 pip shim 或损坏二进制识别为 system 可用；环境修复弹窗只处理 Missing，不能解释 Broken。
+- 不能在每次 Compose 重组或 resolver 调用时同步执行 `--version`。应增加异步、带超时、捕获 stdout/stderr、按 path+mtime 缓存的 health probe，并分别验证 yt-dlp 与 ffmpeg。
+- `auto` 遇到 Broken system 工具时可以提供 selfhost；`system` 只能提示包管理器修复；Full 构建需显式准备并 smoke，Lite 构建不得隐式下载大型工具。
+
+### 文档治理阶段验证（本轮代码修改前）
+
+- 通过：`git diff --check`。
+- 通过：本轮修改的 5 个 Markdown 文件相对链接存在性检查，无缺失目标。
+- 通过：本轮修改文档的重复标题与已删除 Cookies 方案链接扫描。
+- 范围说明：本轮只整理文档，没有修改 Kotlin、资源、Gradle 或 workflow；因此没有重复运行 Gradle、原生打包或 UI smoke，历史平台验证结果仍按原日期保留，不能视为 2026-08-25 复验。
+
+## 2026-08-18 Android 可用性基线修复
+
+本轮先恢复 Android 端可编译、可测试、可打 debug/release APK 的基线，再继续增加新功能。检查范围覆盖应用初始化、Room/KSP、下载队列 UI、任务状态与取消、通知错误反馈、字符串资源、shared 资源同步、R8 和 APK native 组件。
+
+- [x] 修复仓库路径包含空格时 Room Gradle plugin 生成的 KSP provider 参数校验失败：改为直接传递绝对 `room.schemaLocation`，现有 Room 1-5 版 schema 无漂移。
+- [x] 修复旧 `Downloader` 清理时遗留的错误闭合括号，以及 `TextUtil` 缺失 `R` import 导致的 Android 编译失败。
+- [x] 下载队列不再按任务数量缓存映射结果，进度、状态和错误会随 `SnapshotStateMap` 更新；共享队列的状态、动作、视图切换和媒体数量文案全部由 Android resources 提供。
+- [x] 修正“获取信息失败”和“下载失败”通知文案互换；取消操作不再依赖 yt-dlp 进程已经注册，协程、通知和队列状态都会确定地进入取消态；下载设置页的加载取消使用同一语义。
+- [x] 新增 Android 队列映射测试，覆盖运行进度、完成文件和错误消息；错误页 `Retry` 硬编码改为已有资源文案。
+- [x] 删除 app 中已由 shared 提供的 `DynamicColorImageVectors` / `VideoSteaming` 重复源码，Android release R8 不再因 duplicate class 中断。
+- [x] 修复白俄罗斯语 `video_count` plural 缺少数量占位符的问题，并同步到 Compose Resources；Android lint 不再被 `ImpliedQuantity` 阻断。
+- [ ] 尚未完成 Android 真机/模拟器启动、前台服务、实际 yt-dlp 下载、通知动作和文件打开 smoke；本机 `adb devices -l` 没有可用设备，不能把编译和 APK 检查宣称为运行验证。
+- [ ] 前台服务仍由旧自定义命令计数、V2 队列和 Quick Download 共同调用全局 `startService()/stopService()`；断连状态和多调用方所有权尚未收敛为 lease/owner 模型，需要设备场景测试后单独修复。
+
+本轮验证：
+
+- 通过：`./gradlew :app:testGenericDebugUnitTest :app:compileGenericDebugKotlin`，Android 单元测试共 5 项、0 失败。
+- 通过：`./gradlew :app:compileFdroidDebugKotlin :app:compileGithubPreviewDebugKotlin :app:assembleGenericDebug`，产出四 ABI 和 universal debug APK；arm64 debug APK 通过 v2 签名校验。
+- 通过：`./gradlew :shared:syncAndroidStringsToComposeResources :shared:allTests :app:lintGenericDebug`。
+- 通过：`./gradlew :app:assembleGenericRelease`，R8 与资源压缩完成；arm64 release APK 为 43,569,388 bytes，并包含 Python、FFmpeg、FFprobe、aria2c 和 MMKV native 组件。
+- 通过：`./gradlew :app:ktfmtCheck`、`git diff --check`；Room schema 仍为 1-5 版且无变更。
+- 本机环境限制：没有 `keystore.properties`，因此本地 release APK 按预期未签名；发布签名仍需在持有密钥的 CI/发布环境验证。
 
 ## 2026-08-17 release shrink 与 SQLite 平台裁剪
 
@@ -91,7 +217,7 @@ Actions 日志中的两个失败属于不同阶段：Linux 已完成 app-image �
 5. 可选加速器不进默认包；`aria2c` 继续作为 optional dependency，避免 Desktop 包体继续膨胀。
 6. 每完成一项修复，必须同步本文的打勾状态和验证命令，避免文档再次漂移。
 
-### 新的整理优先级
+### 当时的整理优先级（2026-07-08 历史记录）
 
 1. P0：消除伪入口，包括 Desktop app 自动更新占位、下载归档不可管理、privateDirectory 无语义。
 2. P1：收敛共享模型，把 `DownloadPreferences` 分成 core / Android-only / Desktop-only / migration 字段说明，后续再考虑结构拆分。
@@ -310,16 +436,18 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 - 真正下载、合并、转码前仍由 `DownloadPlanExecutor.requireComplete()` 要求 ffmpeg。
 - 已补 `YtDlpMetadataFetcherTest` 覆盖无 ffmpeg 时不注入 `--ffmpeg-location`、有 ffmpeg 时继续注入。
 
-### 11. `--sponsorblock-remove` 对空分类没有兜底
+### 11. SponsorBlock 空分类与模式语义尚未收敛
 
 证据：`shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt:81`
 
-如果 `preferences.sponsorBlock = true` 且 `sponsorBlockCategory` 为空，仍会写 `--sponsorblock-remove ""`。结合 P0 的保存 bug，会放大失败概率。
+如果 `preferences.sponsorBlock = true` 且 `sponsorBlockCategory` 为空，仍会写 `--sponsorblock-remove ""`，yt-dlp 会拒绝执行。此前“保存弹窗结果”的 bug 已修，但它不等于 SponsorBlock 功能已经完整。
 
-建议：
+当前判断：
 
-- 空分类时使用 yt-dlp 推荐默认值或不输出该参数。
-- SponsorBlockDialog 至少选中一个分类，否则禁用确认。
+- `Disabled`、`Default`、`All` 和 `Custom` 是四种产品状态，不能继续以一个任意字符串表达全部语义。
+- 对 `--sponsorblock-remove`，yt-dlp 的 `default` 当前表示 `all,-filler`，与 `all` 不等价；不能按外部 Issue 建议把空值简单回退为 `all`。
+- 自定义集合必须非空、去重并校验 token；显示文案和传给 yt-dlp 的 token 必须分离。
+- 旧空字符串迁移为 Disabled 还是 Default 需要产品决定。决定前本项保持未完成，详见顶部 I4-3。
 
 ### 12. `embedMetadata` 的语义在视频/音频不一致
 
@@ -409,12 +537,17 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 
 - Android 有 `CookieProfilesPage` / `CookiesViewModel` / `WebViewPage`，以数据库里的 `CookieProfile(url, content)` 管理多份 cookies。
 - Desktop 有 `CookiesSettingsPage`、浏览器提取器和一个全局 `DesktopYtDlpPaths.cookiesFile()`，并支持导入/导出 Netscape cookies 文件。
+- 浏览器提取通过 `--cookies-from-browser <browser> --cookies <file>` 生成文件；Desktop 自身没有 WebView 登录态，不能独立创造有效 cookies。
+- `YtDlpMetadataFetcher` 当前不接收认证上下文；格式页 metadata 会在登录站点失败，普通下载则可能退化为最小 `VideoInfo` 后继续。
+- Cookies 页的 UA checkbox 只修改局部 state，没有写入 `DownloadPreferences.userAgentString`，当前不产生执行效果。
 
-影响：Desktop 当前实现适合桌面浏览器导出/提取，但不等价于 Android 的“按站点 profile 管理”。如果用户从 Android 迁移，会找不到 Cookie profile 列表，也无法为不同站点保存多套内容。
+影响：Desktop 当前实现适合“从已登录浏览器导出一份全局 cookies 文件”，但不等价于 Android 的按站点 profile 管理。metadata 与正式下载没有共用认证解析还会造成“已经配置 Cookies，格式页仍被登录/机器人校验拦截”的假失效。
 
 建议：
 
-- 先在文档和 UI 中明确 Desktop 是“全局 cookies 文件”，不是 profile database。
+- 先在文档和 UI 中明确 Desktop 是“浏览器辅助生成的全局 cookies 文件”，不是 profile database；文件导入是 fallback，而不是应用自行登录。
+- 新增统一认证上下文，覆盖 metadata、格式页、普通下载、自定义命令和重试；认证失败必须给出可操作反馈。
+- 修复或移除无效 UA checkbox，并明确浏览器导出可能包含多个站点的敏感 cookies。
 - 如果要 parity，新增 Desktop cookie profiles，并在下载前设置里选择 profile 或按 URL 自动匹配。
 - 如果不做 profile，至少在 Cookies 页支持显示当前 cookies 文件覆盖的网站列表，减少黑盒感。
 
@@ -462,29 +595,28 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 - `DownloadPreferences` 仍包含 `privateDirectory`：`shared/src/commonMain/kotlin/com/junkfood/seal/util/DownloadPreferences.kt:38`
 - Android adapter 会根据 `privateDirectory` 把音频/视频写入 `App.privateDownloadDir`：`app/src/main/java/com/junkfood/seal/download/YoutubeDlRequestAdapter.kt:54`
 - Desktop 路径解析只看 `audioDirectory/videoDirectory`，没有处理 `privateDirectory`：`desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopYtDlpPaths.kt:55`
-- Desktop 目录设置页还 import 了 `private_directory/private_directory_desc`，但页面没有渲染对应设置：`desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/directory/DirectorySettingsPage.kt:71`
+- Desktop 目录设置页此前残留 `private_directory/private_directory_desc` import，本轮已清理；页面和路径执行层仍没有 Desktop private-directory 语义。
 
 判断：这不一定要照搬 Android。Android 的 private directory 是平台沙盒/媒体库语义，Desktop 上更合理的实现可能是用户数据目录下的隐藏 downloads，或只提供“不要写历史/不要预览”的隐私模式。
 
 建议：
 
-- 先做产品决策：Desktop 是否需要“私有下载目录”。如果不需要，删除 stale import，并确保 UI 不暴露这个偏好。
+- 先做产品决策：Desktop 是否需要“私有下载目录”。stale import 已删除；后续仍需确保 UI 不暴露没有执行语义的偏好。
 - 如果需要，实现平台路径：Windows `%LOCALAPPDATA%/Seal/PrivateDownloads`，macOS `~/Library/Application Support/Seal/PrivateDownloads`，Linux `${XDG_STATE_HOME:-~/.local/state}/seal/private-downloads`，并在文件管理器入口处提醒这是应用私有目录。
 - 不要把 `privateDirectory` 和 `privateMode` 混在一起：前者是保存位置，后者是历史/痕迹策略。
 
-### 13h. 分章节输出模板需要测试锁住多 `-o` 语义
+### 13h. [x] 分章节多 `-o` CLI 已由测试锁定
 
 证据：
 
 - shared plan 在 `splitByChapter` 时先添加 `-o chapter:%(section_number)s - %(section_title)s.%(ext)s`，再设置普通 output template：`shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt:94`
 - `DownloadPlan.asCliArgs()` 会无条件在末尾再追加 `-o outputTemplate`：`shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlan.kt:16`
-- 当前测试只覆盖 `SelectionMerge` 的 `splitByChapter` 偏好合并，没有覆盖最终 yt-dlp CLI。
+- `DownloadPlanFactoryTest` 已覆盖最终 CLI，锁定 chapter typed output、最终 output template 和 `--split-chapters`。
 
 判断：yt-dlp 支持 typed output template，多 `-o` 不一定是错；但这里同时输出 `chapter:` 和普通模板，且 Android/屏幕提示都围绕“切分成 N 个片段”，非常需要测试固定预期，避免未来改动时把章节文件名或主输出模板弄反。
 
-建议：
+剩余验证：
 
-- 给 `DownloadPlanFactoryTest` 增加 `splitByChapter=true` 的 CLI 快照测试，明确应包含哪些 `-o`、顺序如何。
 - 用一条实际公开视频在本地 smoke test，确认 Desktop 与 Android 生成的文件名一致。
 - 如果发现第二个 `-o` 覆盖或干扰章节模板，应改成 yt-dlp 推荐的 typed output 写法，并同步 Android adapter。
 
@@ -528,6 +660,24 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 - 短期：把 Desktop Playlist 文案明确为“下载整个播放列表”，并在下载前设置中说明不支持条目选择。
 - 中期：复用 shared `PlaylistSelectionMapper`，给 Desktop 增加播放列表条目选择页；选中项可以生成多个 queue item，每个 item 带 `playlistItem=index`。
 - 测试：给 Desktop controller/plan 增加 playlist item 覆盖，确保选中第 N 项时 CLI 包含 `--playlist-items N`。
+
+### 13k. Desktop 把继续、重试和使用新设置重试混成同一动作
+
+证据：
+
+- 队列备份会序列化任务创建时的完整 `DownloadPreferences`：`desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt:22`。
+- `resumeIfPossible()` 直接复用 `requestByItemId` 中的请求快照：`desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt:599`。
+- shared 队列对 Canceled 和 Error 都发出同一个 `DownloadQueueAction.Resume`，Desktop 显示为“重新开始”。
+- Android `Task` 同样持有创建时偏好，`restartImpl()` 只根据失败阶段恢复到 FetchInfo 或 Download，不读取当前全局设置。
+
+判断：任务快照不是 bug，它保证格式、字幕、目录、标题和隐私等意图可复现。真正缺陷是 Desktop 没有记录重启阶段，也没有提供显式“编辑并重试”。把当前 `workingPreferences` 整体覆盖旧任务会造成半旧半新的请求，并破坏 Android parity。
+
+建议：
+
+- 保留“按原设置继续/重试”；Canceled 和 Error 可以使用不同文案，但默认都不静默改写任务意图。
+- 新增“编辑并重试”，从旧快照打开配置，确认后生成新任务或新版本快照。
+- 将任务意图与运行环境分开：工具路径、自动代理、Cookies 文件是否仍可用可以重新解析；格式、字幕、输出、隐私等必须保留原值，除非用户明确编辑。
+- 队列 schema 后续记录失败阶段和必要 metadata；迁移旧 version 1 备份时使用安全默认值。
 
 ## P1：CI / Release / Packaging
 
@@ -587,6 +737,22 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 
 - 保持 `main` 默认 release 发行参数不被排障参数污染。
 - Windows/macOS release 结果仍必须由对应原生 runner 的 app-image 与安装后 SQLite smoke 验证；Linux 本机通过不能替代。
+
+### 17a. 本地 Lite/Full 构建入口和依赖健康状态不清晰
+
+证据：
+
+- `desktop/build.gradle.kts` 已把 `desktop/appResources` 配置为 `appResourcesRootDir`，但普通本地打包任务不会准备其中的工具。
+- 三平台 workflow 先构建 Lite，再把 `dist-bin` 注入 `appResources/<platform>` 构建 Full；release Full 不是“完全没有工具打包链”。
+- resolver 当前把“文件存在且有执行权限”当作可用，未运行 yt-dlp/ffmpeg 健康探测；损坏的 wrapper 或 pip shim 可能被误判为 system。
+- 环境设置弹窗由 Missing 异常触发，Broken executable 通常只显示为普通进程错误。
+
+建议：
+
+- 保持 Lite 默认无工具且不隐式联网；生成的 `appResources/*` 已加入忽略规则，仍需名称明确的 `prepareFullDependencies` / `createFullDistributable`。
+- 依赖状态拆成 Missing、Healthy、Broken；health probe 应异步、带超时、捕获 stderr，并按 path/mtime 缓存，不能在 Compose 重组中反复启动进程。
+- `auto` 可以在 system Broken 时提供 selfhost，`system` 只能提示包管理器修复，`selfhost` 只管理 Seal 私有目录。
+- Lite smoke 验证应用可启动和缺依赖反馈；Full smoke 额外验证打包后的 yt-dlp、ffmpeg、ffprobe 及真实下载环境入口。
 
 ### 18. macOS 默认 target 仍包含 DMG，workflow 靠 env 改成 PKG
 
@@ -711,20 +877,9 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 
 ## P2：UI / Android parity
 
-### 27. 自定义格式页仍有硬编码中文状态文案
+### 27. [x] 自定义格式页状态文案已资源化
 
-证据：
-
-- “正在获取视频信息...”
-- “加载失败”
-- “重试”
-- “返回”
-- “未获取到可用链接”
-- “音频与无音轨视频可组合下载”
-
-这些都在 `desktop/src/main/kotlin/com/junkfood/seal/desktop/ui/page/downloadv2/configure/FormatPage.kt`。
-
-建议：抽到 compose resources，并复用 Android 文案 key。
+加载、错误、空链接、返回和音视频合并提示已复用 Compose Resources；新增准确的 `retry` key，避免把 `restart` 错当成请求重试。其他 Desktop 硬编码仍统一归入 I-01。
 
 ### 28. 自定义格式页 UI 细节还要继续和 Android 对齐
 
@@ -784,8 +939,8 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 
 - [x] Desktop 已补缩略图右侧三点菜单，菜单中有重命名、缩略图、剪切视频、切分视频。
 - [x] Desktop 已补字幕“查看更多”、字幕搜索、清空按钮、`animateItem()` 列表排序动画、重命名弹窗、切分提示行。
-- [ ] Desktop 仍未把 `downloadType` 传入 `FormatPageImpl` 做 UI 过滤；音频入口仍会展示视频格式，详见 P1 第 5 项。
-- [ ] Desktop 仍有硬编码中文提示：例如 `FormatHintInfo(text = "音频与无音轨视频可组合下载")`，以及加载/错误/重试等状态文案，应继续抽到 compose resources。
+- [x] Desktop 已把 `downloadType` 转为 `audioOnly` 传入 `FormatPageImpl`；音频入口隐藏视频格式，非纯音频推荐格式也不会出现。
+- [x] `FormatHintInfo`、加载/错误/空状态和按钮文案已接入 compose resources。
 - [ ] Android 剪切视频是 `VideoSelectionSlider` + `VideoClipDialog` 的范围选择；Desktop 目前是菜单 toggle 后依赖 `clipStartText/clipEndText`，视觉反馈和可编辑性都不等价。
 - [ ] Android 字幕预选支持 `en.*,.*-orig` 这种正则式偏好；Desktop 仍按 exact code 匹配，导致“默认字幕设置”和“格式页初始选中”可能不一致。
 - [ ] Android 字幕弹窗使用项目统一的 `SealSearchBar`；Desktop 是本地手写 `DesktopSealSearchBar`。搜索框高度、圆角、背景、placeholder、清空按钮 hover/focus 状态需要截图压齐。
@@ -894,84 +1049,70 @@ Android 有 ktfmt 配置，但 Desktop/shared 没看到等价 lint/format workfl
 - Windows installer 稳定后，写 `docs/windows-installer-debugging.md`。
 - 把最终原因、无效尝试、必要构建参数、回滚方式记下来。
 
-### 37. project map 可以继续扩展 Desktop 迁移章节
+### 37. [x] project map 已补齐 Desktop 迁移入口
 
-已有 `docs/project-map.md` 和 `docs/android-desktop-progress-tracker.md`。建议把以下主题加入 tracker：
+原问题：项目地图缺少 Desktop dependency resolver、认证上下文、存储边界和 Lite/Full 打包流程，维护者需要从历史 tracker 反推当前入口。
 
-- Desktop dependency resolver
-- Desktop storage backend
-- Custom format parity
-- i18n/resource switching
-- Windows installer pipeline
-- Release artifact provenance
+状态：已完成。`docs/project-map.md` 现在只承担导航职责，并补充以下稳定入口：
 
-## 建议实施顺序
+- Desktop system/selfhost/packaged/auto 依赖解析与当前健康检测缺口。
+- Desktop Cookies 全局文件与统一认证上下文目标。
+- queue/history/app-settings 三后端和独立 `DownloadPreferences` 存储边界。
+- Lite/Full 打包、工具注入及 staged/installed smoke 的区别。
+- 自定义命令重启恢复的当前 `Running -> Interrupted` 语义。
 
-### 第一批：小改但收益最高
+## 当前建议实施顺序（2026-08-25）
 
-- [x] 修 SponsorBlock 保存 bug。
-- [x] 修 `DownloadPreferences.videoDirectory/audioDirectory/commandDirectory` 不生效。
-- [x] Desktop 正确映射 aria2c 参数，不再传 Android `libaria2c.so`。
-- [x] Desktop 将 aria2c 纳入可选依赖检测，缺失时禁用/提示网络页开关。
-- [x] Desktop 无痕模式真正跳过历史持久化，并确认 queue snapshot 不长期保留敏感 URL。
-- [x] `cropArtwork` 在 Desktop 执行层实现 ffmpeg crop config，或在 Desktop 暂时隐藏/禁用。
-- [x] Desktop 内嵌字幕自动联动 MKV remux，或在共享 plan 里统一计算 effective mergeToMkv。
-- [x] `YtDlpMetadataFetcher` 只要求 yt-dlp，不强制 ffmpeg。
-- Desktop 下载归档增加查看、编辑、清空入口。
-- Desktop 下载归档补重复预检查和可读反馈，不要把已归档跳过伪装成普通完成。
-- Desktop app 自动更新 UI 改成真实检查或明确暂不支持。
-- Inno 语言 section 改成显式 `[Languages]`，不要依赖未定义 `EmitLanguagesSection`。
+这里仅展开顶部行动清单，不再重复已经完成的历史修复。
 
-### 第二批：用户可感知 parity
+### 第一批：先阻止错误执行和假成功
 
-- 自定义格式页传入 `downloadType` 并按类型过滤格式。
-- 字幕预选支持 `en.*,.*-orig`。
-- 视频剪切菜单接入范围编辑，或暂时禁用菜单项。
-- 播放列表下载补条目选择页；若短期不做，明确标注为“下载整个播放列表”。
-- 新建任务页补多链接识别、保存链接列表和删除反馈。
-- 历史页补长按/多选/批量删除/选中项导出，或定义 Desktop 替代交互。
-- Cookies 页明确全局文件语义；如果要 Android parity，补 Cookie Profiles。
-- 决定 Desktop 是否实现 `privateDirectory`；不实现就清理 stale import/偏好入口，实现则定义平台私有路径。
-- 分章节下载补 CLI 快照测试，锁住多 `-o`/typed output template 行为。
-- 抽离 Desktop 格式页、网络页、依赖安装页硬编码文案。
-- 外观页语言卡片显示当前语言摘要，和 Android 设置页一致。
+1. 完成 D-01：统一 metadata、格式页和下载执行的 Cookies/UA 认证上下文，并为缺失或无效认证提供可读错误。
+2. 完成 D-02 的产品决策与迁移测试，禁止 SponsorBlock 空分类进入 plan。
+3. 完成 D-04 的 Broken dependency 检测，避免把无法启动的 system wrapper 标记成可用。
+4. 补 D-05 的 archive 重复反馈，避免已归档跳过被显示成普通完成或无响应。
 
-### 第三批：release 稳定性
+### 第二批：收敛任务和下载语义
 
-- [x] Windows installer 已增加安装后 smoke test；SQLite 首启版仍待修复提交后的 Actions 复验。Debug shortcut 继续只由手动 debug 开关生成。
-- release workflow 绑定 commit SHA，不再取 latest successful run。
-- 把 yt-dlp/ffmpeg 从 latest/nightly 改成 release 可 pin。
-- [x] 恢复 release ProGuard/console 正常配置，用 Gradle property 控制 debug build。
+1. 完成 D-03：区分继续、按原设置重试、编辑后重试，并持久化失败阶段。
+2. 继续 D-07：格式类型过滤已完成，剩余字幕 pattern、剪切范围和相关 UI parity。
+3. 完成 D-06：播放列表条目选择；短期无法实现时先明确整表下载语义。
+4. 决定 `privateDirectory` 的 Desktop 产品语义，不实现就移除 stale 入口，实现则定义平台路径与迁移。
+5. 为分章节下载补一次真实文件 smoke；最终 CLI 已有 typed `-o` 回归测试。
 
-### 第四批：长期维护
+### 第三批：平台验证、i18n 与 release
 
-- DownloadPreferences 纳入 SQLite/dual storage。
-- 增加 Desktop 语言列表与资源目录 drift 检查。
-- 清 Gradle 9 deprecation、AGP/Kotlin 兼容警告。
-- 统一 workflow action 版本与 pin 策略。
+1. 在设备上完成 A-01，并根据结果设计 A-02 的前台服务 owner/lease。
+2. 完成 I-01 的用户可见硬编码清理和 locale fallback 测试。
+3. 完成 R-01 的 commit/tag 绑定、依赖 pin 与 provenance。
+4. 在 Windows、macOS Intel/arm64 和 Linux 原生 runner 完成 R-02 的安装后 smoke。
+5. 明确 Inno `[Languages]` 生成来源，避免预处理宏成为隐藏构建依赖。
 
-## 可以直接开 issue 的标题
+### 第四批：长期结构债
 
-- `fix(desktop): save SponsorBlock categories from dialog result`
-- `fix(desktop): honor video/audio/custom command download directories`
-- `fix(desktop): map aria2c downloader per platform instead of libaria2c.so`
-- `fix(desktop): detect optional aria2c before enabling external downloader`
-- `fix(desktop): honor private mode by skipping persisted history`
-- `fix(desktop): implement or hide crop artwork on desktop`
-- `fix(desktop): force mkv remux when embedding subtitles`
-- `fix(desktop): allow metadata fetch with yt-dlp only`
-- `feat(desktop): add download archive viewer and clear action`
+1. 将 DownloadPreferences 纳入 SQLite/dual storage，并迁移旧 `settings.json`。
+2. 增加 Desktop 语言列表与资源目录 drift 检查。
+3. 清理 Gradle 9 deprecation、AGP/Kotlin 兼容警告和 `mavenLocal()` 默认启用。
+4. 建立 Android/Desktop UI 录屏和 screenshot checklist，逐步关闭 UI-01。
+5. U-01 自动更新继续延期，除非产品重新排期；延期期间只允许诚实的 disabled/manual UI。
+
+## 当前可拆分 Issue 标题
+
+- `fix(desktop): apply one resolved cookie auth context to metadata and downloads`
+- `fix(desktop): persist and honor cookie user-agent configuration`
+- `refactor(shared): model SponsorBlock disabled default all and custom modes`
+- `fix(desktop): reject or migrate empty SponsorBlock categories`
+- `refactor(desktop): separate resume retry and edit-then-retry semantics`
+- `fix(desktop): retain download request intent while re-resolving runtime context`
+- `fix(desktop): distinguish missing and broken yt-dlp or ffmpeg dependencies`
+- `build(desktop): add explicit Lite and Full distributable tasks`
+- `feat(desktop): add download archive viewer editor and clear action`
 - `fix(desktop): surface download archive duplicate skips`
-- `fix(desktop): disable or implement app update check UI`
 - `fix(desktop): decide and implement private directory semantics`
-- `test(shared): lock split chapter output template arguments`
 - `feat(desktop): add playlist item selection parity`
 - `feat(desktop): add saved links and multi-url input parity`
 - `feat(desktop): add history multi-select and selected export parity`
-- `feat(desktop): define cookie profiles parity for desktop cookies`
-- `fix(desktop): pass downloadType into custom format page and filter formats`
 - `fix(desktop): support subtitle language patterns in custom format selection`
-- `fix(windows): make Inno languages explicit and add debug shortcut`
+- `fix(windows): make Inno languages explicit`
 - `ci(release): bind desktop artifacts to release commit sha`
-- `ci(desktop): add compileKotlin and storage self-check matrix`
-- `i18n(desktop): remove hardcoded Chinese strings from setup/network/format pages`
+- `i18n(desktop): remove hardcoded user-visible strings from setup network and format pages`

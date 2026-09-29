@@ -269,7 +269,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         task.downloadState = Error(throwable = throwable, action = FetchInfo)
                         NotificationUtil.notifyError(
                             title = viewState.title,
-                            textId = R.string.download_error_msg,
+                            textId = R.string.fetch_info_error_msg,
                             notificationId = notificationId,
                             report = throwable.stackTraceToString(),
                         )
@@ -340,7 +340,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
-                            textId = R.string.fetch_info_error_msg,
+                            textId = R.string.download_error_msg,
                             notificationId = notificationId,
                             report = throwable.stackTraceToString(),
                         )
@@ -352,15 +352,16 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private fun Task.cancelImpl(): Boolean {
         when (val preState = downloadState) {
             is DownloadState.Cancelable -> {
-                val res = YoutubeDL.destroyProcessById(preState.taskId)
-                if (res) {
-                    preState.job.cancel()
-                    val progress = if (preState is Running) preState.progress else null
-                    NotificationUtil.cancelNotification(notificationId)
-                    downloadState =
-                        DownloadState.Canceled(action = preState.action, progress = progress)
+                val processDestroyed = YoutubeDL.destroyProcessById(preState.taskId)
+                preState.job.cancel()
+                val progress = if (preState is Running) preState.progress else null
+                NotificationUtil.cancelNotification(notificationId)
+                downloadState =
+                    DownloadState.Canceled(action = preState.action, progress = progress)
+                if (!processDestroyed) {
+                    Log.d(TAG, "Task $id was canceled before its yt-dlp process was registered")
                 }
-                return res
+                return true
             }
             Idle -> {
                 downloadState = DownloadState.Canceled(action = FetchInfo)

@@ -105,6 +105,38 @@ Parity review must cover:
 
 Screenshots establish appearance only. Animation and interaction parity require a recording or hands-on check.
 
+### Task retry contract
+
+A queued task owns an immutable snapshot of the user intent that created it. Format selection, subtitles, output paths, renaming, privacy, post-processing, and similar fields must not silently change because global settings changed later.
+
+- `Resume` continues a canceled or interrupted task with its original intent.
+- `Retry` repeats the failed stage with its original intent unless the UI explicitly says otherwise.
+- `Edit and retry` opens the stored snapshot, lets the user confirm changes, and creates a new snapshot or task revision.
+- Runtime context may be resolved again when execution starts: dependency paths and health, automatic proxy detection, current cookie-file availability, and other environment-owned values.
+- Do not replace an old task with the current new-download screen state. Android also serializes creation-time `DownloadPreferences`; a different Desktop behavior requires an explicit Desktop-adaptation decision.
+- Persist enough phase information to distinguish metadata failure, ready-to-download state, active download, cancellation, and process failure. Backward-compatible defaults are required when the queue schema changes.
+
+### Cookies and request authentication
+
+Desktop does not own an embedded authenticated browser session. Browser extraction is the primary way to create the Seal-managed global Netscape cookies file; manual file import is a fallback for an already valid export.
+
+- Treat browser extraction, the persisted cookie file, user agent, and any future headers or impersonation options as one resolved authentication context.
+- Apply the same context to metadata lookup, custom-format lookup, normal downloads, custom commands, and retry. A setting is not complete if only the final download receives authentication.
+- Enabling Cookies without a usable source must fail early with actionable feedback; file shape validation alone does not prove freshness or site authorization.
+- A user-agent control must persist and reach every authenticated request, or it must not be shown as active UI.
+- Browser export may include cookies for multiple sites. Explain the scope, storage path, replacement behavior, and sensitivity before export or import.
+- Android Cookie Profiles and the Desktop global file are different product models. Record Desktop adaptation explicitly before adding profile-like UI.
+
+### SponsorBlock modes
+
+Do not store SponsorBlock as an unchecked free-form category string without a validated domain model.
+
+- Keep `Disabled`, `Default`, `All`, and `Custom(non-empty categories)` distinct.
+- `default` and `all` are yt-dlp semantic tokens, not localized labels or interchangeable aliases. Verify upstream semantics when changing them.
+- Never emit an empty value for `--sponsorblock-remove`.
+- Validate, normalize, and deduplicate custom tokens while preserving a deliberate strategy for unknown values from newer yt-dlp versions.
+- Persisted empty or legacy strings require an explicit migration decision; do not silently broaden removal behavior to `all`.
+
 ## 5. Internationalization Contract
 
 ### 5.1 Sources and generated mirrors
@@ -193,6 +225,20 @@ For a changed formatted key, also compare placeholders in every locale override.
 Platform-specific app-private locations are owned by `DesktopDependencyPaths`; generic `~/.local/bin`, Homebrew prefixes, WinGet links, Scoop shims, and Chocolatey bins are system locations. Finding a usable system tool must not trigger a duplicate download into a Seal-owned location.
 
 `yt-dlp` and `ffmpeg` form the required complete environment. `ffprobe` is distributed with the selected ffmpeg package when needed. `aria2c` is optional and must not make the base environment incomplete.
+
+File existence is not dependency health. Resolver-facing status must distinguish at least `Missing`, `Healthy`, and `Broken`.
+
+- Health probes run outside Compose rendering, use a timeout, capture exit code/stdout/stderr, and cache by normalized path plus a file identity such as mtime and size.
+- A wrapper or shim is acceptable when it launches correctly from the packaged application environment. A file named `yt-dlp` is not accepted merely because it exists.
+- In `auto`, a Broken system dependency may be treated as unresolved and offered a Seal-managed replacement. In `system`, report the path and package-manager repair guidance without downloading. In `selfhost`, only Seal-owned files may be modified.
+- User feedback must distinguish missing tools, broken tools, unsupported architecture, download failure, and version-probe timeout.
+
+Local and CI packaging must preserve the Lite/Full boundary:
+
+- Lite contains the application runtime but no downloaded yt-dlp/ffmpeg payload and never performs an implicit build-time download.
+- Full preparation is an explicit task or workflow step, uses the selected OS/architecture artifacts, and verifies them before packaging.
+- Generated `desktop/appResources/<platform>` payloads are build inputs, not source files, and must not be committed accidentally.
+- Lite smoke verifies startup and missing-environment feedback. Full smoke additionally locates and executes packaged yt-dlp, ffmpeg, and ffprobe from the staged and installed artifact.
 
 Changes to this policy require resolver tests for Linux, Windows, macOS Intel, and macOS arm64, plus the dependency smoke workflow. CI may test command construction without mutating a hosted runner through `winget`, Homebrew, or privileged Linux package installation.
 

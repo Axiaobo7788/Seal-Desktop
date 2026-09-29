@@ -68,6 +68,16 @@ The detailed capability state belongs in `feature-roadmap.md`.
 
 Do not treat `privateDirectory` as equivalent to `privateMode`. Android private-directory semantics do not automatically transfer to Desktop.
 
+### Retry semantics
+
+Desktop retry/resume combines two kinds of state instead of choosing one complete settings snapshot:
+
+- freeze task intent from the original request, including media/format selection, subtitles, output directories and title overrides;
+- refresh live runtime context from current settings, including Cookies/browser source, proxy, user agent, rate limit, IPv4, debug, aria2c, fragment concurrency and download-archive policy;
+- merge `privateMode` fail-closed: a task is private when either the original request or current settings is private, and the merged request must also govern queue/history persistence.
+
+Do not replace the original request wholesale with current preferences, and do not retry with a completely stale runtime context.
+
 ### UI parity
 
 Visual similarity is insufficient. Parity review includes state transitions, error/loading states, keyboard/mouse behavior, scrolling, animation feel, responsive layout and localization.
