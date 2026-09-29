@@ -1,8 +1,8 @@
 # Seal Desktop 项目自查报告（2026-06-15）
 
-> 状态更新（2026-09-28）：本文保留为**历史审计、详细 backlog 和验证证据库**，不再作为恢复项目时的第一/current truth 入口。当前恢复点、优先级和验证债请先看 `docs/current-progress.md`；长期项目事实请看 `docs/project-memory.md`。
+> 状态更新（2026-09-29）：本文保留为**历史审计、详细 backlog 和验证证据库**，不再作为恢复项目时的第一/current truth 入口。当前恢复点、优先级和验证债请先看 `docs/current-progress.md`；长期项目事实请看 `docs/project-memory.md`。
 >
-> 本文中更早写下的“当前唯一行动清单”等表述均视为历史语境，不覆盖上述 2026-09-28 状态。
+> 本文中更早写下的“当前唯一行动清单”等表述均视为历史语境，不覆盖上述 2026-09-29 状态。
 >
 > 规范边界：代码操作、模块边界、Agent 工作模式、多语言、依赖来源和 Definition of Done 以根目录 `AGENTS.md`、`docs/agent-workflow.md` 与 `docs/development-guidelines.md` 为准。
 
@@ -23,15 +23,16 @@
 | D-01 | P0 | 后端已验证，待人工验收 | Cookies 与请求认证 | 统一 context、浏览器提取 service、缓存保护、metadata/格式页/下载/自定义命令/retry 接入及自动测试已完成；仍需真实 Chrome/Firefox/Edge 与 macOS Safari Human-check。 |
 | D-02 | P0 | 待决策 | SponsorBlock | 先确定 Disabled、Default、All、Custom 的产品语义和旧空字符串迁移；禁止继续生成空 `--sponsorblock-remove`，不能静默把空值解释为 `all`。 |
 | D-03 | P1 | 待设计 | 队列继续与重试 | 保留任务创建时快照；拆分“继续/按原设置重试”和“编辑后重试”，记录失败阶段，不把当前 `workingPreferences` 静默覆盖旧任务。 |
-| D-04 | P1 | 部分完成 | 依赖健康与本地 Lite/Full | 生成的 `desktop/appResources/` 已忽略；仍需可运行性探测、Missing/Broken 区分和明确的本地 Lite/Full 构建入口。 |
+| D-04 | P1 | 本地已验证，原生矩阵待复验 | 依赖健康与本地 Lite/Full | Missing/Healthy/Broken probe、缓存失效和 system/selfhost/packaged/auto 所有权策略已有自动测试；仍需 Windows/Linux/macOS 原生 smoke，并补显式 contributor setup/fetch 入口。 |
 | D-05 | P1 | 后端已验证，管理 UI 待实现 | 下载归档 | service 已覆盖读取、计数、精确预检、编辑、原子保存和清空；普通下载与自定义命令不再把归档跳过显示为 Completed。仍需设置页查看、编辑、清空、打开和确认交互。 |
 | D-06 | P1 | 待实现 | 播放列表条目选择 | 增加条目选择并传 `--playlist-items`，或在短期 UI 中明确“下载整个播放列表”。 |
 | D-07 | P1 | 部分完成 | 自定义格式页 | 音频模式过滤与共享字幕 pattern matcher 已完成并验证；仍需剪切范围以及搜索/清空/选中动画 parity。 |
-| I-01 | P1 | 部分完成 | Desktop i18n | 格式页加载/错误/空状态和提示已资源化；仍需清理 Cookies、依赖安装、通知、文件选择器和其他错误弹窗，并补 locale fallback 参数化测试。 |
+| I-01 | P1 | 主要清理已本地验证，原生切换待验 | Desktop i18n | Cookies、依赖、通知、文件选择器、历史/错误等已资源化并完成同步扫描；仍需完整 locale fallback 矩阵与 Windows/macOS/Linux 打包语言切换验收。 |
 | R-01 | P1 | 部分完成，待 CI 复验 | Release 可复现性 | release 已强制三平台同 commit，Full 包写入工具 version/SHA/source/build commit 并生成发布校验和；仍需真实 Actions 验证、stable 来源 pin 决策与 action SHA 策略。 |
 | R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |
-| S-01 | P2 | 后端已验证，路径迁移待实现 | DownloadPreferences 存储 | 偏好已纳入 json/dual/sqlite，兼容旧 `settings.json`、损坏隔离和原子写；Windows/macOS 原生 state path 及 legacy lookup 属下一阶段。 |
+| S-01 | P2 | 本地已验证，原生迁移待复验 | DownloadPreferences 存储与应用路径 | 偏好已纳入 json/dual/sqlite；`DesktopAppPaths` 统一三平台路径并实现保留源数据的 legacy copy/fallback。纯逻辑、自检与迁移测试通过，仍需真实 Windows/macOS 安装包启动和旧数据迁移验收。 |
 | UI-01 | P2 | 待人工复验 | UI/动画 parity | 用 Android/Desktop 录屏和窗口/主题/locale 矩阵验收下载 sheet、格式页、队列、历史、设置页和滚动条。 |
+| U-01 | 延期 | 手动流程已实现，自动更新延期 | Desktop 应用更新 | 无效自动更新/channel/check 控件已移除，About/更新页只说明手动更新并打开 Releases；未来自动检查/替换必须单独设计。 |
 
 ## 2026-09-29 Desktop Cookies unified context
 
@@ -51,8 +52,6 @@
 - 通过：`./gradlew :shared:syncAndroidStringsToComposeResources :shared:allTests :desktop:compileKotlin :desktop:test --stacktrace`（64 tasks，2026-09-29）。
 - 通过：`git diff --check` 与资源同步 diff 检查。
 - 未验证：真实 Chrome/Chromium、Firefox、Edge、Safari 登录态；Windows/macOS/Linux Cookies 页面交互和 extraction/native download smoke。因此 D-01 尚不能标记为产品 Implemented。
-| U-01 | 延期 | 产品决定 | Desktop 应用自动更新 | 按当前决定留待后续；延期期间入口必须明确为未实现或手动下载，不能让无动作按钮看起来可用。 |
-
 ## 2026-08-25 低争议修复与项目收敛复核
 
 - [x] `.gitignore` 忽略 Full 打包阶段生成的 `desktop/appResources/`，避免 yt-dlp/ffmpeg payload 被误提交。
@@ -75,10 +74,10 @@
 
 | 范围 | 当前实质缺口 | 收敛边界 |
 | --- | --- | --- |
-| 认证、SponsorBlock、重试 | D-01 至 D-03 仍缺统一模型或产品决策 | 不接受调用点临时补参数；先定模型、迁移和失败反馈。 |
-| 依赖与打包 | D-04 只完成生成目录防误提交 | health probe、显式 Lite/Full 任务和原生安装后 smoke 完成后才能关闭。 |
-| 归档、播放列表、格式页 | D-05 至 D-07 仍有用户闭环缺口 | 优先补可见反馈和执行语义，再做视觉精修。 |
-| i18n 与 UI parity | I-01、UI-01 只完成局部页面 | 资源扫描和录屏矩阵分别验收，不能用编译代替。 |
+| 认证、SponsorBlock、重试 | Cookies 后端与 retry/SponsorBlock 安全边界已自动验证；真实浏览器和 SponsorBlock 产品模型仍未验收/决策 | 不接受调用点临时补参数；Cookies 先做 Human-check，SponsorBlock 另行确定 Disabled/Default/All/Custom。 |
+| 依赖与打包 | health probe、所有权策略和 provenance 已实现，本地静态/自动测试通过 | 原生安装后 smoke、显式 contributor setup/fetch、stable pin 与 action SHA 策略完成后才能关闭。 |
+| 归档、播放列表、格式页 | 归档后端和字幕 matcher 已完成；管理 UI、播放列表条目、clip/视觉 parity 仍缺 | 不重写已测后端，优先补用户闭环，再做人工视觉验收。 |
+| i18n 与 UI parity | 已完成目标硬编码清理与资源同步；完整 locale/打包切换和 UI 录屏矩阵仍缺 | 资源测试和人工录屏分别验收，不能用编译代替。 |
 | Android 与 release | A-01/A-02、R-01/R-02 需要设备或原生 runner | 不从 Linux 编译结果推断 Android、Windows 或 macOS 可用。 |
 
 ### 疑似过度或待收敛
@@ -1083,58 +1082,45 @@ Android 有 ktfmt 配置，但 Desktop/shared 没看到等价 lint/format workfl
 - Lite/Full 打包、工具注入及 staged/installed smoke 的区别。
 - 自定义命令重启恢复的当前 `Running -> Interrupted` 语义。
 
-## 当前建议实施顺序（2026-08-25）
+## 当前建议实施顺序（2026-09-29）
 
 这里仅展开顶部行动清单，不再重复已经完成的历史修复。
 
-### 第一批：先阻止错误执行和假成功
+### 第一批：把本地实现交给真实环境验收
 
-1. 完成 D-01：统一 metadata、格式页和下载执行的 Cookies/UA 认证上下文，并为缺失或无效认证提供可读错误。
-2. 完成 D-02 的产品决策与迁移测试，禁止 SponsorBlock 空分类进入 plan。
-3. 完成 D-04 的 Broken dependency 检测，避免把无法启动的 system wrapper 标记成可用。
-4. 补 D-05 的 archive 重复反馈，避免已归档跳过被显示成普通完成或无响应。
+1. 审查并推送当前 focused commits，在 Windows x64、Linux x64、macOS x64/arm64 分别运行 dependency 与 packaging smoke。
+2. 用真实 Chrome/Chromium、Firefox、Edge 验收 Cookies；Safari 只在 macOS 单独验收。
+3. 在原生安装包中验证旧 state 迁移、SQLite 启动、语言切换和 `THIRD_PARTY_VERSIONS.txt`。
+4. 保持各平台/架构证据独立，任何失败都不得被另一平台成功替代。
 
-### 第二批：收敛任务和下载语义
+### 第二批：完成剩余用户闭环
 
-1. 完成 D-03：区分继续、按原设置重试、编辑后重试，并持久化失败阶段。
-2. 继续 D-07：格式类型过滤已完成，剩余字幕 pattern、剪切范围和相关 UI parity。
-3. 完成 D-06：播放列表条目选择；短期无法实现时先明确整表下载语义。
-4. 决定 `privateDirectory` 的 Desktop 产品语义，不实现就移除 stale 入口，实现则定义平台路径与迁移。
-5. 为分章节下载补一次真实文件 smoke；最终 CLI 已有 typed `-o` 回归测试。
+1. 为 D-05 增加 archive 查看、编辑、打开和清空确认 UI，不重写已验证的 service。
+2. 完成 D-06 播放列表条目选择；短期无法实现时明确整表下载语义。
+3. 继续 D-07 的剪切范围与搜索/选中动画 parity，并走 Human-check。
+4. 决定 D-02 SponsorBlock 产品模型以及 `privateDirectory` 的 Desktop 语义。
 
-### 第三批：平台验证、i18n 与 release
+### 第三批：平台与长期维护
 
-1. 在设备上完成 A-01，并根据结果设计 A-02 的前台服务 owner/lease。
-2. 完成 I-01 的用户可见硬编码清理和 locale fallback 测试。
-3. 完成 R-01 的 commit/tag 绑定、依赖 pin 与 provenance。
-4. 在 Windows、macOS Intel/arm64 和 Linux 原生 runner 完成 R-02 的安装后 smoke。
-5. 明确 Inno `[Languages]` 生成来源，避免预处理宏成为隐藏构建依赖。
-
-### 第四批：长期结构债
-
-1. 将 DownloadPreferences 纳入 SQLite/dual storage，并迁移旧 `settings.json`。
-2. 增加 Desktop 语言列表与资源目录 drift 检查。
-3. 清理 Gradle 9 deprecation、AGP/Kotlin 兼容警告和 `mavenLocal()` 默认启用。
-4. 建立 Android/Desktop UI 录屏和 screenshot checklist，逐步关闭 UI-01。
-5. U-01 自动更新继续延期，除非产品重新排期；延期期间只允许诚实的 disabled/manual UI。
+1. 在 Android 设备完成 A-01，并据此设计 A-02 前台服务 owner/lease。
+2. 增加语言列表/资源目录 drift 检查和完整 locale fallback 参数化覆盖。
+3. 决定 stable 工具 pin 与 GitHub Actions SHA pin 策略，并保留同 commit release provenance。
+4. 清理 Gradle 9 deprecation、AGP/Kotlin 兼容警告和 `mavenLocal()` 默认启用。
+5. U-01 自动更新继续延期；只有重新排期后才新增 release check 或平台替换逻辑。
 
 ## 当前可拆分 Issue 标题
 
-- `fix(desktop): apply one resolved cookie auth context to metadata and downloads`
-- `fix(desktop): persist and honor cookie user-agent configuration`
 - `refactor(shared): model SponsorBlock disabled default all and custom modes`
 - `fix(desktop): reject or migrate empty SponsorBlock categories`
 - `refactor(desktop): separate resume retry and edit-then-retry semantics`
-- `fix(desktop): retain download request intent while re-resolving runtime context`
-- `fix(desktop): distinguish missing and broken yt-dlp or ffmpeg dependencies`
-- `build(desktop): add explicit Lite and Full distributable tasks`
+- `fix(desktop): persist and surface retry failure stage`
+- `build(desktop): add explicit contributor dependency setup and fetch tasks`
 - `feat(desktop): add download archive viewer editor and clear action`
-- `fix(desktop): surface download archive duplicate skips`
 - `fix(desktop): decide and implement private directory semantics`
 - `feat(desktop): add playlist item selection parity`
 - `feat(desktop): add saved links and multi-url input parity`
 - `feat(desktop): add history multi-select and selected export parity`
-- `fix(desktop): support subtitle language patterns in custom format selection`
+- `fix(desktop): complete custom format clip and animation parity`
+- `test(desktop): detect locale option and resource qualifier drift`
 - `fix(windows): make Inno languages explicit`
-- `ci(release): bind desktop artifacts to release commit sha`
-- `i18n(desktop): remove hardcoded user-visible strings from setup network and format pages`
+- `ci(release): decide stable tool and action sha pinning policy`

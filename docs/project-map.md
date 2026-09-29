@@ -1,6 +1,6 @@
 # Seal-Desktop Project Map
 
-> 更新时间：2026-09-28
+> 更新时间：2026-09-29
 >
 > 本文用于回答三件事：这个项目在做什么、模块在哪里、当前行动清单看哪里。
 >
@@ -89,6 +89,7 @@ flowchart LR
 ### `desktop/download/`
 - Desktop 下载队列、状态管理、执行控制
 - 与下载配置页联动（普通下载 + 命令模式）
+- `archive/DesktopDownloadArchiveService` 统一归档读取、精确预检、原子编辑/清空和跳过结果分类
 
 ### `desktop/customcommand/`
 - 自定义命令模板、任务管理、日志视图
@@ -108,6 +109,10 @@ flowchart LR
 - system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
 - yt-dlp/ffmpeg 执行配置、metadata 获取、统一 `DesktopCookieContext` 和 proxy 运行环境
 - Cookies 后端已贯通 metadata、格式页、正式下载、自定义命令与 retry；真实系统浏览器和原生 UI 证据仍待补齐
+
+### `desktop/i18n/`
+- `DesktopLocaleOptions` 维护 persisted tag、Compose qualifier 与 Follow System 映射
+- `DesktopResourceEnvironmentAdapter` 隔离 Compose Resources internal reflection、provider 安装和失败回退
 
 ### `app/download/` + `app/util/`
 - Android 任务编排、服务保活、通知动作、平台能力集成
@@ -140,7 +145,7 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 ### 6. Desktop 依赖与打包流程
 `环境偏好(system/selfhost/auto) -> resolver -> health/source 状态 -> 执行器或环境修复 UI`
 
-`Lite: 应用运行时 -> smoke`；`Full: 显式准备平台工具 -> 注入 appResources -> 打包 -> staged/installed tool smoke`。普通本地打包不会自动变成 Full。
+`Lite: 应用运行时 -> smoke`；`Full: 显式准备平台工具 -> 写入 THIRD_PARTY_VERSIONS.txt -> 注入 appResources -> 打包 -> staged/installed tool smoke`。普通本地打包不会自动变成 Full，release 只组合相同 commit 的三平台产物并额外生成校验和。
 
 ## 关键代码入口
 
@@ -153,11 +158,14 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 | Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
 | Desktop Cookies UI、统一上下文与缓存 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/cookies/`、`DesktopYtDlpPaths.kt` |
 | Desktop 应用路径与 legacy state 迁移 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/paths/DesktopAppPaths.kt` |
+| Desktop 下载归档后端 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/archive/DesktopDownloadArchiveService.kt` |
 | Desktop 队列快照 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |
 | Android 语言选项 | `app/src/main/java/com/junkfood/seal/util/LanguageSettings.kt` |
 | Desktop 语言映射 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/i18n/DesktopLocaleOptions.kt` |
+| Desktop Compose Resources 适配 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/i18n/DesktopResourceEnvironmentAdapter.kt` |
+| Full 工具来源清单 | `.github/scripts/write_tool_provenance.py`、`.github/workflows/*_portable.yml`、`.github/workflows/release.yml` |
 | 产品字符串事实源 | `app/src/main/res/values*/strings.xml` |
 
 变更任务模板、Definition of Done 和验证矩阵见 `docs/development-guidelines.md`，Agent 迭代/人工核对规则见 `docs/agent-workflow.md`，产品能力状态见 `docs/feature-roadmap.md`，当前任务排序见 `docs/current-progress.md`。

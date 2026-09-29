@@ -27,6 +27,7 @@ A feature is not complete just because its UI exists.
 - Product strings originate in `app/src/main/res/values*/strings.xml` and are synchronized into Compose resources.
 - Desktop currently supports JSON/dual/SQLite storage compatibility; SQLite is the structured target, while compatibility paths must remain migration-safe until intentionally removed.
 - Desktop writable paths are owned by `DesktopAppPaths`: Linux uses XDG roots, Windows uses Local AppData, and macOS uses Application Support/Caches. When a native state location replaces the historical `~/.local/state/seal`, migration must retain the legacy source and fall back to it if copying fails.
+- Compose Resources internal reflection is isolated behind `DesktopResourceEnvironmentAdapter`; application/navigation code must not depend directly on internal class or method names, and reflection failure must preserve system-resource startup.
 
 ## 3. Product Decisions That Must Survive Context Loss
 
@@ -53,6 +54,14 @@ Desktop Cookies is a **Desktop adaptation**, not an Android WebView port.
 - The presence of a Cookies screen or cookies file does not mean the Desktop cookies feature is complete.
 
 The detailed capability state belongs in `feature-roadmap.md`.
+
+### Desktop application updates
+
+Desktop application updates are manual unless a future scoped feature explicitly implements native release checking and replacement.
+
+- About/update UI may open this repository's Releases page and must describe the manual behavior honestly.
+- Legacy `autoUpdateEnabled` and `updateChannel` fields exist only for backward-compatible reads; they are not an active product contract.
+- Do not copy Android APK replacement semantics into Windows, macOS or Linux without a separate platform design and native verification.
 
 ### Dependency ownership
 
@@ -115,6 +124,9 @@ For release/shrinking work:
 - Windows, Linux and macOS evidence are independent;
 - macOS Intel and arm64 are independent packaging targets when both are supported;
 - never infer a native runner result from another OS.
+- release assembly must select Windows, Linux and macOS artifacts from the same target commit, never each workflow's unrelated latest successful run;
+- Full artifacts must carry the actual packaged tool version, SHA256, source classification/URL and build commit, and release output must publish artifact checksums;
+- recording moving/nightly sources provides traceability, not reproducibility; stable pinning and action SHA policy remain separate decisions.
 
 ## 6. Documentation Model
 

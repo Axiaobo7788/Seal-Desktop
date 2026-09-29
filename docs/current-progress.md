@@ -6,7 +6,7 @@
 >
 > Main branch last observed commit: `2a7d1c45b41ddbcede9c01d667a4757781a4e544` — `fix(desktop): harden dependency setup and release packaging` (2026-08-17).
 >
-> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `ae07428cb61522271d45547940cbbb7f8dbc1865` (`fix(desktop): harden dependency recovery`). The Phase 1 validation follow-up described below has local test/documentation changes that are not yet committed.
+> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `67baefe7` (`build: record desktop dependency provenance`). The 2026-09-29 implementation work is split into focused local commits; this branch has not yet been pushed or validated by fresh native workflows.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
@@ -14,7 +14,7 @@
 
 The project resumed on 2026-09-28 after more than one month of limited activity.
 
-The latest work concentrated on Desktop dependency setup, release shrinking, SQLite runtime safety and native packaging smoke checks. The architecture and build are not assumed broken, but the last audit still contains a mix of unresolved product parity, i18n and native verification debt.
+The latest work closed the local backend/model phases for Cookies, retry semantics, dependency health, DownloadPreferences storage, application paths, download archive handling, subtitle matching, resource-environment isolation and release provenance. Product-level Cookies acceptance, archive management UI, remaining Custom Format/UI parity and native package evidence are still open.
 
 The pre-resume dirty worktree was stashed with untracked files, the governance branch was checked out, and the stash was reapplied. A full safety copy remains in `stash@{0}`; the local-only `main` commit `d6f8231e` also remains reachable. Do not drop the stash until the restored changes are reviewed and committed deliberately.
 
@@ -41,7 +41,7 @@ The 2026-09-29 recovery iteration contains two targeted CI repairs, but no fresh
 - the macOS packaging matrix has `fail-fast: false`, preserving x64 and arm64 evidence independently;
 - the latest failed Windows policy run predates the current Room/KSP and dependency-policy fixes, so its old failure was not suppressed or weakened.
 
-The public GitHub Actions API reports zero workflow runs for `chore/agent-governance-refresh` at `ae07428c`. The current host has neither an authenticated GitHub CLI nor an authenticated browser session, so it could not dispatch the validation workflows. This is an evidence/access blocker, not a native pass or failure.
+The active local branch contains commits that are not on its remote tracking branch, so the current implementation has no native workflow evidence yet. Do not reuse older main/branch runs as proof for these changes. Pushing or dispatching workflows was outside this local implementation round.
 
 Action:
 
@@ -77,9 +77,10 @@ Static checks completed on 2026-09-29:
 
 - Android and Compose default/Simplified Chinese/Traditional Chinese string resources remain synchronized;
 - the user-visible hard-coded-string rescan found only allowed codec names, URLs, package IDs, CLI/category tokens, filenames and internal self-check/debug text;
-- changed workflows parse as YAML and the Unix smoke script passes `bash -n`;
+- changed workflows parse as YAML, their Bash blocks pass `bash -n`, and github-script JavaScript passes an async-wrapper syntax check;
+- `actionlint` passes for the four affected workflows via `go run github.com/rhysd/actionlint/cmd/actionlint@latest`;
 - `git diff --check` passes;
-- `actionlint` is not installed on this host, so workflow schema validation remains pending.
+- PowerShell scripts were not parsed by a local `pwsh` because this host does not provide it; Windows Actions remains the required native check.
 
 ## P1 — Issue #4 Triage
 
@@ -196,7 +197,7 @@ Important current examples:
 - playlist item selection;
 - multi-URL input and Saved URLs;
 - download-history multi-select/bulk actions;
-- application update behavior;
+- automatic application update behavior beyond the implemented manual flow;
 - download archive management;
 - remaining custom-format parity;
 - private-directory product decision.
@@ -220,14 +221,12 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 
 ## Recommended Resume Order
 
-1. Authenticate GitHub Actions and dispatch the updated dependency smoke plus macOS packaging workflows from `chore/agent-governance-refresh`; record each OS/architecture result independently.
-2. If the native matrix passes, close the remaining A1/A3 validation debt and commit the focused retry-test/documentation follow-up.
-3. Run the Desktop Cookies Human Review Packet against real browser sessions; do not mark the capability Implemented from fake-process tests alone.
-4. Continue other misleading/partial product surfaces:
-   - Desktop app update page;
-   - download archive management/feedback.
-5. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
-6. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
+1. Push the focused branch only after review, then run dependency smoke and native packaging on Windows x64, Linux x64, macOS x64 and macOS arm64; record each result independently.
+2. Run the Desktop Cookies Human Review Packet against real Chrome/Chromium, Firefox and Edge sessions, with Safari as a separate macOS check; do not mark the capability Implemented from fake-process tests alone.
+3. Verify packaged locale switching, legacy-state migration, SQLite startup and `THIRD_PARTY_VERSIONS.txt` inclusion on every affected native package.
+4. Implement the download-archive management UI without reopening the already-tested backend contract.
+5. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual and animation decisions.
+6. Treat automatic updates, stable dependency pinning/action SHA policy and broad toolchain upgrades as separate scoped work.
 
 ## Recently Completed Baseline Worth Preserving
 
