@@ -157,3 +157,23 @@ Anything involving private mode, cookies, history, task recovery or sensitive UR
 
 A successful self-iteration should not append a diary entry to project memory.
 A human decision that changes product semantics usually should.
+
+
+## 6. Mandatory Completion Label
+
+Every completed work report must end with one of these classifications:
+
+- `Completion mode: AUTO` — implementation and all required acceptance evidence were completed through reproducible automated checks; no human judgement remains for the task's Definition of Done.
+- `Completion mode: HUMAN-CHECK` — automated work is complete as far as possible, but final acceptance still depends on human/native/manual/product evidence.
+
+Do not choose AUTO merely because code compiled. UI feel, real-browser Cookies behavior, Android device behavior, native installer behavior, signing/release behavior, and product decisions remain HUMAN-CHECK unless the task itself explicitly excludes those claims.
+
+For HUMAN-CHECK, append a concise review packet with:
+
+1. exact manual steps;
+2. expected result for each step;
+3. platform/window/account/device prerequisites;
+4. screenshots, recordings, logs, or artifacts to capture;
+5. remaining risk if the check is skipped.
+
+For AUTO, list the exact automated commands/tests that establish completion.
