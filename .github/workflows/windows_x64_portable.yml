@@ -121,6 +121,27 @@ jobs:
           & "dist-bin\ffprobe.exe" -version | Select-Object -First 1
           if ($LASTEXITCODE -ne 0) { throw "ffprobe version check failed: $LASTEXITCODE" }
 
+      - name: Record bundled tool provenance (Windows)
+        shell: pwsh
+        run: |
+          python .github/scripts/write_tool_provenance.py `
+            --output "dist-bin/THIRD_PARTY_VERSIONS.txt" `
+            --build-commit "$env:GITHUB_SHA" `
+            --build-workflow "$env:GITHUB_WORKFLOW" `
+            --build-run-id "$env:GITHUB_RUN_ID" `
+            --platform "windows" `
+            --architecture "x64" `
+            --yt-dlp "dist-bin/yt-dlp.exe" `
+            --yt-dlp-url "$env:YT_DLP_URL" `
+            --yt-dlp-source-type "moving-nightly-release" `
+            --ffmpeg "dist-bin/ffmpeg.exe" `
+            --ffmpeg-url "$env:FFMPEG_URL" `
+            --ffmpeg-source-type "moving-master-build" `
+            --ffprobe "dist-bin/ffprobe.exe" `
+            --ffprobe-url "$env:FFMPEG_URL" `
+            --ffprobe-source-type "moving-master-build"
+          Get-Content "dist-bin/THIRD_PARTY_VERSIONS.txt"
+
       # 如需 x86/arm64 可再加下载，改文件名存放到 dist-bin/ 并在后续打包时挑选
       # - name: Download yt-dlp (arm64)
       #   run: curl -L ".../yt-dlp_arm64.exe" -o dist-bin/yt-dlp_arm64.exe
@@ -270,6 +291,8 @@ jobs:
             $tool = Get-ChildItem $installDir -Recurse -File -Filter $name | Select-Object -First 1
             if (-not $tool) { throw "Bundled tool not found in installed app: $name" }
           }
+          $provenance = Get-ChildItem $installDir -Recurse -File -Filter "THIRD_PARTY_VERSIONS.txt" | Select-Object -First 1
+          if (-not $provenance) { throw "Bundled tool provenance manifest not found in installed app." }
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot $installDir `
             -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `

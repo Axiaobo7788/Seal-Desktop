@@ -205,16 +205,16 @@ The current repair omits `--sponsorblock-remove` when the category is blank and 
 
 ### 4. Fresh local `createDistributable` can fall back to a broken PATH yt-dlp
 
-**Classification: Repair locally verified / native matrix pending; provenance work remains**
+**Classification: Repair locally verified / native matrix pending; provenance metadata implemented**
 
 Release workflows and local contributor builds do not currently have the same dependency-population guarantees.
 
 The active worktree now probes yt-dlp/ffmpeg/aria2c and distinguishes `Missing`, `Healthy` and `Broken`. A broken system dependency remains system-owned, a broken selfhost dependency can be repaired in the app-private directory, and packaged dependencies stay read-only. The probe is cached by file identity metadata and explicitly invalidated after app-managed replacement.
 
-Focused health, ownership-policy and full Desktop tests passed locally on 2026-09-29. This closes the unsafe "exists means usable" assumption in implementation, but the updated Windows/Linux/macOS dependency smoke matrix still needs a branch run. Broader dependency bootstrap/provenance work still includes:
+Focused health, ownership-policy and full Desktop tests passed locally on 2026-09-29. Full workflow artifacts now also contain actual tool versions, SHA256 values, source classification/URLs and the build commit; release assembly requires all platforms to come from one commit and emits release checksums. This closes the unsafe "exists means usable" assumption and adds provenance in implementation, but the updated Windows/Linux/macOS dependency smoke matrix still needs a branch run. Broader dependency bootstrap/reproducibility work still includes:
 
 - an explicit contributor setup/fetch task;
-- pinned/provenance-aware release dependency handling.
+- deciding which stable release dependencies must be pinned instead of merely recorded, plus action SHA pinning.
 
 Do not classify every broken external PATH executable as an application runtime bug.
 

@@ -28,7 +28,7 @@
 | D-06 | P1 | 待实现 | 播放列表条目选择 | 增加条目选择并传 `--playlist-items`，或在短期 UI 中明确“下载整个播放列表”。 |
 | D-07 | P1 | 部分完成 | 自定义格式页 | 音频模式过滤与共享字幕 pattern matcher 已完成并验证；仍需剪切范围以及搜索/清空/选中动画 parity。 |
 | I-01 | P1 | 部分完成 | Desktop i18n | 格式页加载/错误/空状态和提示已资源化；仍需清理 Cookies、依赖安装、通知、文件选择器和其他错误弹窗，并补 locale fallback 参数化测试。 |
-| R-01 | P1 | 待实现 | Release 可复现性 | release 绑定 commit/tag；pin yt-dlp/ffmpeg 来源和 provenance；统一 action pin 策略。 |
+| R-01 | P1 | 部分完成，待 CI 复验 | Release 可复现性 | release 已强制三平台同 commit，Full 包写入工具 version/SHA/source/build commit 并生成发布校验和；仍需真实 Actions 验证、stable 来源 pin 决策与 action SHA 策略。 |
 | R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |
 | S-01 | P2 | 后端已验证，路径迁移待实现 | DownloadPreferences 存储 | 偏好已纳入 json/dual/sqlite，兼容旧 `settings.json`、损坏隔离和原子写；Windows/macOS 原生 state path 及 legacy lookup 属下一阶段。 |
 | UI-01 | P2 | 待人工复验 | UI/动画 parity | 用 Android/Desktop 录屏和窗口/主题/locale 矩阵验收下载 sheet、格式页、队列、历史、设置页和滚动条。 |
@@ -700,19 +700,18 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 
 ## P1：CI / Release / Packaging
 
-### 14. Release workflow 取“最新成功构建”，不是取当前 commit/tag 对应构建
+### 14. [x] Release workflow 已绑定同一 commit 的三平台构建
 
 证据：`.github/workflows/release.yml:96`
 
-`release.yml` 会找三个 workflow 的 latest successful run，再下载 artifact。这样如果 main 上后续又跑过构建，或某个平台构建滞后，release 可能拼出不同 commit 的产物。
+`release.yml` 现在先解析目标 commit（手动 workflow 使用 `context.sha`，release event 解析 tag commit），然后只接受 `head_sha` 完全一致的 Linux、Windows 和 macOS 成功 run。任一平台没有同 commit 证据就会失败，不再拼接不同源码状态。
 
-建议：
+后续：
 
-- release 输入 commit SHA，按 `head_sha == github.sha` 查找 workflow run。
-- 或把 build 和 release 串成同一个 workflow，使用 `workflow_run`/`workflow_call` 传 artifact。
-- artifact 名里写入 commit short SHA，release 前校验三端一致。
+- 需要真实 Actions/release dry run 验证 API 查找和 artifact 权限。
+- 后续可考虑用 `workflow_call` 直接传递 artifact，缩小历史 run 查找面。
 
-### 15. Desktop workflows 下载 latest/nightly 依赖，不可复现
+### 15. Desktop workflows 的 moving 依赖已可追溯，仍未完全可复现
 
 证据：
 
@@ -720,13 +719,13 @@ Android 侧常用 `en.*,.*-orig` 这类 yt-dlp subtitle pattern。Desktop 格式
 - Linux yt-dlp nightly latest：`.github/workflows/linux_x64_portable.yml:17`
 - FFmpeg master latest：多个 workflow env
 
-这会造成同一个源码 commit 在不同时间构建出不同二进制。
+这仍可能造成同一个源码 commit 在不同时间构建出不同二进制。但每个 Full 产物现在都包含 `THIRD_PARTY_VERSIONS.txt`，记录实际 yt-dlp/ffmpeg/ffprobe 的 version、SHA256、size、source type/URL 和 build commit；release 同时输出 `BUILD_PROVENANCE.txt` 与 `SHA256SUMS`。
 
 建议：
 
 - release 构建 pin 到明确 version 和 checksum。
 - nightly/latest 只用于 dev artifact 或手动 channel。
-- 在 artifact 中写入 `THIRD_PARTY_VERSIONS.txt`，记录 yt-dlp/ffmpeg URL、version、sha256。
+- 根据 stable/dev 发布政策决定 stable 产物是否必须 pin 到明确 URL/checksum；nightly/dev 可继续 moving 但必须保留 manifest。
 
 ### 16. Actions 版本和 nightly action 需要统一审计
 

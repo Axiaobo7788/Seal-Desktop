@@ -20,7 +20,7 @@ The pre-resume dirty worktree was stashed with untracked files, the governance b
 
 A new triage rule is now active: unfinished porting/planned capability is not automatically a bug. Check `feature-roadmap.md` before acting on issue reports.
 
-Upstream Seal activity observed after the pause is mostly README sponsor automation. The latest stable yt-dlp release observed on 2026-09-28 is [`2026.08.19`](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19); packaging and in-app download paths still use moving `latest`/nightly URLs, so provenance and reproducibility remain maintenance work.
+Upstream Seal activity observed after the pause is mostly README sponsor automation. The latest stable yt-dlp release observed on 2026-09-28 is [`2026.08.19`](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19). Packaging and in-app download paths still intentionally allow moving `latest`/nightly URLs, but Full workflow artifacts now record the actual tool version, SHA256, source type/URL and build commit in `THIRD_PARTY_VERSIONS.txt`.
 
 ## P0 — Verify Before New Feature Work
 
@@ -49,6 +49,12 @@ Action:
 - run the updated macOS package workflow for both architectures and inspect Lite app plus installed PKG launch separately from JDK setup;
 - keep OS/architecture results separate;
 - record new run links/results here, not as timeless claims in project memory.
+
+### Release provenance is partially closed; native workflow evidence pending
+
+Windows, Linux and both macOS architecture workflows now generate and smoke-check a bundled `THIRD_PARTY_VERSIONS.txt` for yt-dlp, ffmpeg and ffprobe. The manifest records the binaries actually packaged, including version output, SHA256, size, moving/pinned source classification, configured source URL and build commit.
+
+The release workflow no longer combines each platform's unrelated latest successful run. It resolves one target commit, requires all platform workflows to have succeeded at that exact `head_sha`, and publishes `BUILD_PROVENANCE.txt` plus `SHA256SUMS`. YAML, Bash blocks, the async github-script JavaScript and the manifest generator passed local static checks on 2026-09-29. A real Actions build/release dry run is still required; moving dependency URLs and action SHA pinning remain open policy work.
 
 ### Local baseline validation is verified; native evidence remains pending
 
