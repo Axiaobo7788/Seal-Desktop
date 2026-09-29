@@ -147,3 +147,6 @@ Detailed mode behavior lives in [`docs/agent-workflow.md`](docs/agent-workflow.m
 - Add reusable engineering rules here or in [`docs/development-guidelines.md`](docs/development-guidelines.md).
 - Keep long historical investigations and dated evidence in the audit/history documents; do not make new agents read them first.
 - A completed change must include implementation, failure handling, targeted tests, affected localization, platform verification, and documentation synchronization. Explicitly list anything that remains unverified.
+- Every final work report must include exactly one completion classification: `Completion mode: AUTO` or `Completion mode: HUMAN-CHECK`.
+- Use `AUTO` only when all required acceptance evidence for the task is automated/reproducible and no human judgement remains. Use `HUMAN-CHECK` when visual judgement, native/manual validation, product judgement, credentials, hardware, or other human evidence is still required.
+- A `HUMAN-CHECK` report must include the concrete manual steps, expected results, and what evidence should be captured.
