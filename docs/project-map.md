@@ -101,8 +101,8 @@ flowchart LR
 
 ### `desktop/ytdlp/` + `desktop/network/`
 - system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
-- yt-dlp/ffmpeg 执行配置、metadata 获取、Cookies 文件和 proxy 运行环境
-- 当前重点缺口：认证上下文未贯通 metadata 与下载；依赖已区分 Missing/Healthy/Broken，但原生多平台 smoke 证据仍待补齐
+- yt-dlp/ffmpeg 执行配置、metadata 获取、统一 `DesktopCookieContext` 和 proxy 运行环境
+- Cookies 后端已贯通 metadata、格式页、正式下载、自定义命令与 retry；真实系统浏览器和原生 UI 证据仍待补齐
 
 ### `app/download/` + `app/util/`
 - Android 任务编排、服务保活、通知动作、平台能力集成
@@ -121,7 +121,7 @@ flowchart LR
 `已登录的系统浏览器或外部 Netscape 文件 -> 解析统一认证上下文 -> metadata/格式页/正式下载/自定义命令/重试 -> 失败/状态反馈`
 
 Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roadmap.md`。
-浏览器提取是主入口，文件导入是 fallback；当前认证上下文尚未贯通全部请求。
+浏览器提取是主入口，文件导入是 fallback；统一认证上下文已接入全部执行入口，真实浏览器验收仍属于 Human-check。
 
 ### 3. 自定义命令流程（Desktop）
 `选择模板 -> 输入 URL -> DesktopCustomCommandTaskManager 启动任务 -> 实时日志/进度 -> 完成或失败通知 -> 任务快照持久化`
@@ -146,7 +146,7 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 | Desktop 依赖来源解析 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopDependencyResolver.kt` |
 | Desktop 依赖安装与 Full 工具来源 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopAuxiliaryDownloader.kt`、`.github/workflows/*_portable.yml` |
 | Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
-| Desktop Cookies UI 与全局文件 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`DesktopYtDlpPaths.kt` |
+| Desktop Cookies UI、统一上下文与缓存 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/cookies/`、`DesktopYtDlpPaths.kt` |
 | Desktop 队列快照 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |

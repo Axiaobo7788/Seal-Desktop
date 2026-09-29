@@ -13,6 +13,7 @@ import com.junkfood.seal.desktop.storage.DesktopStorageEventLogger
 import com.junkfood.seal.desktop.storage.appSettingsJsonPath
 import com.junkfood.seal.desktop.storage.quarantineCorruptedFile
 import com.junkfood.seal.desktop.storage.writeTextAtomically
+import com.junkfood.seal.desktop.cookies.DesktopCookieCacheMetadata
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -60,6 +61,7 @@ data class DesktopAppSettings(
     val ytDlpAutoUpdate: Boolean = true,
     val ytDlpUpdateInterval: Long = 604800000L,
     val environmentPreference: Int = EnvPrefAuto,
+    val cookieCacheMetadata: DesktopCookieCacheMetadata = DesktopCookieCacheMetadata(),
 )
 
 private fun appSettingsPath(): Path {

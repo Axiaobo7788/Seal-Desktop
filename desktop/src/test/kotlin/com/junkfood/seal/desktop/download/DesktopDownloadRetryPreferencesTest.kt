@@ -1,7 +1,12 @@
 package com.junkfood.seal.desktop.download
 
+import com.junkfood.seal.desktop.cookies.DesktopCookieContext
+import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
+import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.VideoClip
+import java.nio.file.Files
+import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -143,5 +148,45 @@ class DesktopDownloadRetryPreferencesTest {
                 .withRetryRuntimePreferences(DownloadPreferences.EMPTY.copy(privateMode = false))
                 .privateMode,
         )
+    }
+
+    @Test
+    fun `retry resolves current cookie cache and user agent rather than snapshot auth`() {
+        val directory = Files.createTempDirectory("seal-retry-cookie-test")
+        try {
+            val cookiesFile = directory.resolve("cookies.txt")
+            cookiesFile.writeText("example.com\tTRUE\t/\tFALSE\t0\tname\tvalue\n")
+            val snapshot =
+                DownloadPreferences.EMPTY.copy(
+                    cookies = false,
+                    cookiesBrowser = "",
+                    userAgentString = "old-agent",
+                    formatIdString = "137+140",
+                )
+            val current =
+                DownloadPreferences.EMPTY.copy(
+                    cookies = true,
+                    cookiesBrowser = "firefox",
+                    userAgentString = "current-agent",
+                    formatIdString = "best",
+                )
+
+            val retry = snapshot.withRetryRuntimePreferences(current)
+            val context = DesktopCookieResolver { cookiesFile }.resolve(retry)
+
+            assertTrue(context is DesktopCookieContext.CachedFile)
+            assertEquals("137+140", retry.formatIdString)
+            assertEquals(
+                listOf(
+                    "--cookies",
+                    cookiesFile.toAbsolutePath().normalize().toString(),
+                    "--add-header",
+                    "User-Agent:current-agent",
+                ),
+                context.ytDlpArguments(),
+            )
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
     }
 }

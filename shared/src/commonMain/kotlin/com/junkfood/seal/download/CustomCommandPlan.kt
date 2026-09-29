@@ -46,14 +46,7 @@ private const val DEFAULT_ARIA2C_DOWNLOADER = "libaria2c.so"
          opts += YtDlpOption.Flag("--restrict-filenames")
      }
      if (preferences.cookies) {
-         if (preferences.cookiesBrowser.isNotEmpty()) {
-             opts += YtDlpOption.KeyValue("--cookies-from-browser", preferences.cookiesBrowser)
-         } else {
-             needsCookies = true
-         }
-         if (preferences.userAgentString.isNotEmpty()) {
-             opts += YtDlpOption.KeyValue("--add-header", "User-Agent:${preferences.userAgentString}")
-         }
+         needsCookies = true
      }
  
      return CustomCommandPlan(

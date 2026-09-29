@@ -11,6 +11,9 @@ import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DESKTOP_ARIA2C_DOWNLOADER
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
+import com.junkfood.seal.desktop.cookies.DesktopCookieContext
+import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
+import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.download.CustomCommandPlan
 import com.junkfood.seal.download.YtDlpOption
 import com.junkfood.seal.download.buildCustomCommandPlan
@@ -57,6 +60,7 @@ object DesktopCustomCommandTaskManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val executor = DownloadPlanExecutor()
+    private val cookieResolver = DesktopCookieResolver()
     private val runningProcesses = ConcurrentHashMap<String, DownloadPlanExecutor.RunningProcess>()
     private val canceledTaskIds = ConcurrentHashMap.newKeySet<String>()
 
@@ -138,7 +142,14 @@ object DesktopCustomCommandTaskManager {
                         aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                     )
                 configFile = writeTemplateConfig(taskId, template.template)
-                val args = buildCommandArgs(plan, urls, configFile)
+                val args =
+                    buildDesktopCustomCommandArgs(
+                        plan = plan,
+                        urls = urls,
+                        configFile = configFile,
+                        cookieContext = cookieResolver.resolve(preferences),
+                        archiveFile = DesktopYtDlpPaths.archiveFile(),
+                    )
 
                 val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(preferences, appSettings)
                 val proxyEnv = DesktopProxyResolver.buildProxyEnvironment(runtimeProxy)
@@ -280,24 +291,6 @@ object DesktopCustomCommandTaskManager {
         }
     }
 
-    private fun buildCommandArgs(plan: CustomCommandPlan, urls: List<String>, configFile: Path): List<String> {
-        val args = mutableListOf<String>()
-        args += plan.options.flatMap { it.asCliArgs() }
-        if (plan.needsCookiesFile) {
-            args += listOf("--cookies", DesktopYtDlpPaths.cookiesFile().toAbsolutePath().toString())
-        }
-        if (plan.needsArchiveFile) {
-            args +=
-                listOf(
-                    "--download-archive",
-                    DesktopYtDlpPaths.archiveFile().toAbsolutePath().toString(),
-                )
-        }
-        args += listOf("--config-locations", configFile.toAbsolutePath().toString())
-        args += urls
-        return args
-    }
-
     private fun writeTemplateConfig(taskId: String, template: String): Path {
         val dir = DesktopYtDlpPaths.tempDirectory()
         runCatching { Files.createDirectories(dir) }
@@ -331,3 +324,22 @@ object DesktopCustomCommandTaskManager {
             normalized.contains(" failed")
     }
 }
+
+internal fun buildDesktopCustomCommandArgs(
+    plan: CustomCommandPlan,
+    urls: List<String>,
+    configFile: Path,
+    cookieContext: DesktopCookieContext,
+    archiveFile: Path,
+): List<String> =
+    buildList {
+        addAll(plan.options.flatMap { it.asCliArgs() })
+        addAll(cookieContext.ytDlpArguments())
+        if (plan.needsArchiveFile) {
+            add("--download-archive")
+            add(archiveFile.toAbsolutePath().toString())
+        }
+        add("--config-locations")
+        add(configFile.toAbsolutePath().toString())
+        addAll(urls)
+    }

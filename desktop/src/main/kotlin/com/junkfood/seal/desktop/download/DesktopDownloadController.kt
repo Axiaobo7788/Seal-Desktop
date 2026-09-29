@@ -15,6 +15,8 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.cookies.DesktopCookieContextException
+import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
 import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
@@ -24,6 +26,7 @@ import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
+import com.junkfood.seal.desktop.ytdlp.buildDownloadExecutionArgs
 import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
@@ -68,6 +71,7 @@ class DesktopDownloadController(
                     environmentPreferenceProvider = { appSettingsProvider().environmentPreference },
                 ),
         ),
+    private val cookieResolver: DesktopCookieResolver = DesktopCookieResolver(),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
     private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
 ) {
@@ -198,6 +202,7 @@ class DesktopDownloadController(
             metadataFetcher.fetch(
                 url,
                 proxyUrl = runtimeProxy,
+                cookieContext = cookieResolver.resolve(basePreferences),
             )
         }
     }
@@ -213,17 +218,7 @@ class DesktopDownloadController(
     }
 
     private fun buildCliArgs(plan: com.junkfood.seal.download.DownloadPlan, config: DownloadPlanExecutor.ExecutionConfig): List<String> {
-        val args = mutableListOf<String>()
-        args += plan.asCliArgs()
-        args += config.extraArgs
-        if (plan.needsCookiesFile && config.cookiesFile != null) {
-            args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
-        }
-        if (plan.needsArchiveFile && config.archiveFile != null) {
-            args += listOf("--download-archive", config.archiveFile.toAbsolutePath().toString())
-        }
-        args += config.url
-        return args
+        return buildDownloadExecutionArgs(plan, config)
     }
 
     private fun refreshRunningSnapshot() {
@@ -477,14 +472,26 @@ class DesktopDownloadController(
                 )
 
             val config =
-                executor.defaultConfigFor(
-                    plan,
-                    url = trimmed,
-                    paths = DesktopYtDlpPaths,
-                    preferences = effectivePreferences,
-                )
-            val cliArgs = buildCliArgs(plan, config)
-            updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
+                try {
+                    executor.defaultConfigFor(
+                        plan,
+                        url = trimmed,
+                        paths = DesktopYtDlpPaths,
+                        preferences = effectivePreferences,
+                        cookieContext = cookieResolver.resolve(effectivePreferences),
+                    ).also { resolvedConfig ->
+                        val cliArgs = buildCliArgs(plan, resolvedConfig)
+                        updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
+                    }
+                } catch (error: DesktopCookieContextException) {
+                    val message = error.message ?: error.toString()
+                    appendLog(AndroidStrings.format("desktop_log_error", message))
+                    appendItemLog(itemId, message)
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Error, progressText = message, errorMessage = message)
+                    }
+                    return@launchManagedDownload
+                }
 
             try {
                 updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
@@ -664,12 +671,14 @@ class DesktopDownloadController(
 
             val appSettings = appSettingsProvider()
             val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(effectivePreferences, appSettings)
+            val cookieContext = cookieResolver.resolve(effectivePreferences)
             val videoInfo =
                 try {
                     withContext(Dispatchers.IO) {
                         metadataFetcher.fetch(
                             trimmed,
                             proxyUrl = runtimeProxy,
+                            cookieContext = cookieContext,
                         )
                     }
                 } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
@@ -685,6 +694,14 @@ class DesktopDownloadController(
                         )
                     }
                     environmentMissingEvent.tryEmit(Unit)
+                    return@launchManagedDownload
+                } catch (e: DesktopCookieContextException) {
+                    val message = e.message ?: e.toString()
+                    appendLog(AndroidStrings.format("desktop_log_error", message))
+                    appendItemLog(itemId, message)
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Error, progressText = message, errorMessage = message)
+                    }
                     return@launchManagedDownload
                 } catch (e: Exception) {
                     appendLog(
@@ -730,6 +747,7 @@ class DesktopDownloadController(
                     url = trimmed,
                     paths = DesktopYtDlpPaths,
                     preferences = preferencesWithProxy,
+                    cookieContext = cookieContext,
                 )
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }

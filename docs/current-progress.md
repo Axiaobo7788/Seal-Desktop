@@ -79,27 +79,19 @@ Static checks completed on 2026-09-29:
 
 GitHub Issue #4 contains four useful reports, but they are not one class of problem.
 
-### Cookies metadata failure — partial feature, not standalone bug work
+### Cookies unified context — backend verified, native browser review pending
 
-Desktop cookies is still an unfinished Desktop-specific feature.
+The Desktop-specific backend contract is now implemented and locally verified:
 
-The 2026-09-28 path trace confirmed all of these breaks:
+- `DesktopCookieResolver` produces one fail-closed runtime context for metadata, Custom Format, normal downloads, custom commands and retry;
+- browser extraction is outside Compose, supports timeout/cancel, preserves bounded sanitized diagnostics and atomically replaces the cache only after valid Netscape output;
+- normal and `#HttpOnly_` cookie lines, empty values, duplicate-domain statistics and malformed input are covered by tests;
+- browser/source, validation host/URL, generation time and last result persist in `DesktopAppSettings`; cookie values remain only in the dedicated cache file;
+- imports and generated caches use best-effort owner-only Unix permissions, while Windows keeps normal user-directory ACL behavior;
+- the fake User-Agent checkbox was removed; the existing persisted `userAgentString` is applied consistently through the unified context;
+- clearing only removes Seal's cache, immediately invalidates stats and disables runtime Cookies without touching browser login state.
 
-- the settings page launches yt-dlp to copy browser Cookies into a Netscape file, but success does not persist the chosen browser or enable Cookies;
-- extraction stdout/stderr is discarded and failure closes the dialog without actionable feedback;
-- the User-Agent checkbox on the Cookies page is local UI state and changes neither extraction nor persisted preferences;
-- metadata fetch accepts proxy state only and does not consume Cookies;
-- normal downloads use the global Netscape file while custom commands may use `--cookies-from-browser`, so there is no single Desktop cookie-context resolver;
-- retry now refreshes cookie/browser preferences, but it still inherits the incomplete metadata/source contract.
-
-The intended Desktop design is now explicit in project memory/roadmap:
-
-- use the installed/system browser session;
-- do not port Android's embedded WebView;
-- keep file import only as fallback;
-- make metadata + final download + retry share one resolved cookie context.
-
-When implementing this, fix the end-to-end cookie contract rather than only adding one metadata argument.
+The capability remains `Partial / Desktop adaptation` until real Chrome/Chromium, Firefox and Edge sessions verify extraction, metadata, Custom Format, final download, retry and failure feedback on native systems. Safari remains a separate macOS-only review.
 
 ### Retry stale preferences — locally verified, native branch run pending
 
@@ -211,7 +203,7 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 
 1. Authenticate GitHub Actions and dispatch the updated dependency smoke plus macOS packaging workflows from `chore/agent-governance-refresh`; record each OS/architecture result independently.
 2. If the native matrix passes, close the remaining A1/A3 validation debt and commit the focused retry-test/documentation follow-up.
-3. Only after that gate, implement the Desktop Cookies feature as one end-to-end system-browser flow rather than a metadata-only patch.
+3. Run the Desktop Cookies Human Review Packet against real browser sessions; do not mark the capability Implemented from fake-process tests alone.
 4. Continue other misleading/partial product surfaces:
    - Desktop app update page;
    - download archive management/feedback.

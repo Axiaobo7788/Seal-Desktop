@@ -1,6 +1,8 @@
 package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.desktop.i18n.AndroidStrings
+import com.junkfood.seal.desktop.cookies.DesktopCookieContext
+import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.download.DownloadPlan
 import com.junkfood.seal.util.DownloadPreferences
 import java.io.InputStream
@@ -18,7 +20,7 @@ class DownloadPlanExecutor(
 ) {
     data class ExecutionConfig(
         val workingDirectory: Path? = null,
-        val cookiesFile: Path? = null,
+        val cookieContext: DesktopCookieContext = DesktopCookieContext.Disabled(),
         val archiveFile: Path? = null,
         val extraArgs: List<String> = emptyList(),
         val extraEnv: Map<String, String> = emptyMap(),
@@ -107,12 +109,13 @@ class DownloadPlanExecutor(
         url: String,
         paths: DesktopYtDlpPaths = DesktopYtDlpPaths,
         preferences: DownloadPreferences? = null,
+        cookieContext: DesktopCookieContext = DesktopCookieContext.Disabled(),
     ): ExecutionConfig =
         ExecutionConfig(
             workingDirectory =
                 preferences?.let { paths.downloadDirectoryFor(it, plan.downloadPathHint) }
                     ?: paths.defaultDownloadDirectory(),
-            cookiesFile = if (plan.needsCookiesFile) paths.cookiesFile() else null,
+            cookieContext = cookieContext,
             archiveFile = if (plan.needsArchiveFile) paths.archiveFile() else null,
             extraArgs = preferences?.extraArgsFor(plan).orEmpty(),
             url = url,
@@ -155,17 +158,9 @@ class DownloadPlanExecutor(
             args += listOf("--ffmpeg-location", ffmpegLocation.toAbsolutePath().toString())
         }
 
-        val planArgs = plan.asCliArgs()
+        val planArgs = buildDownloadExecutionArgs(plan, config)
         ensureOptionalDownloadersAvailable(dependencies, planArgs)
         args += planArgs
-        args += config.extraArgs
-        if (plan.needsCookiesFile && config.cookiesFile != null) {
-            args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
-        }
-        if (plan.needsArchiveFile && config.archiveFile != null) {
-            args += listOf("--download-archive", config.archiveFile.toAbsolutePath().toString())
-        }
-        args += config.url
         return args
     }
 
@@ -217,6 +212,21 @@ class DownloadPlanExecutor(
             }
         }
 }
+
+internal fun buildDownloadExecutionArgs(
+    plan: DownloadPlan,
+    config: DownloadPlanExecutor.ExecutionConfig,
+): List<String> =
+    buildList {
+        addAll(plan.asCliArgs())
+        addAll(config.extraArgs)
+        addAll(config.cookieContext.ytDlpArguments())
+        if (plan.needsArchiveFile && config.archiveFile != null) {
+            add("--download-archive")
+            add(config.archiveFile.toAbsolutePath().toString())
+        }
+        add(config.url)
+    }
 
 private fun DownloadPreferences.extraArgsFor(plan: DownloadPlan): List<String> {
     val isAudioLike = extractAudio || plan.downloadPathHint == "audio"

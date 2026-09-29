@@ -41,18 +41,15 @@ Android may continue to use Cookie Profiles + embedded WebView. Desktop is inten
 
 **Current code**
 
-- `CookiesSettingsPage.kt` already exposes a browser-based flow.
-- It invokes yt-dlp with `--cookies-from-browser <browser>` and writes a Netscape cookies file.
-- Manual Netscape-cookie import/export exists as a fallback.
-- `BrowserCookieExtractor.kt` currently only defines supported browser names.
-- The generated cookies file is consumed by the final download plan when `preferences.cookies` is enabled.
-- A successful browser extraction currently does not persist the selected browser or enable Cookies, and extraction stdout/stderr is discarded instead of becoming user feedback.
-- The settings-page User-Agent checkbox is local UI state and does not affect extraction or persisted preferences.
-- Metadata fetch currently does not consume the resolved cookies context.
-- Normal downloads resolve Cookies as the global Netscape file, while custom commands may emit `--cookies-from-browser`; there is no shared Desktop cookie-context resolver yet.
-- Retry now refreshes the current cookie/browser fields together with other live runtime settings while preserving original task intent, but the metadata and source-resolution contract is still incomplete.
+- `DesktopCookieContext`, resolver, cache and extractor separate source resolution, materialization and execution consumption.
+- Metadata, Custom Format, normal downloads, custom commands and retry consume the same resolved cache/UA arguments and fail closed when the configured cache is missing or invalid.
+- Browser extraction runs outside Compose with timeout, cancellation, exit-code handling and sanitized bounded diagnostics.
+- Browser/source, validation target, generation time and status persist without storing cookie values in settings.
+- Netscape import/export remains the fallback; generated/imported files are validated, atomically promoted and receive best-effort owner-only Unix permissions.
+- The page reports source/cache/statistics state, exposes readable failures, and defines clear-cache as deleting only Seal's local cache.
+- Pure/fake-process tests cover context parity, extraction outcomes, URL normalization, `#HttpOnly_`, cache invalidation, metadata persistence and retry runtime-auth refresh.
 
-Therefore the feature has a visible skeleton but is **not end-to-end complete**.
+The backend contract is complete and locally verified, but the feature remains **Partial** until real installed-browser and native UI acceptance is recorded.
 
 **Target Desktop flow**
 

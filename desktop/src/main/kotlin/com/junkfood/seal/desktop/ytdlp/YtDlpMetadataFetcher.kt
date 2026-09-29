@@ -1,6 +1,8 @@
 package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.desktop.i18n.AndroidStrings
+import com.junkfood.seal.desktop.cookies.DesktopCookieContext
+import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Path
 import kotlinx.serialization.decodeFromString
@@ -13,6 +15,7 @@ class YtDlpMetadataFetcher(
     fun fetch(
         url: String,
         proxyUrl: String? = null,
+        cookieContext: DesktopCookieContext = DesktopCookieContext.Disabled(),
         extraEnv: Map<String, String> = emptyMap(),
     ): VideoInfo {
         val dependencies = fetcher.ensureDependencies()
@@ -23,6 +26,7 @@ class YtDlpMetadataFetcher(
                 ffmpegPath = dependencies.ffmpeg?.path,
                 url = url,
                 proxyUrl = proxyUrl,
+                cookieContext = cookieContext,
             )
         val processBuilder = ProcessBuilder(command)
         if (extraEnv.isNotEmpty()) {
@@ -46,6 +50,7 @@ internal fun buildMetadataCommand(
     ffmpegPath: Path?,
     url: String,
     proxyUrl: String? = null,
+    cookieContext: DesktopCookieContext = DesktopCookieContext.Disabled(),
 ): List<String> =
     buildList {
         add(ytDlpPath.toAbsolutePath().toString())
@@ -59,5 +64,6 @@ internal fun buildMetadataCommand(
             add("--proxy")
             add(it)
         }
+        addAll(cookieContext.ytDlpArguments())
         add(url)
     }

@@ -1,5 +1,7 @@
 package com.junkfood.seal.desktop.settings.network
 
+import com.junkfood.seal.desktop.cookies.SupportedBrowser
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
@@ -20,7 +22,6 @@ import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
-import com.junkfood.seal.desktop.settings.network.SupportedBrowser
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.SwitchWithDividerCard

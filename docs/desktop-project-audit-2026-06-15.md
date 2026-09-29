@@ -20,7 +20,7 @@
 | --- | --- | --- | --- | --- |
 | A-01 | P0 | 已实现待设备复验 | Android 可用性基线 | 保留当前编译、lint、release 修复；补真机/模拟器启动、实际下载、通知动作、文件打开和前台服务 smoke。 |
 | A-02 | P1 | 待设计 | Android 前台服务所有权 | 将旧命令、V2 队列和 Quick Download 的全局 start/stop 收敛为 owner/lease 语义，并做多任务与断连测试。 |
-| D-01 | P0 | 待设计 | Cookies 与请求认证 | 浏览器提取是 Desktop 主入口，文件导入是 fallback；建立 metadata、格式页、正式下载、自定义命令和重试共用的认证上下文，并修复当前无效的 UA 开关。 |
+| D-01 | P0 | 后端已验证，待人工验收 | Cookies 与请求认证 | 统一 context、浏览器提取 service、缓存保护、metadata/格式页/下载/自定义命令/retry 接入及自动测试已完成；仍需真实 Chrome/Firefox/Edge 与 macOS Safari Human-check。 |
 | D-02 | P0 | 待决策 | SponsorBlock | 先确定 Disabled、Default、All、Custom 的产品语义和旧空字符串迁移；禁止继续生成空 `--sponsorblock-remove`，不能静默把空值解释为 `all`。 |
 | D-03 | P1 | 待设计 | 队列继续与重试 | 保留任务创建时快照；拆分“继续/按原设置重试”和“编辑后重试”，记录失败阶段，不把当前 `workingPreferences` 静默覆盖旧任务。 |
 | D-04 | P1 | 部分完成 | 依赖健康与本地 Lite/Full | 生成的 `desktop/appResources/` 已忽略；仍需可运行性探测、Missing/Broken 区分和明确的本地 Lite/Full 构建入口。 |
@@ -32,6 +32,25 @@
 | R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |
 | S-01 | P2 | 待实现 | DownloadPreferences 存储 | 当前偏好仍走独立 `settings.json`，尚未纳入 json/dual/sqlite 与平台原生 state path 迁移。 |
 | UI-01 | P2 | 待人工复验 | UI/动画 parity | 用 Android/Desktop 录屏和窗口/主题/locale 矩阵验收下载 sheet、格式页、队列、历史、设置页和滚动条。 |
+
+## 2026-09-29 Desktop Cookies unified context
+
+- [x] 新增 `DesktopCookieContext`、resolver、cache 与 extractor；Compose 页面不再直接启动 yt-dlp 进程。
+- [x] metadata、Custom Format、普通下载、自定义命令与 retry 使用同一 resolved cache/UA contract；未 materialize 的 browser source 和无效缓存均 fail-closed。
+- [x] 浏览器提取支持 timeout、cancel、exit code、脱敏 stdout/stderr、有效文件校验和原子替换，失败不覆盖旧缓存。
+- [x] Netscape parser 支持普通、`#HttpOnly_`、空值 Cookie，忽略注释/空行/坏行，并按规范化 domain 统计。
+- [x] 来源、浏览器、validation URL/host、生成时间和状态进入 backward-compatible `DesktopAppSettings`；不持久化 Cookie value。
+- [x] 生成/导入后的高敏感文件在 Unix-like 系统 best-effort 设为 owner read/write，权限失败只产生诊断，不破坏流程。
+- [x] Cookies 页面删除无效 UA checkbox，展示 source/cache/stats/validation 状态；清除只删 Seal 缓存并关闭运行时 Cookies。
+- [x] 默认英文、简中、繁中提供可靠说明与错误文案，其他 locale 有意使用默认 fallback。
+
+验证：
+
+- 通过：`./gradlew :desktop:test --tests 'com.junkfood.seal.desktop.cookies.*' --tests com.junkfood.seal.desktop.download.DesktopDownloadRetryPreferencesTest --tests com.junkfood.seal.desktop.settings.DesktopAppSettingsSerializationTest --stacktrace`。
+- 通过：`./gradlew :shared:desktopTest --tests com.junkfood.seal.download.CustomCommandPlanTest :desktop:test --tests 'com.junkfood.seal.desktop.cookies.*' --stacktrace`。
+- 通过：`./gradlew :shared:syncAndroidStringsToComposeResources :shared:allTests :desktop:compileKotlin :desktop:test --stacktrace`（64 tasks，2026-09-29）。
+- 通过：`git diff --check` 与资源同步 diff 检查。
+- 未验证：真实 Chrome/Chromium、Firefox、Edge、Safari 登录态；Windows/macOS/Linux Cookies 页面交互和 extraction/native download smoke。因此 D-01 尚不能标记为产品 Implemented。
 | U-01 | 延期 | 产品决定 | Desktop 应用自动更新 | 按当前决定留待后续；延期期间入口必须明确为未实现或手动下载，不能让无动作按钮看起来可用。 |
 
 ## 2026-08-25 低争议修复与项目收敛复核

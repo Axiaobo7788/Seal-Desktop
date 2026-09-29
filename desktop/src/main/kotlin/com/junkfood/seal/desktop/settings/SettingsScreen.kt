@@ -192,6 +192,8 @@ fun DesktopSettingsScreen(
                 com.junkfood.seal.desktop.settings.network.CookiesSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    appSettings = appSettingsState.settings,
+                    onUpdateAppSettings = appSettingsState::update,
                     onBack = { currentPage = cookiesParentPage },
                 )
 
