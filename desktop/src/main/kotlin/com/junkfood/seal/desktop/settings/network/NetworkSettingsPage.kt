@@ -11,7 +11,6 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material.icons.rounded.OfflineBolt
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -28,6 +27,7 @@ import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
 import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolution
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyHealthStatus
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
@@ -46,7 +46,12 @@ import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_re
 import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_title
 import com.junkfood.seal.shared.generated.resources.desktop_cookies_browser_source
 import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_detecting
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_broken
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_healthy
 import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_missing
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_packaged
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_selfhost
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_system
 import com.junkfood.seal.shared.generated.resources.force_ipv4
 import com.junkfood.seal.shared.generated.resources.force_ipv4_desc
 import com.junkfood.seal.shared.generated.resources.general_settings
@@ -87,23 +92,42 @@ internal fun NetworkSettingsPage(
             }
     }
     val aria2cDependency = dependencyResolution?.aria2c
-    val aria2cAvailable = dependencyResolution == null || aria2cDependency != null
+    val aria2cAvailable = dependencyResolution == null || aria2cDependency?.health?.isHealthy == true
     val dependencyDetecting = stringResource(Res.string.desktop_dependency_status_detecting)
     val dependencyMissing = stringResource(Res.string.desktop_dependency_status_missing)
+    val dependencyHealthy = stringResource(Res.string.desktop_dependency_status_healthy)
+    val dependencyBroken = stringResource(Res.string.desktop_dependency_status_broken)
+    val sourceSelfhost = stringResource(Res.string.desktop_dependency_source_selfhost)
+    val sourcePackaged = stringResource(Res.string.desktop_dependency_source_packaged)
+    val sourceSystem = stringResource(Res.string.desktop_dependency_source_system)
     val aria2Description =
         aria2cDependency?.let { dependency ->
-            "aria2c: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+            val source =
+                when (dependency.source) {
+                    DesktopDependencySource.AppPrivate -> sourceSelfhost
+                    DesktopDependencySource.Packaged -> sourcePackaged
+                    DesktopDependencySource.SystemPath -> sourceSystem
+                }
+            val status =
+                when (dependency.health.status) {
+                    DesktopDependencyHealthStatus.Healthy -> dependencyHealthy
+                    DesktopDependencyHealthStatus.Broken -> dependencyBroken
+                    DesktopDependencyHealthStatus.Missing -> dependencyMissing
+                }
+            val detail =
+                dependency.health.version
+                    ?.takeIf { it.isNotBlank() }
+                    ?: dependency.health.diagnostic?.takeIf { it.isNotBlank() }
+            buildString {
+                append("aria2c: $source · $status")
+                detail?.let { append(" · ${it.lineSequence().first().take(160)}") }
+                append("\n${dependency.path.toAbsolutePath()}")
+            }
         } ?: if (dependencyResolution == null) {
             "aria2c: $dependencyDetecting"
         } else {
             "${stringResource(Res.string.aria2_desc)}\naria2c: $dependencyMissing"
         }
-
-    LaunchedEffect(dependencyResolution, preferences.aria2c) {
-        if (dependencyResolution != null && aria2cDependency == null && preferences.aria2c) {
-            onUpdate { it.copy(aria2c = false) }
-        }
-    }
 
     var showRateLimitDialog by remember { mutableStateOf(false) }
     var showProxyDialog by remember { mutableStateOf(false) }
@@ -212,9 +236,3 @@ internal fun NetworkSettingsPage(
         }
     }
 }
-
-private fun DesktopDependencySource.label(): String =
-    when (this) {
-        DesktopDependencySource.AppPrivate -> "selfhost"
-        DesktopDependencySource.SystemPath -> "system"
-    }

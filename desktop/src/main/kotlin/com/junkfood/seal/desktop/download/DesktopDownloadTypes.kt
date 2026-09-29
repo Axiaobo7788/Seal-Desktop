@@ -4,6 +4,22 @@ import com.junkfood.seal.util.DownloadPreferences
 
 enum class DesktopDownloadType { Audio, Video, Playlist }
 
+internal data class CustomFormatSelectionPolicy(
+    val audioOnly: Boolean,
+    val allowMultiAudio: Boolean,
+)
+
+internal fun customFormatSelectionPolicy(
+    type: DesktopDownloadType,
+    basePreferences: DownloadPreferences,
+): CustomFormatSelectionPolicy {
+    val audioOnly = type == DesktopDownloadType.Audio
+    return CustomFormatSelectionPolicy(
+        audioOnly = audioOnly,
+        allowMultiAudio = !audioOnly && basePreferences.mergeAudioStream,
+    )
+}
+
 internal fun preferencesForType(base: DownloadPreferences, type: DesktopDownloadType): DownloadPreferences {
     return base.copy(
         extractAudio = type == DesktopDownloadType.Audio,

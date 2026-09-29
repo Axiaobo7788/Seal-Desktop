@@ -394,9 +394,13 @@ internal fun CookiesSettingsPage(
                     if (extractUrl.isBlank()) return@TextButton
                     isExtracting = true
                     scope.launch {
-                        val ytDlpPath = com.junkfood.seal.desktop.ytdlp.YtDlpFetcher().ensureBinary().toAbsolutePath().toString()
                         val success = withContext(Dispatchers.IO) {
                             runCatching {
+                                val ytDlpPath =
+                                    com.junkfood.seal.desktop.ytdlp.YtDlpFetcher()
+                                        .ensureBinary()
+                                        .toAbsolutePath()
+                                        .toString()
                                 val pb = ProcessBuilder(
                                     ytDlpPath,
                                     "--cookies-from-browser",

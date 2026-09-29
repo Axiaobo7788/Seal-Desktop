@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.download.DownloadPlan
 import com.junkfood.seal.util.DownloadPreferences
 import java.io.InputStream
@@ -186,9 +187,15 @@ class DownloadPlanExecutor(
         dependencies: DesktopDependencyResolution,
         args: List<String>,
     ) {
-        if (args.usesDownloader("aria2c") && dependencies.aria2c == null) {
+        if (args.usesDownloader("aria2c") && dependencies.aria2c?.health?.isHealthy != true) {
+            val stringKey =
+                if (dependencies.aria2c == null) {
+                    "desktop_dependency_optional_missing"
+                } else {
+                    "desktop_dependency_optional_broken"
+                }
             throw EnvironmentMissingException(
-                "Missing optional dependency: aria2c. Install aria2c or disable Aria2 in Settings > Network."
+                AndroidStrings.format(stringKey, "aria2c"),
             )
         }
     }

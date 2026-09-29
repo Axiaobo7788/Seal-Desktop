@@ -62,6 +62,10 @@ import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.custom
 import com.junkfood.seal.shared.generated.resources.custom_command_directory
 import com.junkfood.seal.shared.generated.resources.custom_command_directory_desc
+import com.junkfood.seal.shared.generated.resources.desktop_output_template_required
+import com.junkfood.seal.shared.generated.resources.desktop_select_audio_directory
+import com.junkfood.seal.shared.generated.resources.desktop_select_custom_command_directory
+import com.junkfood.seal.shared.generated.resources.desktop_select_video_directory
 import com.junkfood.seal.shared.generated.resources.defaults
 import com.junkfood.seal.shared.generated.resources.general_settings
 import com.junkfood.seal.shared.generated.resources.download_archive
@@ -145,6 +149,9 @@ internal fun DirectorySettingsPage(
     val scope = rememberCoroutineScope()
     val archivePath = DesktopYtDlpPaths.archiveFile().toAbsolutePath().toString()
     val defaultStr = stringResource(Res.string.defaults)
+    val selectVideoDirectory = stringResource(Res.string.desktop_select_video_directory)
+    val selectAudioDirectory = stringResource(Res.string.desktop_select_audio_directory)
+    val selectCustomCommandDirectory = stringResource(Res.string.desktop_select_custom_command_directory)
     val defaultDownloadDir = DesktopYtDlpPaths.defaultDownloadDirectory().toAbsolutePath().toString()
     var showClearTempDialog by remember { mutableStateOf(false) }
     var showOutputTemplateDialog by remember { mutableStateOf(false) }
@@ -157,7 +164,7 @@ internal fun DirectorySettingsPage(
             icon = Icons.Outlined.VideoLibrary,
         ) {
             scope.launch {
-                val newDir = chooseDirectory(title = "Select Video Directory", currentDir = preferences.videoDirectory.ifBlank { defaultDownloadDir })
+                val newDir = chooseDirectory(title = selectVideoDirectory, currentDir = preferences.videoDirectory.ifBlank { defaultDownloadDir })
                 if (newDir != null) {
                     onUpdate { it.copy(videoDirectory = newDir) }
                 }
@@ -169,7 +176,7 @@ internal fun DirectorySettingsPage(
             icon = Icons.Outlined.LibraryMusic,
         ) {
             scope.launch {
-                val newDir = chooseDirectory(title = "Select Audio Directory", currentDir = preferences.audioDirectory.ifBlank { defaultDownloadDir })
+                val newDir = chooseDirectory(title = selectAudioDirectory, currentDir = preferences.audioDirectory.ifBlank { defaultDownloadDir })
                 if (newDir != null) {
                     onUpdate { it.copy(audioDirectory = newDir) }
                 }
@@ -181,7 +188,7 @@ internal fun DirectorySettingsPage(
             icon = Icons.Rounded.Folder,
         ) {
             scope.launch {
-                val newDir = chooseDirectory(title = "Select Custom Command Directory", currentDir = preferences.commandDirectory)
+                val newDir = chooseDirectory(title = selectCustomCommandDirectory, currentDir = preferences.commandDirectory)
                 if (newDir != null) {
                     onUpdate { it.copy(commandDirectory = newDir) }
                 }
@@ -323,7 +330,14 @@ private fun OutputTemplateDialog(
                                     modifier = Modifier.weight(1f),
                                     label = { Text(stringResource(Res.string.custom)) },
                                     supportingText = {
-                                        Text("Required: $BASENAME, $EXTENSION", fontFamily = FontFamily.Monospace)
+                                        Text(
+                                            stringResource(
+                                                Res.string.desktop_output_template_required,
+                                                BASENAME,
+                                                EXTENSION,
+                                            ),
+                                            fontFamily = FontFamily.Monospace,
+                                        )
                                     }
                                 )
                             }

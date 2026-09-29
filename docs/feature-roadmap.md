@@ -2,7 +2,7 @@
 
 > Role: product capability status and planned Desktop adaptations.
 >
-> Refreshed: 2026-09-28
+> Refreshed: 2026-09-29
 >
 > This document answers a question that bug trackers do not answer well: **is a behavior broken, or has the planned Desktop feature never been completed?**
 >
@@ -145,7 +145,7 @@ Known planned gaps include:
 - better clip-range editing;
 - remaining visual/interaction parity and localization.
 
-The active worktree now passes `downloadType` into `FormatPageImpl` as `audioOnly`/`allowMultiAudio`, but that restored user change has not compiled on the 2026-09-28 host because dependency resolution is blocked. Treat it as implementation present, not verified completion.
+The active worktree now derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`, but that change has not compiled on the current host because dependency resolution is blocked. Treat it as implementation present, not verified completion.
 
 Visual parity items require human-check mode.
 
@@ -207,15 +207,15 @@ The current repair omits `--sponsorblock-remove` when the category is blank and 
 
 ### 4. Fresh local `createDistributable` can fall back to a broken PATH yt-dlp
 
-**Classification: Developer tooling / packaging gap**
+**Classification: Repair implemented / verification blocked; provenance work remains**
 
 Release workflows and local contributor builds do not currently have the same dependency-population guarantees.
 
-This should be solved as dependency bootstrap/provenance work, for example:
+The active worktree now probes yt-dlp/ffmpeg/aria2c and distinguishes `Missing`, `Healthy` and `Broken`. A broken system dependency remains system-owned, a broken selfhost dependency can be repaired in the app-private directory, and packaged dependencies stay read-only. The probe is cached by file identity metadata and explicitly invalidated after app-managed replacement.
+
+This closes the unsafe "exists means usable" assumption in implementation, subject to pending Gradle/native validation. Broader dependency bootstrap/provenance work still includes:
 
 - an explicit contributor setup/fetch task;
-- sanity-checking a resolved system binary before trusting it;
-- clear diagnostics showing source/path/version;
 - pinned/provenance-aware release dependency handling.
 
 Do not classify every broken external PATH executable as an application runtime bug.

@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Path
 import kotlinx.serialization.decodeFromString
@@ -14,12 +15,8 @@ class YtDlpMetadataFetcher(
         proxyUrl: String? = null,
         extraEnv: Map<String, String> = emptyMap(),
     ): VideoInfo {
-        val dependencies = fetcher.resolveDependencies()
-        val binary: Path =
-            dependencies.ytDlp?.path
-                ?: throw EnvironmentMissingException(
-                    "Missing required dependency: yt-dlp. Check dependency configuration in Settings > General."
-                )
+        val dependencies = fetcher.ensureDependencies()
+        val binary: Path = requireNotNull(dependencies.ytDlp).path
         val command =
             buildMetadataCommand(
                 ytDlpPath = binary,
@@ -36,7 +33,9 @@ class YtDlpMetadataFetcher(
         val stderr = process.errorStream.bufferedReader().readText()
         val exit = process.waitFor()
         if (exit != 0) {
-            throw IllegalStateException("yt-dlp exited $exit: $stderr")
+            throw IllegalStateException(
+                AndroidStrings.format("desktop_ytdlp_exit_error", exit, stderr.trim()),
+            )
         }
         return json.decodeFromString(stdout)
     }

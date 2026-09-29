@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -33,10 +34,10 @@ object DesktopAuxiliaryDownloader {
 
         try {
             downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
-            onLog("yt-dlp 更新完成。\n文件存放在私人便携目录:\n$dir")
+            onLog(AndroidStrings.format("desktop_dependency_update_complete", dir))
             return@withContext true
         } catch (e: Exception) {
-            onLog("yt-dlp 更新失败: ${e.message}")
+            onLog(AndroidStrings.format("desktop_dependency_update_failed", e.message.orEmpty()))
             return@withContext false
         }
     }
@@ -51,7 +52,7 @@ object DesktopAuxiliaryDownloader {
         val dir = auxiliaryDirectory(isWin, isMac)
 
         if (selection.isEmpty) {
-            onLog("已使用检测到的系统依赖，无需下载 Seal 自管副本。")
+            onLog(AndroidStrings.get("desktop_dependency_system_skip"))
             return@withContext true
         }
 
@@ -65,32 +66,44 @@ object DesktopAuxiliaryDownloader {
             if (selection.ytDlp) {
                 downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
             } else {
-                onLog("已检测到可用的 yt-dlp，跳过自管副本下载。")
+                onLog(AndroidStrings.get("desktop_dependency_ytdlp_skip"))
             }
 
             for (download in ffmpegDownloads) {
-                onLog("正在下载 ${download.tools.joinToString()} (来源: ${download.source})...")
+                onLog(
+                    AndroidStrings.format(
+                        "desktop_dependency_downloading_source",
+                        download.tools.joinToString(),
+                        download.source,
+                    ),
+                )
                 val archivePath = dir.resolve(download.archiveName)
                 downloadFile(download.url, archivePath)
                 try {
-                    onLog("${download.tools.joinToString()} 下载完成，准备解压...")
+                    onLog(
+                        AndroidStrings.format(
+                            "desktop_dependency_downloaded_extracting",
+                            download.tools.joinToString(),
+                        ),
+                    )
 
                     if (download.archiveName.endsWith(".zip")) {
                         extractZipAndMoveTools(archivePath, dir, isWin, download.tools)
                     } else if (download.archiveName.endsWith(".tar.xz")) {
                         extractTarXzAndMoveTools(archivePath, dir, download.tools)
                     } else {
-                        error("不支持的依赖压缩格式: ${download.archiveName}")
+                        error(AndroidStrings.format("desktop_dependency_unsupported_archive", download.archiveName))
                     }
                 } finally {
                     Files.deleteIfExists(archivePath)
                 }
             }
 
-            onLog("🎉 环境依赖全自动配置成功！\n文件存放在私人便携目录:\n$dir")
+            DesktopDependencyResolver.invalidateHealth()
+            onLog(AndroidStrings.format("desktop_dependency_setup_complete", dir))
             return@withContext true
         } catch (e: Exception) {
-            onLog("❌ 发生异常: ${e.message}")
+            onLog(AndroidStrings.format("desktop_dependency_setup_error", e.message.orEmpty()))
             return@withContext false
         }
     }
@@ -119,8 +132,13 @@ object DesktopAuxiliaryDownloader {
         ytDlpUpdateChannel: Int,
         onLog: (String) -> Unit,
     ) {
-        val channelName = if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) "Nightly" else "Stable"
-        onLog("正在下载 yt-dlp ($channelName, 来源: GitHub Releases)...")
+        val channelName =
+            if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) {
+                AndroidStrings.get("nightly_channel")
+            } else {
+                AndroidStrings.get("stable_channel")
+            }
+        onLog(AndroidStrings.format("desktop_dependency_downloading_ytdlp", channelName))
 
         val ytDlpUrl = getYtDlpUrl(isWin, isMac, ytDlpUpdateChannel)
         val ytDlpFileName = if (isWin) "yt-dlp.exe" else "yt-dlp"
@@ -130,7 +148,8 @@ object DesktopAuxiliaryDownloader {
         if (!isWin) {
             ytDlpPath.toFile().setExecutable(true, false)
         }
-        onLog("yt-dlp 下载完成并配置。")
+        DesktopDependencyResolver.invalidateHealth(ytDlpPath)
+        onLog(AndroidStrings.get("desktop_dependency_ytdlp_ready"))
     }
 
     private fun getYtDlpUrl(isWin: Boolean, isMac: Boolean, ytDlpUpdateChannel: Int): String {
@@ -205,7 +224,9 @@ object DesktopAuxiliaryDownloader {
         try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(partialTarget))
             if (response.statusCode() !in 200..299) {
-                throw RuntimeException("下载失败 HTTP ${response.statusCode()}: $url")
+                throw RuntimeException(
+                    AndroidStrings.format("desktop_dependency_http_error", response.statusCode(), url),
+                )
             }
             Files.move(partialTarget, target, StandardCopyOption.REPLACE_EXISTING)
         } catch (error: Exception) {
@@ -239,7 +260,7 @@ object DesktopAuxiliaryDownloader {
             }
         }
         check(remainingTools.isEmpty()) {
-            "压缩包中缺少工具: ${remainingTools.joinToString()}"
+            AndroidStrings.format("desktop_dependency_archive_missing_tools", remainingTools.joinToString())
         }
     }
 
@@ -250,7 +271,7 @@ object DesktopAuxiliaryDownloader {
                 ProcessBuilder("tar", "-xf", tarFile.toAbsolutePath().toString(), "-C", tmpDir.toAbsolutePath().toString())
                     .start()
             if (process.waitFor() != 0) {
-                throw RuntimeException("tar解压失败，请确保系统已安装 tar 和 xz-utils")
+                throw RuntimeException(AndroidStrings.get("desktop_dependency_tar_extract_failed"))
             }
 
             val remainingTools = tools.toMutableSet()
@@ -263,7 +284,7 @@ object DesktopAuxiliaryDownloader {
                 }
             }
             check(remainingTools.isEmpty()) {
-                "压缩包中缺少工具: ${remainingTools.joinToString()}"
+                AndroidStrings.format("desktop_dependency_archive_missing_tools", remainingTools.joinToString())
             }
         } finally {
             tmpDir.toFile().deleteRecursively()

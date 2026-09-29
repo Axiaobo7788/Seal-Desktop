@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.io.BufferedReader
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.desktop.settings.EnvPrefAuto
 import com.junkfood.seal.desktop.settings.EnvPrefBundled
@@ -177,7 +178,10 @@ fun DesktopEnvironmentSetupDialog(
                                         Text(text = manualCommand, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
                                     }
                                     IconButton(onClick = { clipboardManager.setText(AnnotatedString(manualCommand)) }) {
-                                        Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy")
+                                        Icon(
+                                            Icons.Outlined.ContentCopy,
+                                            contentDescription = stringResource(Res.string.copy_to_clipboard),
+                                        )
                                     }
                                 }
                             }
@@ -202,7 +206,7 @@ fun DesktopEnvironmentSetupDialog(
                                     ytDlpUpdateChannel = ytDlpUpdateChannel,
                                     environmentPreference = environmentPreference,
                                 ) { log ->
-                                    logOutput += log + "\n"
+                                    scope.launch { logOutput += log + "\n" }
                                 }
                             if (success && selectedOption == 1 && environmentPreference == EnvPrefSystem) {
                                 onEnvironmentPreferenceChange(EnvPrefAuto)
@@ -243,7 +247,7 @@ private suspend fun runInstallProcess(
     if (option == 0) {
         val systemResolution = DesktopDependencyResolver.resolve(EnvPrefSystem)
         if (systemResolution.isComplete) {
-            onLog("系统 PATH 中的 yt-dlp 和 ffmpeg 已可用，无需重复调用包管理器。")
+            onLog(AndroidStrings.get("desktop_dependency_system_ready"))
             return@withContext true
         }
 
@@ -260,7 +264,12 @@ private suspend fun runInstallProcess(
 
         try {
             for (command in commands) {
-                onLog("执行系统命令: ${command.joinToString(" ")}")
+                onLog(
+                    AndroidStrings.format(
+                        "desktop_dependency_run_command",
+                        command.joinToString(" "),
+                    ),
+                )
                 val process = ProcessBuilder(command).redirectErrorStream(true).start()
                 BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
                     var line: String?
@@ -271,17 +280,28 @@ private suspend fun runInstallProcess(
                     }
                 }
                 val exitCode = process.waitFor()
-                onLog("\n安装进程退出，代码 $exitCode")
+                onLog(AndroidStrings.format("desktop_dependency_process_exit", exitCode))
                 if (exitCode != 0) return@withContext false
             }
-            return@withContext true
+            DesktopDependencyResolver.invalidateHealth()
+            val repairedResolution = DesktopDependencyResolver.resolve(EnvPrefSystem)
+            if (!repairedResolution.isComplete) {
+                val unresolved = repairedResolution.missingNames + repairedResolution.brokenNames
+                onLog(
+                    AndroidStrings.format(
+                        "desktop_dependency_setup_error",
+                        unresolved.joinToString().ifBlank { "yt-dlp, ffmpeg" },
+                    ),
+                )
+            }
+            return@withContext repairedResolution.isComplete
         } catch (e: Exception) {
-            onLog("执行出错: ${e.message}")
+            onLog(AndroidStrings.format("desktop_dependency_command_error", e.message.orEmpty()))
             return@withContext false
         }
     } else {
         // Portable download
-        onLog("开始下载便携版依赖 (直连 GitHub，请耐心等待)...\n")
+        onLog(AndroidStrings.get("desktop_dependency_portable_start"))
         val detectionPreference = if (environmentPreference == EnvPrefBundled) EnvPrefBundled else EnvPrefAuto
         val selection =
             DesktopDependencyResolver

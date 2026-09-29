@@ -49,15 +49,20 @@ import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.desktop.ytdlp.DesktopAuxiliaryDownloader
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyHealthStatus
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.YtDlpUpdateResult
-import com.junkfood.seal.desktop.ytdlp.readYtDlpVersion
 import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.additional_settings
 import com.junkfood.seal.shared.generated.resources.auto_update
 import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.disabled
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_packaged
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_selfhost
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_system
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_broken
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_missing
 import com.junkfood.seal.shared.generated.resources.dismiss
 import com.junkfood.seal.shared.generated.resources.every_day
 import com.junkfood.seal.shared.generated.resources.every_month
@@ -65,8 +70,11 @@ import com.junkfood.seal.shared.generated.resources.every_week
 import com.junkfood.seal.shared.generated.resources.env_pref_system
 import com.junkfood.seal.shared.generated.resources.env_setup_missing
 import com.junkfood.seal.shared.generated.resources.env_setup_sys_title
+import com.junkfood.seal.shared.generated.resources.nightly_channel
+import com.junkfood.seal.shared.generated.resources.stable_channel
 import com.junkfood.seal.shared.generated.resources.update
 import com.junkfood.seal.shared.generated.resources.update_channel
+import com.junkfood.seal.shared.generated.resources.unknown
 import com.junkfood.seal.shared.generated.resources.yt_dlp_update_fail
 import com.junkfood.seal.shared.generated.resources.ytdlp_update
 import com.junkfood.seal.shared.generated.resources.ytdlp_update_action
@@ -93,6 +101,12 @@ internal fun YtdlpUpdateCard(
     val systemPathText = stringResource(Res.string.env_pref_system)
     val packageManagerText = stringResource(Res.string.env_setup_sys_title)
     val missingEnvironmentText = stringResource(Res.string.env_setup_missing)
+    val sourceSelfhostText = stringResource(Res.string.desktop_dependency_source_selfhost)
+    val sourcePackagedText = stringResource(Res.string.desktop_dependency_source_packaged)
+    val sourceSystemText = stringResource(Res.string.desktop_dependency_source_system)
+    val dependencyMissingText = stringResource(Res.string.desktop_dependency_status_missing)
+    val dependencyBrokenText = stringResource(Res.string.desktop_dependency_status_broken)
+    val unknownText = stringResource(Res.string.unknown)
 
     val scope = rememberCoroutineScope()
     val fetcher =
@@ -112,6 +126,12 @@ internal fun YtdlpUpdateCard(
                     fallback = ytdlpUpdateText,
                     systemManagedText = "$systemPathText · $packageManagerText",
                     systemMissingText = "$systemPathText · $missingEnvironmentText",
+                    sourceSelfhostText = sourceSelfhostText,
+                    sourcePackagedText = sourcePackagedText,
+                    sourceSystemText = sourceSystemText,
+                    dependencyMissingText = dependencyMissingText,
+                    dependencyBrokenText = dependencyBrokenText,
+                    unknownText = unknownText,
                 )
             }
     }
@@ -149,6 +169,12 @@ internal fun YtdlpUpdateCard(
                                     fallback = ytdlpUpdateText,
                                     systemManagedText = "$systemPathText · $packageManagerText",
                                     systemMissingText = "$systemPathText · $missingEnvironmentText",
+                                    sourceSelfhostText = sourceSelfhostText,
+                                    sourcePackagedText = sourcePackagedText,
+                                    sourceSystemText = sourceSystemText,
+                                    dependencyMissingText = dependencyMissingText,
+                                    dependencyBrokenText = dependencyBrokenText,
+                                    unknownText = unknownText,
                                 )
                             }
                         }
@@ -200,6 +226,12 @@ private suspend fun buildDependencyDescription(
     fallback: String,
     systemManagedText: String,
     systemMissingText: String,
+    sourceSelfhostText: String,
+    sourcePackagedText: String,
+    sourceSystemText: String,
+    dependencyMissingText: String,
+    dependencyBrokenText: String,
+    unknownText: String,
 ): String {
     val resolution = fetcher.resolveDependencies()
     val ytDlp =
@@ -207,10 +239,24 @@ private suspend fun buildDependencyDescription(
             ?: return if (resolution.environmentPreference == EnvPrefSystem) {
                 systemMissingText
             } else {
-                "yt-dlp: missing"
+                "yt-dlp: $dependencyMissingText"
             }
-    val version = readYtDlpVersion(ytDlp.path)?.takeIf { it.isNotBlank() } ?: "unknown"
-    val versionDescription = "yt-dlp (${ytDlp.source.label()}): $ytdlpVersionLabel: $version".ifBlank { fallback }
+    val sourceLabel =
+        when (ytDlp.source) {
+            DesktopDependencySource.AppPrivate -> sourceSelfhostText
+            DesktopDependencySource.Packaged -> sourcePackagedText
+            DesktopDependencySource.SystemPath -> sourceSystemText
+        }
+    if (ytDlp.health.status != DesktopDependencyHealthStatus.Healthy) {
+        val diagnostic = ytDlp.health.diagnostic?.takeIf { it.isNotBlank() }
+        return buildString {
+            append("yt-dlp ($sourceLabel): $dependencyBrokenText")
+            diagnostic?.let { append("\n${it.lineSequence().first().take(160)}") }
+            if (ytDlp.source == DesktopDependencySource.SystemPath) append("\n$systemManagedText")
+        }
+    }
+    val version = ytDlp.health.version?.takeIf { it.isNotBlank() } ?: unknownText
+    val versionDescription = "yt-dlp ($sourceLabel): $ytdlpVersionLabel: $version".ifBlank { fallback }
     return if (ytDlp.source == DesktopDependencySource.SystemPath) {
         "$versionDescription\n$systemManagedText"
     } else {
@@ -224,12 +270,6 @@ private fun String.toStatusLine(): String =
         .filter { it.isNotEmpty() }
         .lastOrNull()
         ?: trim()
-
-private fun DesktopDependencySource.label(): String =
-    when (this) {
-        DesktopDependencySource.AppPrivate -> "selfhost"
-        DesktopDependencySource.SystemPath -> "system"
-    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -272,14 +312,14 @@ internal fun DesktopYtdlpUpdateChannelDialog(
 
                 DialogSingleChoiceItemVariantWithLabel(
                     text = "yt-dlp",
-                    label = "Stable",
+                    label = stringResource(Res.string.stable_channel),
                     selected = updateChannel == DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE,
                     onClick = { updateChannel = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_STABLE }
                 )
 
                 DialogSingleChoiceItemVariantWithLabel(
                     text = "yt-dlp-nightly-builds",
-                    label = "Nightly",
+                    label = stringResource(Res.string.nightly_channel),
                     selected = updateChannel == DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_NIGHTLY,
                     isLabelTertiary = true,
                     onClick = { updateChannel = DesktopAuxiliaryDownloader.YT_DLP_CHANNEL_NIGHTLY }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.util.DesktopNotifier
@@ -96,7 +97,7 @@ object DesktopCustomCommandTaskManager {
     ): Result<String> {
         val urls = parseUrls(urlInput)
         if (urls.isEmpty()) {
-            return Result.failure(IllegalArgumentException("URL is empty"))
+            return Result.failure(IllegalArgumentException(AndroidStrings.get("url_empty")))
         }
 
         val taskId = "cmd-${System.currentTimeMillis()}-${(_tasks.size + 1)}"
@@ -120,7 +121,7 @@ object DesktopCustomCommandTaskManager {
         if (appSettings.downloadNotificationEnabled) {
             scope.launch {
                 DesktopNotifier.sendNotification(
-                    title = "Command Started",
+                    title = AndroidStrings.get("desktop_command_started"),
                     message = template.label,
                 )
             }
@@ -181,12 +182,12 @@ object DesktopCustomCommandTaskManager {
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Command Completed",
+                            title = AndroidStrings.get("desktop_command_completed"),
                             message = template.label
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Command Error",
+                            title = AndroidStrings.get("desktop_command_error"),
                             message = template.label
                         )
                     }
@@ -241,7 +242,7 @@ object DesktopCustomCommandTaskManager {
         appSettings: DesktopAppSettings = DesktopAppSettings(),
     ): Result<String> {
         val task = _tasks.firstOrNull { it.id == taskId }
-            ?: return Result.failure(IllegalArgumentException("Task not found"))
+            ?: return Result.failure(IllegalArgumentException(AndroidStrings.get("desktop_error_task_not_found")))
 
         return start(
             urlInput = task.urlInput,

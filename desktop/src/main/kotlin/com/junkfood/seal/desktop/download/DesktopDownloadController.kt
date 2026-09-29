@@ -15,6 +15,7 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.util.DesktopNotifier
@@ -136,7 +137,7 @@ class DesktopDownloadController(
             runningProcessesByItemId[itemId]?.cancel()
             runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by exit"))
             updateQueueItem(itemId) {
-                it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停")
+                it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
             }
         }
         persistQueueStateNow()
@@ -248,7 +249,9 @@ class DesktopDownloadController(
         canceledItemIds.add(itemId)
         runningProcessesByItemId[itemId]?.cancel()
         runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by user"))
-        updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+        updateQueueItem(itemId) {
+            it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+        }
     }
 
     fun deleteQueueItem(itemId: String) {
@@ -441,7 +444,14 @@ class DesktopDownloadController(
         requestByItemId[itemId] = request
 
         launchManagedDownload(itemId) {
-            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}] (custom)")
+            appendLog(
+                AndroidStrings.format(
+                    "desktop_download_log_start",
+                    trimmed,
+                    AndroidStrings.get(type.name.lowercase(Locale.ROOT)),
+                    AndroidStrings.get("desktop_download_log_custom_suffix"),
+                ),
+            )
 
             updateQueueItem(itemId) {
                 it.copy(
@@ -505,7 +515,9 @@ class DesktopDownloadController(
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                     return@launchManagedDownload
                 }
 
@@ -519,7 +531,9 @@ class DesktopDownloadController(
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        progressText = if (success) "" else "Exit code $exitCode",
+                        progressText =
+                            if (success) ""
+                            else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
@@ -541,12 +555,12 @@ class DesktopDownloadController(
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Completed",
+                            title = AndroidStrings.get("download_success_msg"),
                             message = selection.videoInfo.title
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = selection.videoInfo.title
                         )
                     }
@@ -554,22 +568,28 @@ class DesktopDownloadController(
             } catch (e: CancellationException) {
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                 }
             } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                val dependencyMessage =
+                    e.message?.takeIf { it.isNotBlank() }
+                        ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                appendItemLog(itemId, dependencyMessage)
                 updateQueueItem(itemId) {
                     it.copy(
                         status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                        progressText = dependencyMessage,
                     )
                 }
                 environmentMissingEvent.tryEmit(Unit)
                 return@launchManagedDownload
             } catch (e: Exception) {
-                appendLog("download failed: ${e.message}")
-                appendItemLog(itemId, "[err] ${e.message}")
+                val errorMessage = e.message ?: e.toString()
+                appendLog(AndroidStrings.format("desktop_download_log_failed", errorMessage))
+                appendItemLog(itemId, "[err] $errorMessage")
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
@@ -584,7 +604,7 @@ class DesktopDownloadController(
                     }
                     if (appSettings.downloadNotificationEnabled) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = selection.videoInfo.title
                         )
                     }
@@ -636,7 +656,14 @@ class DesktopDownloadController(
         }
 
         launchManagedDownload(itemId) {
-            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}]")
+            appendLog(
+                AndroidStrings.format(
+                    "desktop_download_log_start",
+                    trimmed,
+                    AndroidStrings.get(type.name.lowercase(Locale.ROOT)),
+                    "",
+                ),
+            )
 
             val appSettings = appSettingsProvider()
             val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(effectivePreferences, appSettings)
@@ -649,18 +676,26 @@ class DesktopDownloadController(
                         )
                     }
                 } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
-                updateQueueItem(itemId) {
-                    it.copy(
-                        status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                    val dependencyMessage =
+                        e.message?.takeIf { it.isNotBlank() }
+                            ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                    appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                    appendItemLog(itemId, dependencyMessage)
+                    updateQueueItem(itemId) {
+                        it.copy(
+                            status = DownloadQueueStatus.Error,
+                            progressText = dependencyMessage,
+                        )
+                    }
+                    environmentMissingEvent.tryEmit(Unit)
+                    return@launchManagedDownload
+                } catch (e: Exception) {
+                    appendLog(
+                        AndroidStrings.format(
+                            "desktop_metadata_log_failed",
+                            e.message ?: e.toString(),
+                        ),
                     )
-                }
-                environmentMissingEvent.tryEmit(Unit)
-                return@launchManagedDownload
-            } catch (e: Exception) {
-                    appendLog("metadata failed: ${e.message}")
                     VideoInfo(originalUrl = trimmed, webpageUrl = trimmed, title = trimmed)
                 }
 
@@ -731,7 +766,9 @@ class DesktopDownloadController(
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                     return@launchManagedDownload
                 }
 
@@ -745,7 +782,9 @@ class DesktopDownloadController(
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        progressText = if (success) "" else "Exit code $exitCode",
+                        progressText =
+                            if (success) ""
+                            else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
@@ -767,12 +806,12 @@ class DesktopDownloadController(
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Completed",
+                            title = AndroidStrings.get("download_success_msg"),
                             message = videoInfo.title
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = videoInfo.title
                         )
                     }
@@ -780,22 +819,28 @@ class DesktopDownloadController(
             } catch (e: CancellationException) {
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                 }
             } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                val dependencyMessage =
+                    e.message?.takeIf { it.isNotBlank() }
+                        ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                appendItemLog(itemId, dependencyMessage)
                 updateQueueItem(itemId) {
                     it.copy(
                         status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                        progressText = dependencyMessage,
                     )
                 }
                 environmentMissingEvent.tryEmit(Unit)
                 return@launchManagedDownload
             } catch (e: Exception) {
-                appendLog("download failed: ${e.message}")
-                appendItemLog(itemId, "[err] ${e.message}")
+                val errorMessage = e.message ?: e.toString()
+                appendLog(AndroidStrings.format("desktop_download_log_failed", errorMessage))
+                appendItemLog(itemId, "[err] $errorMessage")
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
@@ -810,7 +855,7 @@ class DesktopDownloadController(
                     }
                     if (appSettings.downloadNotificationEnabled) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = videoInfo.title
                         )
                     }

@@ -20,11 +20,16 @@ internal object DesktopSystemPaths {
 
     fun findExecutable(fileName: String): Path? {
         val isWindows = System.getProperty("os.name").lowercase().contains("win")
-        return executableSearchDirectories().firstNotNullOfOrNull { directory ->
-            val candidate = runCatching { directory.resolve(fileName) }.getOrNull() ?: return@firstNotNullOfOrNull null
-            candidate.takeIf { it.exists() && (isWindows || it.isExecutable()) }
+        return findExecutableCandidates(fileName).firstOrNull { candidate ->
+            isWindows || candidate.isExecutable()
         }
     }
+
+    internal fun findExecutableCandidates(fileName: String): List<Path> =
+        executableSearchDirectories().mapNotNull { directory ->
+            val candidate = runCatching { directory.resolve(fileName) }.getOrNull() ?: return@mapNotNull null
+            candidate.takeIf { it.exists() }
+        }
 
     internal fun executableSearchDirectories(
         isWindows: Boolean,

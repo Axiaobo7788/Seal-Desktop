@@ -54,6 +54,7 @@ import com.junkfood.seal.desktop.ui.page.downloadv2.configure.CustomFormatSelect
 import com.junkfood.seal.desktop.download.configure.DownloadInputSheet
 import com.junkfood.seal.desktop.download.configure.DownloadOptionsSheet
 import com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
@@ -610,7 +611,9 @@ private fun safeBrowse(url: String): Result<Unit> =
 
 private fun safeCopyToClipboard(clipboard: androidx.compose.ui.platform.ClipboardManager, text: String): Result<Unit> {
     val trimmed = text.trim()
-    if (trimmed.isBlank()) return Result.failure(IllegalStateException("Link is empty"))
+    if (trimmed.isBlank()) {
+        return Result.failure(IllegalStateException(AndroidStrings.get("desktop_error_link_empty")))
+    }
     return runCatching {
         clipboard.setText(AnnotatedString(trimmed))
     }.recoverCatching {
@@ -644,11 +647,16 @@ private fun safeRevealInFolder(path: String, fileUnavailableMessage: String): Re
 private fun deleteLocalFile(path: String, fileUnavailableMessage: String): Result<Unit> =
     runCatching {
         val file = resolveExistingFile(path, fileUnavailableMessage)
-        if (!file.isFile) throw IllegalStateException("Local target is not a file")
-        if (!file.delete()) throw IllegalStateException("Failed to delete local file")
+        if (!file.isFile) throw IllegalStateException(fileUnavailableMessage)
+        if (!file.delete()) {
+            throw IllegalStateException(AndroidStrings.get("desktop_delete_local_file_failed"))
+        }
     }
 
-private fun resolveExistingFile(path: String, fileUnavailableMessage: String = "Local file is unavailable"): File {
+private fun resolveExistingFile(
+    path: String,
+    fileUnavailableMessage: String = AndroidStrings.get("desktop_delete_local_file_unavailable"),
+): File {
     val candidates = buildPathCandidates(path)
     return candidates.firstOrNull { it.exists() && it.isFile }
         ?: throw IllegalStateException(fileUnavailableMessage)
@@ -704,7 +712,9 @@ private fun buildPathCandidates(rawPath: String): List<File> {
 
 private fun normalizeUrl(raw: String): String {
     val trimmed = raw.trim()
-    if (trimmed.isBlank()) throw IllegalStateException("Link is empty")
+    if (trimmed.isBlank()) {
+        throw IllegalStateException(AndroidStrings.get("desktop_error_link_empty"))
+    }
     return if (Regex("^[a-zA-Z][a-zA-Z\\d+.-]*:").containsMatchIn(trimmed)) trimmed else "https://$trimmed"
 }
 

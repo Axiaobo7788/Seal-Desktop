@@ -22,6 +22,8 @@ env:
 jobs:
   build-macos-portable:
     strategy:
+      # Keep x64 and arm64 evidence independent when one native runner fails.
+      fail-fast: false
       matrix:
         include:
           - arch: x64

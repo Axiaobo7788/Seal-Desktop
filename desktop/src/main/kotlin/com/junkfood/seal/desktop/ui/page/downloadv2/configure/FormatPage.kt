@@ -92,6 +92,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
+import com.junkfood.seal.desktop.download.customFormatSelectionPolicy
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.abs_hint
@@ -185,13 +186,14 @@ internal fun CustomFormatSelectionSheet(
             LoadingState(onBack = onBack)
         error != null ->
             ErrorState(message = error.orEmpty(), onRetry = { reloadToken += 1 }, onBack = onBack)
-        videoInfo != null ->
+        videoInfo != null -> {
+            val selectionPolicy = customFormatSelectionPolicy(downloadType, basePreferences)
             FormatPageImpl(
                 videoInfo = videoInfo!!,
                 basePreferences = basePreferences,
-                audioOnly = downloadType == DesktopDownloadType.Audio,
+                audioOnly = selectionPolicy.audioOnly,
                 isVideoClipEnabled = isVideoClipEnabled,
-                allowMultiAudio = downloadType != DesktopDownloadType.Audio && basePreferences.mergeAudioStream,
+                allowMultiAudio = selectionPolicy.allowMultiAudio,
                 onNavigateBack = onBack,
                 onDownloadPressed = { config ->
                     controller.startDownloadWithSelection(
@@ -211,6 +213,7 @@ internal fun CustomFormatSelectionSheet(
                     onDownloadComplete()
                 },
             )
+        }
         else ->
             EmptyState(onBack = onBack)
     }

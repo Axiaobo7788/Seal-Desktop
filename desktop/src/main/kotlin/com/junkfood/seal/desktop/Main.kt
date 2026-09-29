@@ -96,6 +96,8 @@ import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_generic
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_title
 import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
+import com.junkfood.seal.shared.generated.resources.desktop_placeholder_android_parity
+import com.junkfood.seal.shared.generated.resources.desktop_placeholder_download_tip
 import com.junkfood.seal.shared.generated.resources.download_queue
 import com.junkfood.seal.shared.generated.resources.downloads_history
 import com.junkfood.seal.shared.generated.resources.settings
@@ -676,8 +678,14 @@ private fun PlaceholderScreen(text: String, modifier: Modifier = Modifier, onMen
         } else {
             Text(text, style = MaterialTheme.typography.headlineSmall)
         }
-        Text("This page is not available on Desktop yet.", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            stringResource(Res.string.desktop_placeholder_android_parity),
+            style = MaterialTheme.typography.bodyMedium,
+        )
         HorizontalDivider()
-        Text("Tip: use the Android app for now.", style = MaterialTheme.typography.bodySmall)
+        Text(
+            stringResource(Res.string.desktop_placeholder_download_tip),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }

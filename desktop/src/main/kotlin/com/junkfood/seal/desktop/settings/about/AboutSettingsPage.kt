@@ -33,6 +33,7 @@ import com.junkfood.seal.shared.generated.resources.credits
 import com.junkfood.seal.shared.generated.resources.credits_desc
 import com.junkfood.seal.shared.generated.resources.enable_auto_update
 import com.junkfood.seal.shared.generated.resources.matrix_space
+import com.junkfood.seal.shared.generated.resources.package_name
 import com.junkfood.seal.shared.generated.resources.pre_release_channel
 import com.junkfood.seal.shared.generated.resources.readme
 import com.junkfood.seal.shared.generated.resources.readme_desc
@@ -126,7 +127,7 @@ internal fun AboutSettingsPage(
         )
 
         SelectionCard(
-            title = "Package name",
+            title = stringResource(Res.string.package_name),
             description = "com.junkfood.seal.desktop",
             icon = null,
             onClick = { clipboardManager.setText(AnnotatedString("com.junkfood.seal.desktop")) },

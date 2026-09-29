@@ -8,9 +8,9 @@ label="${3:-Unix app image}"
 timeout_seconds="${4:-12}"
 verify_sqlite="${5:-false}"
 
-case "${verify_sqlite,,}" in
-  true|1|yes|on) verify_sqlite=true ;;
-  false|0|no|off) verify_sqlite=false ;;
+case "$verify_sqlite" in
+  true|TRUE|True|1|yes|YES|Yes|on|ON|On) verify_sqlite=true ;;
+  false|FALSE|False|0|no|NO|No|off|OFF|Off) verify_sqlite=false ;;
   *)
     echo "Unsupported SQLite verification flag: $verify_sqlite"
     exit 2

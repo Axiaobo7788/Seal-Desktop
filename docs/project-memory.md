@@ -2,7 +2,7 @@
 
 > Role: durable project context for humans and coding agents.
 >
-> Last reviewed: 2026-09-28
+> Last reviewed: 2026-09-29
 >
 > Do not put short-lived TODOs, one-off command output, or temporary CI failures here. Those belong in `current-progress.md` or dated audit/history documents.
 
@@ -61,6 +61,9 @@ The detailed capability state belongs in `feature-roadmap.md`.
 - `auto`: resolve available sources and download only missing required components.
 - `yt-dlp + ffmpeg` are required for a complete Desktop download environment.
 - `aria2c` remains optional.
+- Executable existence is not availability. Runtime resolution must classify dependencies as `Missing`, `Healthy` or `Broken` by a bounded version probe.
+- Dependency probes are blocking process I/O and must run off the Compose UI thread. Cache them by tool/path/file identity and invalidate after app-managed replacement.
+- A broken `system` dependency remains package-manager-owned, a broken `selfhost` dependency may be redownloaded into app-private storage, and a `packaged` dependency is read-only for the lifetime of that application package.
 
 ### Privacy
 

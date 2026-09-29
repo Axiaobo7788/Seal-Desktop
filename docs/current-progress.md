@@ -2,11 +2,11 @@
 
 > Role: short current-state page for resuming work.
 >
-> Refreshed: 2026-09-28
+> Refreshed: 2026-09-29
 >
 > Main branch last observed commit: `2a7d1c45b41ddbcede9c01d667a4757781a4e544` — `fix(desktop): harden dependency setup and release packaging` (2026-08-17).
 >
-> Active resume branch: `chore/agent-governance-refresh` at `b2846b196f67dce1e9f46708588d520779c33c01` (2026-09-28), based on the expected main baseline.
+> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `72f41cd569c5e28371ab5fd84111d4a27e62f418` (`fix: stabilize download preferences and desktop maintenance`). Documentation baseline: `1c16c39fa9d1bd9f5b26a5227a5b376959b48e85`. The A0-A3 recovery iteration described below is not yet committed.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
@@ -34,14 +34,21 @@ Latest inspected native packaging evidence at the expected main baseline (`2a7d1
 
 The latest scheduled dependency-download smoke inspected on 2026-09-28 is [run 35838426850](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/35838426850): Linux x64 and macOS x64 succeeded, macOS arm64 failed while setting up JDK 21, and Windows x64 failed in the dependency source/package-manager policy tests. The last all-green matrix remains [run 31594392569](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/31594392569) from 2026-08-12.
 
+The 2026-09-29 recovery iteration contains two targeted CI repairs, but no fresh native run exists yet:
+
+- dependency smoke uses Temurin 21 instead of JetBrains Runtime because that job tests command-line dependencies, not Compose rendering;
+- the macOS/Linux app-image smoke no longer uses Bash 4-only lowercase expansion, which is unavailable in macOS system Bash 3.2;
+- the macOS packaging matrix has `fail-fast: false`, preserving x64 and arm64 evidence independently;
+- the latest failed Windows policy run predates the current Room/KSP and dependency-policy fixes, so its old failure was not suppressed or weakened.
+
 Action:
 
-- diagnose macOS arm64 Lite app/PKG launch smoke independently from the JDK setup failure;
-- diagnose the current Windows dependency-policy test before trusting scheduled dependency downloads;
+- run the updated dependency smoke on Windows x64, Linux x64, macOS x64 and macOS arm64;
+- run the updated macOS package workflow for both architectures and inspect Lite app plus installed PKG launch separately from JDK setup;
 - keep OS/architecture results separate;
 - record new run links/results here, not as timeless claims in project memory.
 
-### Local baseline validation is environment-blocked
+### Local baseline validation remains environment-blocked
 
 On 2026-09-28, `./gradlew :desktop:compileKotlin` was attempted repeatedly. The first attempt failed resolving a Compose/Kotlin plugin artifact from `plugins.gradle.org`; later attempts progressed through `buildSrc` but failed resolving Android Gradle Plugin and Room artifacts from `dl.google.com`. Java 17, 21 and 25 default HTTPS probes ended with `SSLHandshakeException: Remote host terminated the handshake`, while `curl` could reach the same URLs. A direct JDK 21 probe succeeded when forced to IPv6, but Gradle's Apache HTTP transport still failed after the running daemon was confirmed to have `java.net.preferIPv6Addresses=true`. The temporary repository setting used for that probe was removed.
 
@@ -53,6 +60,20 @@ Consequences:
 - therefore `:shared:allTests`, `:desktop:test` and the new focused tests are not verified;
 - the official Gradle 8.10.2 distribution was cached outside the repository only to restore the wrapper; no generated dependency cache was committed;
 - rerun the required compile/tests on a host where Java can establish HTTPS connections before marking the active repairs complete.
+
+The 2026-09-29 rerun reproduced the same boundary:
+
+- `timeout 240s ./gradlew :desktop:compileKotlin --stacktrace` reached only the `buildSrc` tasks and timed out with exit code 124 before Desktop compilation;
+- the focused A0/A3 test command also reached only `buildSrc` and timed out with exit code 124 before any test task;
+- `./gradlew --offline :shared:allTests :desktop:test --stacktrace` failed during root-project configuration because Room 2.6.1 and AGP 8.7.2 artifacts are not cached;
+- no Kotlin source test or compilation result is claimed from these commands.
+
+Static checks completed on 2026-09-29:
+
+- Android and Compose default/Simplified Chinese/Traditional Chinese string resources are byte-for-byte synchronized and parse with `xmllint`;
+- changed workflows parse as YAML and the Unix smoke script passes `bash -n`;
+- `git diff --check` passes;
+- `actionlint` is not installed on this host, so workflow schema validation remains pending.
 
 ## P1 — Issue #4 Triage
 
@@ -80,25 +101,33 @@ The intended Desktop design is now explicit in project memory/roadmap:
 
 When implementing this, fix the end-to-end cookie contract rather than only adding one metadata argument.
 
-### Retry stale preferences — implementation present, validation blocked
+### Retry stale preferences — implementation and focused coverage present, validation blocked
 
 The active worktree now merges current live runtime settings into the original request before retry.
 
 Preserved task intent includes format, subtitles, output directories and title overrides. Refreshed runtime context includes cookies/browser source, aria2c, fragment concurrency, debug, proxy, user agent, rate limit, IPv4 and download-archive policy. Privacy is fail-closed: either snapshot enabling `privateMode` keeps the retry private, and the merged request controls queue persistence.
 
-Focused tests exist in `DesktopDownloadRetryPreferencesTest`, but Gradle dependency resolution blocked execution on 2026-09-28.
+`DesktopDownloadRetryPreferencesTest` now also locks audio directory, output template, clip ranges and split-by-chapter as task intent. Gradle dependency resolution still blocked execution on 2026-09-29.
 
-### SponsorBlock empty category — implementation present, validation blocked
+### SponsorBlock empty category — implementation and focused coverage present, validation blocked
 
 `DownloadPlanFactory` now omits the SponsorBlock option for a blank category and preserves explicit category values. It does not silently broaden blank to `all`.
 
-Focused shared tests were added, but Gradle dependency resolution blocked execution on 2026-09-28.
+Focused shared tests cover blank and explicit categories, but Gradle dependency resolution still blocked execution on 2026-09-29.
 
-### Local createDistributable dependency bootstrap — tooling/packaging gap
+### Dependency health and source ownership — implementation present, validation blocked
 
-Local contributor builds can lack the CI-populated app-private binaries and then fall through to system PATH.
+Dependency resolution now distinguishes `Missing`, `Healthy` and `Broken` instead of trusting file existence. yt-dlp, ffmpeg and aria2c are probed with bounded version commands; stdout, stderr, exit code and timeout diagnostics are retained. Results are cached by tool name, absolute path, modification time, size and executable state, with explicit invalidation after app-managed downloads.
 
-Treat this as developer dependency/bootstrap/provenance work, not as proof that every external broken `yt-dlp` is an application runtime bug.
+Ownership remains explicit:
+
+- broken `system` dependencies are never overwritten by Seal and remain package-manager repairs;
+- broken `selfhost` dependencies are eligible for app-private repair;
+- `packaged` dependencies are read-only and updates install an app-private replacement;
+- `auto` prefers a healthy private dependency, then a healthy system dependency, and never treats a broken PATH shim as usable;
+- aria2c remains optional and a temporary failed probe no longer rewrites the saved user preference.
+
+Focused fake-runner tests cover success, non-zero exit, timeout, missing/non-executable files, cache invalidation, binary replacement in both directions, path replacement races and ownership policy. They are present but not executed because Gradle configuration remains blocked.
 
 ## P1 — Current User-Visible Gaps Confirmed In Code
 
@@ -120,19 +149,22 @@ This is already classified in `feature-roadmap.md` as Partial / Decision needed.
 
 This is a planned partial feature rather than a regression.
 
-### Desktop i18n debt remains real
+### Desktop user-visible hard-coded string sweep — implementation present, validation blocked
 
-Confirmed examples include:
+The 2026-09-29 sweep moved the known Desktop runtime strings into the Android XML source and synchronized Compose resources. Covered areas include:
 
-- `DesktopCustomCommandTaskManager.kt`: `URL is empty`, `Command Started`, `Command Completed`, `Command Error`;
-- `GeneralSettingsPage.kt`: dependency detection summary strings such as `missing`, `optional`, and `Detecting dependencies...`;
-- download controller/notifier progress and error text still includes hard-coded Chinese/English strings.
+- custom-command validation and notifications;
+- download queue status, notifications and dependency diagnostics;
+- dependency source/health summaries, downloader and environment-setup logs;
+- history error dialogs and import/export chooser titles;
+- video/audio/custom-command directory chooser titles;
+- Desktop unavailable placeholders, About package label, update channel labels and copy accessibility text.
 
-Sweep user-visible Desktop strings before declaring localization complete.
+Default, Simplified Chinese and Traditional Chinese values were added where translation was reliable. Other locales intentionally fall back to default instead of receiving machine-filled English copies. Technical identifiers such as `OPUS`, `M4A`, package IDs, URLs, SponsorBlock category tokens and issue-tracker names remain literal by design.
 
 ### Custom format type wiring is present but unverified
 
-The restored worktree now passes `downloadType` into `FormatPageImpl` through `audioOnly` and `allowMultiAudio`, and uses the type when creating the selected-format task. This corrects the prior document claim that the value stopped at `CustomFormatSelectionSheet`, but compilation and behavioral validation remain blocked by local dependency resolution.
+The worktree passes `downloadType` into `FormatPageImpl` through an explicit `CustomFormatSelectionPolicy`: Audio is audio-only and disables multi-audio selection, while Video/Playlist preserve video/mixed formats and the configured multi-audio behavior. Pure policy tests are present, but compilation and behavioral validation remain blocked by local dependency resolution.
 
 Remaining high-risk areas to re-check when touching this page:
 
@@ -175,16 +207,15 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 
 ## Recommended Resume Order
 
-1. Rerun `:desktop:compileKotlin`, `:shared:allTests`, `:desktop:test` and the two new focused tests on a host without the Java HTTPS failure.
-2. Diagnose the macOS arm64 package launch smoke and Windows dependency-policy test, keeping those failures separate from the unrelated macOS arm64 JDK setup failure.
-3. Review and commit the focused retry/SponsorBlock repairs only after the tests pass.
+1. Rerun `:desktop:compileKotlin`, `:shared:allTests`, `:desktop:test` and the A0/A3 focused tests on a host without the Java HTTPS failure.
+2. Run the updated dependency and macOS packaging workflows; record each OS/architecture result independently.
+3. Review the A0-A3 worktree and commit only after source tests and native evidence have been evaluated.
 4. Implement the Desktop Cookies feature as one end-to-end system-browser flow rather than a metadata-only patch.
 5. Continue other misleading/partial product surfaces:
    - Desktop app update page;
    - download archive management/feedback.
-6. Sweep confirmed Desktop hard-coded user-visible strings.
-7. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
-8. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
+6. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
+7. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
 
 ## Recently Completed Baseline Worth Preserving
 

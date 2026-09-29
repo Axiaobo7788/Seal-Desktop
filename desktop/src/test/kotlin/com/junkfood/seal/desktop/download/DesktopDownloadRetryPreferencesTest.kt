@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.download
 
 import com.junkfood.seal.util.DownloadPreferences
+import com.junkfood.seal.util.VideoClip
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,7 +15,11 @@ class DesktopDownloadRetryPreferencesTest {
                 formatIdString = "137+140",
                 subtitleLanguage = "en.*",
                 videoDirectory = "/original/video",
+                audioDirectory = "/original/audio",
+                outputTemplate = "%(title)s-original",
                 newTitle = "Original title",
+                videoClips = listOf(VideoClip(start = 4, end = 12)),
+                splitByChapter = true,
                 cookies = false,
                 cookiesBrowser = "",
                 aria2c = false,
@@ -33,7 +38,11 @@ class DesktopDownloadRetryPreferencesTest {
                 formatIdString = "best",
                 subtitleLanguage = "ja",
                 videoDirectory = "/current/video",
+                audioDirectory = "/current/audio",
+                outputTemplate = "%(id)s-current",
                 newTitle = "Current title",
+                videoClips = listOf(VideoClip(start = 20, end = 40)),
+                splitByChapter = false,
                 cookies = true,
                 cookiesBrowser = "firefox",
                 aria2c = true,
@@ -53,7 +62,11 @@ class DesktopDownloadRetryPreferencesTest {
         assertEquals("137+140", retry.formatIdString)
         assertEquals("en.*", retry.subtitleLanguage)
         assertEquals("/original/video", retry.videoDirectory)
+        assertEquals("/original/audio", retry.audioDirectory)
+        assertEquals("%(title)s-original", retry.outputTemplate)
         assertEquals("Original title", retry.newTitle)
+        assertEquals(listOf(VideoClip(start = 4, end = 12)), retry.videoClips)
+        assertTrue(retry.splitByChapter)
         assertTrue(retry.cookies)
         assertEquals("firefox", retry.cookiesBrowser)
         assertTrue(retry.aria2c)
