@@ -233,7 +233,7 @@
     <string name="desktop_cookies_select_browser">Select browser</string>
     <string name="desktop_cookies_delete_file_desc">This only deletes the cookies cache saved by Seal. It does not sign you out of the browser or delete browser cookies.</string>
     <string name="desktop_cookies_browser_source">Cookies will be read from %1$s</string>
-    <string name="desktop_cookies_help_msg">Seal Desktop does not provide a built-in sign-in page. Sign in to the target website in an installed browser, then use Generate new cookies to read that browser session and cache it locally. The validation URL does not limit the cache to one website. Clearing cookies here only removes Seal&apos;s local cache.</string>
+    <string name="desktop_cookies_help_msg">Seal Desktop does not provide a built-in sign-in page. Sign in to the target website in an installed browser, then use Generate new cookies to read that browser session and cache it locally. The validation URL does not limit the cache to one website. Clearing cookies here only removes Seal\'s local cache.</string>
     <string name="desktop_cookies_source_status">Source: %1$s\n%2$d Cookies · %3$d sites · %4$s</string>
     <string name="desktop_cookies_source_none">No source</string>
     <string name="desktop_cookies_source_imported">Imported file</string>
@@ -243,7 +243,7 @@
     <string name="desktop_cookies_last_generated">Generated: %1$s</string>
     <string name="desktop_cookies_extract_success">Cookies were generated and cached.</string>
     <string name="desktop_cookies_import_success">Cookies were imported and cached.</string>
-    <string name="desktop_cookies_clear_success">Seal&apos;s cookies cache was cleared.</string>
+    <string name="desktop_cookies_clear_success">Seal\'s cookies cache was cleared.</string>
     <string name="desktop_cookies_operation_failed">Cookies operation failed: %1$s</string>
     <string name="desktop_cookies_permission_warning">Cookies are usable, but file permissions could not be restricted: %1$s</string>
     <string name="desktop_cookies_invalid_url">Enter a valid HTTP or HTTPS website URL.</string>
