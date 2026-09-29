@@ -187,6 +187,7 @@ internal fun buildCookieExtractionCommand(
             add("User-Agent:$it")
         }
         add("--simulate")
+        add("--ignore-errors")
         add(source.validationUrl)
     }
 

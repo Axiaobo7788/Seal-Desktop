@@ -37,13 +37,21 @@ class YtDlpMetadataFetcher(
         val stderr = process.errorStream.bufferedReader().readText()
         val exit = process.waitFor()
         if (exit != 0) {
-            throw IllegalStateException(
-                AndroidStrings.format("desktop_ytdlp_exit_error", exit, stderr.trim()),
+            throw YtDlpMetadataException(
+                exitCode = exit,
+                stdout = stdout,
+                stderr = stderr,
             )
         }
         return json.decodeFromString(stdout)
     }
 }
+
+class YtDlpMetadataException(
+    val exitCode: Int,
+    val stdout: String,
+    val stderr: String,
+) : IllegalStateException(AndroidStrings.format("desktop_ytdlp_exit_error", exitCode, stderr.trim()))
 
 internal fun buildMetadataCommand(
     ytDlpPath: Path,
