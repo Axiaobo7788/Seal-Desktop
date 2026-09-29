@@ -526,6 +526,7 @@
     <string name="redownload">重新下载</string>
     <string name="export_to">导出到</string>
     <string name="download_archive_error">此视频已被下载。如果这不是预期的行为，请检查你的下载存档。</string>
+    <string name="desktop_download_archive_read_failed">无法读取位于 %1$s 的下载存档：%2$s</string>
     <string name="remux_container_mkv">视频封装容器</string>
     <string name="remux_container_mkv_desc">封装视频至 MKV 容器，改进兼容性</string>
     <string name="cookies_in_database">共 %1$d 个 cookies，来自 %2$d 个站点</string>

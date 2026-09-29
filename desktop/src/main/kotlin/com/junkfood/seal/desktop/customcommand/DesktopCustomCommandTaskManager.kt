@@ -13,6 +13,7 @@ import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.cookies.DesktopCookieContext
 import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
+import com.junkfood.seal.desktop.download.archive.wasSkippedByDownloadArchive
 import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.download.CustomCommandPlan
 import com.junkfood.seal.download.YtDlpOption
@@ -189,7 +190,8 @@ object DesktopCustomCommandTaskManager {
                     return@launch
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = preferences.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
@@ -213,7 +215,9 @@ object DesktopCustomCommandTaskManager {
                             if (success) {
                                 null
                             } else {
-                                result.stderr.lastOrNull { line -> isYtDlpErrorLine(line) }
+                                if (archiveSkipped) {
+                                    AndroidStrings.get("download_archive_error")
+                                } else result.stderr.lastOrNull { line -> isYtDlpErrorLine(line) }
                                     ?: result.stderr.lastOrNull()
                             },
                         exitCode = result.exitCode,

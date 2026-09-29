@@ -143,11 +143,11 @@ but the button remains `/* TODO desktop check for update */`.
 
 This is already classified in `feature-roadmap.md` as Partial / Decision needed.
 
-### Download archive has an enable switch but no management UI
+### Download archive backend is verified; management UI remains
 
-`GeneralSettingsPage.kt` currently exposes the archive toggle, but no equivalent view/edit/clear/open management flow.
+`DesktopDownloadArchiveService` now owns exact entry parsing, count/contains/precheck, editable reads, atomic save and clear operations. Normal and custom-command downloads no longer report yt-dlp's exit-0 archive skip as an ordinary completion; normal downloads also precheck known extractor/media IDs and surface the localized archive explanation without adding history.
 
-This is a planned partial feature rather than a regression.
+Focused archive tests cover missing/empty files, exact duplicate detection, malformed lines, atomic edit/clear and concurrent read/write snapshots. The full Desktop test suite and compilation passed locally on 2026-09-29. `GeneralSettingsPage.kt` still lacks the planned view/edit/clear/open management UI, so the product capability remains Partial.
 
 ### Desktop user-visible hard-coded string sweep — locally verified
 

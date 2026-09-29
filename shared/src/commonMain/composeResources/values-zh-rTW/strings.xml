@@ -493,6 +493,7 @@
     <string name="merge_audiostream">合併多個音訊串流</string>
     <string name="merge_audiostream_desc">允許將多個音訊串流合併成單一檔案</string>
     <string name="download_archive_error">此影片已下載完成。如果這是未預期的行為，請檢查您的下載檔案。</string>
+    <string name="desktop_download_archive_read_failed">無法讀取位於 %1$s 的下載封存：%2$s</string>
     <string name="import_backup">匯入</string>
     <string name="export_backup">匯出</string>
     <string name="export_download_history">確定要匯出下載記錄？</string>

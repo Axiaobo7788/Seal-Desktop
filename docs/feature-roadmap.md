@@ -82,14 +82,16 @@ Until behavior is implemented, active controls must not pretend automatic update
 
 ### Download archive management — **Partial**
 
-The execution layer can use `download-archive.txt`, but Desktop lacks the planned management experience.
+The execution layer and tested backend can use and manage `download-archive.txt`, but Desktop still lacks the planned management experience.
+
+Current code provides exact entry parsing, count/contains/precheck, editable reads, atomic save/clear and explicit read failures. Normal downloads precheck known archive IDs, while normal and custom-command execution both classify yt-dlp's exit-0 archive skip as a readable error rather than `Completed`. Focused tests and the full Desktop test suite passed locally on 2026-09-29.
 
 Planned user capabilities:
 
 - show archive location and count;
 - open/view entries;
 - edit or clear with confirmation;
-- make "already archived" a readable user outcome instead of a mysterious skipped/completed task.
+- expose the existing readable "already archived" outcome in the future management surface.
 
 ### Playlist item selection — **Planned**
 

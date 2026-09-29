@@ -534,6 +534,7 @@
     <string name="download_history_imported">Imported %1$s to download history</string>
     <string name="redownload">Redownload</string>
     <string name="download_archive_error">The video has been downloaded. If this is not the expected behavior, please check your download archive.</string>
+    <string name="desktop_download_archive_read_failed">Could not read download archive at %1$s: %2$s</string>
     <string name="remux_container_mkv">Remux video container</string>
     <string name="remux_container_mkv_desc">Remux videos into MKV container for better compatibility</string>
     <string name="cookies_in_database">%1$d cookies from %2$d websites in total</string>

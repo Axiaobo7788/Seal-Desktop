@@ -15,6 +15,11 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveException
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchivePrecheck
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveService
+import com.junkfood.seal.desktop.download.archive.downloadArchiveIdentity
+import com.junkfood.seal.desktop.download.archive.wasSkippedByDownloadArchive
 import com.junkfood.seal.desktop.cookies.DesktopCookieContextException
 import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
 import com.junkfood.seal.desktop.i18n.AndroidStrings
@@ -72,6 +77,7 @@ class DesktopDownloadController(
                 ),
         ),
     private val cookieResolver: DesktopCookieResolver = DesktopCookieResolver(),
+    private val archiveService: DesktopDownloadArchiveService = DesktopDownloadArchiveService(),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
     private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
 ) {
@@ -462,6 +468,10 @@ class DesktopDownloadController(
                 )
             }
 
+            if (!precheckDownloadArchive(itemId, effectivePreferences, selection.videoInfo)) {
+                return@launchManagedDownload
+            }
+
             val plan =
                 buildDownloadPlan(
                     selection.videoInfo,
@@ -528,11 +538,14 @@ class DesktopDownloadController(
                     return@launchManagedDownload
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = effectivePreferences.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
                 val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
                 val exitCode = result.exitCode
-                val lastError = result.stderr.lastOrNull()
+                val lastError =
+                    if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                    else result.stderr.lastOrNull()
 
                 updateQueueItem(itemId) {
                     it.copy(
@@ -540,6 +553,7 @@ class DesktopDownloadController(
                         progress = if (success) 1f else it.progress,
                         progressText =
                             if (success) ""
+                            else if (archiveSkipped) AndroidStrings.get("download_archive_error")
                             else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
@@ -730,6 +744,10 @@ class DesktopDownloadController(
                 )
             }
 
+            if (!precheckDownloadArchive(itemId, effectivePreferences, videoInfo)) {
+                return@launchManagedDownload
+            }
+
             val preferencesWithProxy = DesktopProxyResolver.applyToPreferences(effectivePreferences, appSettings)
 
             val plan =
@@ -787,11 +805,14 @@ class DesktopDownloadController(
                     return@launchManagedDownload
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = preferencesWithProxy.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
                 val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
                 val exitCode = result.exitCode
-                val lastError = result.stderr.lastOrNull()
+                val lastError =
+                    if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                    else result.stderr.lastOrNull()
 
                 updateQueueItem(itemId) {
                     it.copy(
@@ -799,6 +820,7 @@ class DesktopDownloadController(
                         progress = if (success) 1f else it.progress,
                         progressText =
                             if (success) ""
+                            else if (archiveSkipped) AndroidStrings.get("download_archive_error")
                             else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
@@ -880,6 +902,53 @@ class DesktopDownloadController(
                 refreshRunningSnapshot()
             }
         }
+    }
+
+    private suspend fun precheckDownloadArchive(
+        itemId: String,
+        preferences: DownloadPreferences,
+        videoInfo: VideoInfo,
+    ): Boolean {
+        if (!preferences.useDownloadArchive) return true
+        val identity = videoInfo.downloadArchiveIdentity() ?: return true
+
+        val precheck =
+            try {
+                archiveService.precheck(identity.extractor, identity.mediaId)
+            } catch (error: DesktopDownloadArchiveException) {
+                val reason = error.cause?.message ?: error.message.orEmpty()
+                val message =
+                    AndroidStrings.format(
+                        "desktop_download_archive_read_failed",
+                        error.archivePath.toAbsolutePath(),
+                        reason,
+                    )
+                appendLog(AndroidStrings.format("desktop_log_error", message))
+                appendItemLog(itemId, "[err] $message")
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = DownloadQueueStatus.Error,
+                        progressText = message,
+                        errorMessage = message,
+                    )
+                }
+                return false
+            }
+
+        if (precheck is DesktopDownloadArchivePrecheck.AlreadyArchived) {
+            val message = AndroidStrings.get("download_archive_error")
+            appendLog(message)
+            appendItemLog(itemId, message)
+            updateQueueItem(itemId) {
+                it.copy(
+                    status = DownloadQueueStatus.Error,
+                    progressText = message,
+                    errorMessage = message,
+                )
+            }
+            return false
+        }
+        return true
     }
 
     private fun updateQueueItem(itemId: String, transform: (DownloadQueueItemState) -> DownloadQueueItemState) {
