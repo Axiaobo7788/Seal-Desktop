@@ -94,6 +94,7 @@ import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
 import com.junkfood.seal.desktop.download.customFormatSelectionPolicy
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.download.SubtitleLanguageMatcher
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.abs_hint
 import com.junkfood.seal.shared.generated.resources.audio
@@ -320,7 +321,10 @@ private fun FormatPageImpl(
     val durationSeconds = duration.toInt().coerceAtLeast(0)
     val chapterCount = videoInfo.chapters?.size ?: 0
 
-    val initialSubtitleCodes = remember(basePreferences.subtitleLanguage) { parseLanguageCodes(basePreferences.subtitleLanguage) }
+    val subtitleLanguageMatcher =
+        remember(basePreferences.subtitleLanguage) {
+            SubtitleLanguageMatcher.compile(basePreferences.subtitleLanguage)
+        }
     val subtitleCodes = remember(videoInfo.subtitles) { videoInfo.subtitles.keys.sorted() }
     val autoCaptionCodes = remember(videoInfo.automaticCaptions) { videoInfo.automaticCaptions.keys.sorted() }
     val suggestedSubtitleMap: Map<String, List<SubtitleFormat>> =
@@ -353,16 +357,18 @@ private fun FormatPageImpl(
     var selectedVideoOnlyFormat by remember { mutableIntStateOf(NotSelected) }
     val selectedAudioOnlyFormats = remember { mutableStateListOf<Int>() }
     val selectedSubtitles =
-        remember(videoInfo.id, basePreferences.subtitleLanguage) {
+        remember(videoInfo.id, basePreferences.subtitleLanguage, basePreferences.downloadSubtitle) {
             mutableStateListOf<String>().apply {
-                addAll(subtitleCodes.filter { code -> initialSubtitleCodes.contains(code) })
+                if (basePreferences.downloadSubtitle) {
+                    addAll(subtitleCodes.filter(subtitleLanguageMatcher::matches))
+                }
             }
         }
     val selectedAutoCaptions =
         remember(videoInfo.id, basePreferences.subtitleLanguage, basePreferences.autoSubtitle) {
             mutableStateListOf<String>().apply {
-                if (basePreferences.autoSubtitle) {
-                    addAll(autoCaptionCodes.filter { code -> initialSubtitleCodes.contains(code) })
+                if (basePreferences.downloadSubtitle && basePreferences.autoSubtitle) {
+                    addAll(autoCaptionCodes.filter(subtitleLanguageMatcher::matches))
                 }
             }
         }
@@ -1469,13 +1475,6 @@ private fun formatDuration(totalSeconds: Int): String {
     val seconds = totalSeconds % 60
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%02d:%02d".format(minutes, seconds)
 }
-
-private fun parseLanguageCodes(value: String): Set<String> =
-    value
-        .split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .toSet()
 
 private fun buildVideoClips(
     enabled: Boolean,

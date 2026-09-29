@@ -170,11 +170,16 @@ The worktree passes `downloadType` into `FormatPageImpl` through an explicit `Cu
 
 Remaining high-risk areas to re-check when touching this page:
 
-- regex-like subtitle preference matching;
 - clip range editing;
 - search field and selection animation parity.
 
 These are strong human-check candidates.
+
+### Subtitle language matching is shared and locally verified
+
+Android and Desktop Custom Format now use the same platform-neutral `SubtitleLanguageMatcher` for the persisted comma-separated regex contract. Exact codes, patterns such as `en.*` / `.*-orig`, multiple patterns and malformed-pattern fail-safe behavior have pure Shared tests. Desktop applies the matcher consistently to normal and automatic captions and does not preselect captions when subtitle download is disabled.
+
+The focused matcher test, Desktop compilation and Android `genericDebug` Kotlin compilation passed on 2026-09-29. The Android compile required only command-line JVM proxy properties for the host's known Gradle TLS/TUN issue; repository configuration was not changed.
 
 ## P2 — Planned Product Work Not To Mislabel As Bugs
 

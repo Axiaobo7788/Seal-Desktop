@@ -26,7 +26,7 @@
 | D-04 | P1 | 部分完成 | 依赖健康与本地 Lite/Full | 生成的 `desktop/appResources/` 已忽略；仍需可运行性探测、Missing/Broken 区分和明确的本地 Lite/Full 构建入口。 |
 | D-05 | P1 | 后端已验证，管理 UI 待实现 | 下载归档 | service 已覆盖读取、计数、精确预检、编辑、原子保存和清空；普通下载与自定义命令不再把归档跳过显示为 Completed。仍需设置页查看、编辑、清空、打开和确认交互。 |
 | D-06 | P1 | 待实现 | 播放列表条目选择 | 增加条目选择并传 `--playlist-items`，或在短期 UI 中明确“下载整个播放列表”。 |
-| D-07 | P1 | 部分完成 | 自定义格式页 | 音频模式已过滤视频格式；仍需字幕 pattern 预选、剪切范围以及搜索/清空/选中动画 parity。 |
+| D-07 | P1 | 部分完成 | 自定义格式页 | 音频模式过滤与共享字幕 pattern matcher 已完成并验证；仍需剪切范围以及搜索/清空/选中动画 parity。 |
 | I-01 | P1 | 部分完成 | Desktop i18n | 格式页加载/错误/空状态和提示已资源化；仍需清理 Cookies、依赖安装、通知、文件选择器和其他错误弹窗，并补 locale fallback 参数化测试。 |
 | R-01 | P1 | 待实现 | Release 可复现性 | release 绑定 commit/tag；pin yt-dlp/ffmpeg 来源和 provenance；统一 action pin 策略。 |
 | R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |

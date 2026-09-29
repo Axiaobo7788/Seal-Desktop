@@ -140,11 +140,10 @@ The page exists but is not finished parity.
 Known planned gaps include:
 
 - validate the current download-type wiring and audio/video filtering on a working build host;
-- regex-like subtitle preference matching;
 - better clip-range editing;
 - remaining visual/interaction parity and localization.
 
-The active worktree derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`. Desktop compilation, its focused pure policy test and the full Desktop test suite passed locally on 2026-09-29. The capability remains Partial because subtitle matching, clip editing and visual/interaction parity are still unfinished.
+The active worktree derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`. Android and Desktop now also share a tested, malformed-pattern-safe subtitle matcher for exact and regex-like preferences, including normal and automatic captions. Desktop compilation, the focused pure policy/matcher tests and Android `genericDebug` Kotlin compilation passed locally on 2026-09-29. The capability remains Partial because clip editing and visual/interaction parity are still unfinished.
 
 Visual parity items require human-check mode.
 
