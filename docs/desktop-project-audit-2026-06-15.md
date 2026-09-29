@@ -30,7 +30,7 @@
 | I-01 | P1 | 部分完成 | Desktop i18n | 格式页加载/错误/空状态和提示已资源化；仍需清理 Cookies、依赖安装、通知、文件选择器和其他错误弹窗，并补 locale fallback 参数化测试。 |
 | R-01 | P1 | 待实现 | Release 可复现性 | release 绑定 commit/tag；pin yt-dlp/ffmpeg 来源和 provenance；统一 action pin 策略。 |
 | R-02 | P1 | 已实现待原生复验 | shrink、SQLite 与安装包 smoke | Linux 本机证据不能替代 Windows/macOS/DEB；以对应 runner 的安装后 SQLite 与工具 smoke 为最终证据。 |
-| S-01 | P2 | 待实现 | DownloadPreferences 存储 | 当前偏好仍走独立 `settings.json`，尚未纳入 json/dual/sqlite 与平台原生 state path 迁移。 |
+| S-01 | P2 | 后端已验证，路径迁移待实现 | DownloadPreferences 存储 | 偏好已纳入 json/dual/sqlite，兼容旧 `settings.json`、损坏隔离和原子写；Windows/macOS 原生 state path 及 legacy lookup 属下一阶段。 |
 | UI-01 | P2 | 待人工复验 | UI/动画 parity | 用 Android/Desktop 录屏和窗口/主题/locale 矩阵验收下载 sheet、格式页、队列、历史、设置页和滚动条。 |
 
 ## 2026-09-29 Desktop Cookies unified context
@@ -850,15 +850,17 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 
 ### 23. DownloadPreferences 未纳入 DesktopStorageConfig
 
+状态：2026-09-29 后端迁移已完成并通过本地自动验证；平台原生路径统一仍记录在第 24 项。
+
 证据：`desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt:39`
 
-下载偏好仍固定写 `~/.local/state/seal/settings.json`，没有走 `json/dual/sqlite` 存储后端。队列、历史、app settings 已经在新 storage 架构里，偏好设置是漏网项。
+旧状态是下载偏好固定写 `~/.local/state/seal/settings.json`，没有走 `json/dual/sqlite` 存储后端。当前 `DesktopPreferencesStorage` 已使用同一 `DesktopStorageConfig`：JSON 原子写与损坏隔离、Dual JSON 优先并镜像 SQLite、SQLite 缺记录时迁移旧 JSON，SQLite 写失败时回退 JSON。
 
-建议：
+验证：
 
-- 新增 `DesktopPreferencesStorage` 的 SQLite/dual 实现。
-- 自检覆盖偏好设置 load/save/quarantine。
-- 迁移时保留旧 `settings.json` bootstrap。
+- `DesktopPreferencesStorageTest` 覆盖旧字段默认、JSON 损坏隔离、原子写、Dual 镜像/回退、SQLite 迁移/写失败回退。
+- `desktopStorageSelfCheck` 的 `json`、`dual`、`sqlite` 三后端均通过，Dual 模式实际破坏 `settings.json` 后可从 SQLite 恢复。
+- SQLite schema 升至 2，新增 `preferences_state`；已存在的 schema 1 数据库通过 `CREATE TABLE IF NOT EXISTS` 非破坏升级。
 
 ### 24. Desktop state path 在 Windows/macOS 上不够原生
 

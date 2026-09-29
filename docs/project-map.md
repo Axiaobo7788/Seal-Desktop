@@ -15,7 +15,7 @@ Seal-Desktop 是 Seal 的桌面移植与跨端演进项目：围绕 yt-dlp 下�
 - 后端：Kotlin、Kotlin Coroutines、yt-dlp 执行编排（Android: youtubedl-android，Desktop: JVM 执行器）
 - 数据库/存储：
   - Android：Room (SQLite) + MMKV
-  - Desktop：queue/history/app-settings 使用 SQLite (xerial) + JSON 兼容层（json/dual/sqlite 三后端）；`DownloadPreferences` 暂时仍使用独立 `settings.json`
+  - Desktop：queue/history/app-settings/download-preferences 使用 SQLite (xerial) + JSON 兼容层（json/dual/sqlite 三后端）
   - 跨端数据：kotlinx-serialization
 
 ## 项目结构地图
@@ -95,9 +95,9 @@ flowchart LR
 - 任务快照落盘与重启恢复（当前语义：Running -> Interrupted）
 
 ### `desktop/storage/`
-- queue/history/app-settings 三后端存储（json/dual/sqlite）
+- queue/history/app-settings/download-preferences 三后端存储（json/dual/sqlite）
 - 原子写、损坏隔离、事件日志、自检任务
-- 下载偏好当前由 `DesktopSettingsState` 单独写 `settings.json`，尚未纳入三后端
+- 旧 `settings.json` 继续作为 JSON 兼容源；Dual 模式镜像 SQLite，SQLite 模式在无记录时迁移旧 JSON
 
 ### `desktop/ytdlp/` + `desktop/network/`
 - system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
