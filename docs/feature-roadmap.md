@@ -66,11 +66,11 @@ Acceptance points:
 - clearing cookies must have clear semantics about cached files versus the browser's own cookies;
 - browser/profile differences on Windows, macOS and Linux must be treated as platform adapter behavior.
 
-### Application update — **Partial / Decision needed**
+### Application update — **Manual flow implemented / automatic update deferred**
 
-Current Desktop settings expose auto-update/channel/check controls, but the check button remains a TODO.
+Desktop no longer exposes inactive auto-update/channel/check controls. Its About and update pages explicitly describe the manual flow and open this repository's GitHub Releases page. Legacy app-settings fields remain deserializable only for schema compatibility.
 
-Android APK self-update must not be copied directly.
+Android APK self-update must not be copied directly. Any future automation remains a separate product decision.
 
 Likely Desktop-native stages:
 
@@ -78,7 +78,7 @@ Likely Desktop-native stages:
 2. open/download the correct native package;
 3. only later consider platform-specific self-update where safe.
 
-Until behavior is implemented, active controls must not pretend automatic update works.
+The current manual flow is complete for its stated scope; the stages above remain planned rather than implied by active controls.
 
 ### Download archive management — **Partial**
 

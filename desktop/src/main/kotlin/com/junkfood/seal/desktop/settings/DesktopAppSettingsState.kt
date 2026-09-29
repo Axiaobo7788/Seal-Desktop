@@ -50,6 +50,7 @@ data class DesktopAppSettings(
     val downloadTypeInitialization: Int = DownloadTypeNone,
     val downloadNotificationEnabled: Boolean = false,
     val disablePreview: Boolean = false,
+    // Legacy fields retained so existing app-settings JSON/SQLite rows remain readable.
     val autoUpdateEnabled: Boolean = false,
     val updateChannel: Int = UpdateChannelStable,
     val languageTag: String? = null,

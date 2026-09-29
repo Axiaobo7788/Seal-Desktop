@@ -259,8 +259,6 @@ fun DesktopSettingsScreen(
 
             SettingsPage.About ->
                 AboutSettingsPage(
-                    settings = appSettingsState.settings,
-                    onUpdate = appSettingsState::update,
                     onOpenCredits = { currentPage = SettingsPage.Credits },
                     onOpenUpdate = { currentPage = SettingsPage.Update },
                     onBack = { currentPage = null },
@@ -268,8 +266,6 @@ fun DesktopSettingsScreen(
                 
             SettingsPage.Update ->
                 UpdateSettingsPage(
-                    settings = appSettingsState.settings,
-                    onUpdate = appSettingsState::update,
                     onBack = { currentPage = SettingsPage.About },
                 )
 

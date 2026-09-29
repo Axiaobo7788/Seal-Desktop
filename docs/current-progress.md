@@ -131,17 +131,11 @@ Focused migration/backend tests passed, and `desktopStorageSelfCheck` passed ind
 
 ## P1 — Current User-Visible Gaps Confirmed In Code
 
-### Desktop app update page is still a placeholder
+### Desktop application updates are an honest manual flow
 
-`desktop/.../settings/about/UpdateSettingsPage.kt` still exposes:
+The inactive auto-update switch, update-channel choices and no-op check button have been removed from Desktop UI. The About and update pages now state that Seal Desktop does not install application updates automatically and open this repository's GitHub Releases page. The old `autoUpdateEnabled` and `updateChannel` fields remain readable only for app-settings schema compatibility.
 
-- auto-update toggle;
-- update channel choice;
-- "Check for updates" button;
-
-but the button remains `/* TODO desktop check for update */`.
-
-This is already classified in `feature-roadmap.md` as Partial / Decision needed.
+This closes the misleading-entry defect without claiming a three-platform self-updater. Automatic release checks, package selection and platform-native replacement remain separately deferred product work.
 
 ### Download archive backend is verified; management UI remains
 

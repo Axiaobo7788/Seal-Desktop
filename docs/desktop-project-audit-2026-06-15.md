@@ -265,7 +265,7 @@ Actions 日志中的两个失败属于不同阶段：Linux 已完成 app-image �
 
 本轮重新核对了本文状态与当前代码，确认 Windows installer、版本号、Inno 压缩、aria2c 平台参数、yt-dlp 手动更新这些已完成项可以保留打勾。Windows shrink 策略后来于 2026-08-17 再次调整，以顶部最新结论为准。但“Android 端已有、Desktop 端看起来有入口却没有等价行为”的缺口还不少，主要集中在下面几类：
 
-- [ ] Desktop app 自动更新页目前只有设置项和“Check for updates”占位，`UpdateSettingsPage` 的按钮仍是 `TODO desktop check for update`；Android 则有 `AppUpdater` 启动检查、`UpdateUtil.checkForUpdate()`、下载 APK 和安装流程。Desktop 如果短期不做自动更新，应把 UI 改成“暂不支持/手动下载”，避免假入口。
+- [x] Desktop app 更新假入口已移除：About/更新页不再展示无效的自动更新、更新频道和检查按钮，改为明确的手动更新说明并打开本仓库 GitHub Releases。旧字段仅保留反序列化兼容；三平台自更新仍为后续产品决策。
 - [ ] 下载归档在 Android 上能打开 archive 文件、编辑保存、清空；Desktop 现在只有 `useDownloadArchive` 开关，执行层会写 `download-archive.txt`，但用户无法查看/清理。这个不是移动端特有能力，Desktop 也应补一个管理入口。
 - [x] aria2c 已作为 Desktop 可选依赖纳入检测：不影响 yt-dlp/ffmpeg 的必需依赖判定，网络页会显示 `selfhost/system/missing` 并在缺失时禁用/自动关闭开关，执行层会在下载前给出可读错误。
 - [x] Desktop 无痕模式已接入执行层：下载成功后不再写入历史，退出/恢复用的队列备份也会跳过 private mode 请求，避免跨启动留下 URL。
@@ -1008,7 +1008,7 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 - [ ] 历史页错误弹窗和文件选择器标题仍有 `OK` / `Error` / `Import` / `Export`。
 - [ ] 目录设置页的系统目录选择标题仍是 `Select Video Directory` / `Select Audio Directory` / `Select Custom Command Directory`。
 - [ ] Network/Cookies/Environment setup 仍有若干中英硬编码，例如 `自动检测本机代理（Xray）`、`从文件导入 (Fallback)`、`This will delete the cookies file...`、`Copy`。
-- [ ] `UpdateSettingsPage` 仍有应用更新 TODO；如果暂不实现，也要本地化并改成明确的 unsupported/manual update 状态。
+- [x] `UpdateSettingsPage` 已改为本地化的手动更新说明和 Releases 入口，不再展示无效的自动更新语义。
 - [ ] `SponsorBlockDialog` 的 `default` / `all` 可以保留为 yt-dlp 语义值，但最好把显示 label 与实际写入值分离，避免未来本地化时误改参数值。
 
 ### UI-I. Desktop 全局滚动位置反馈

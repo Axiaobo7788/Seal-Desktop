@@ -411,6 +411,9 @@
     <string name="desktop_error_task_not_found">找不到任務</string>
     <string name="desktop_dependency_update_complete">yt-dlp 更新完成。\n檔案儲存在應用程式私有目錄：\n%1$s</string>
     <string name="desktop_dependency_update_failed">yt-dlp 更新失敗：%1$s</string>
+    <string name="desktop_app_update">應用程式更新</string>
+    <string name="desktop_manual_update_desc">Seal Desktop 不會自動安裝應用程式更新。請開啟 GitHub Releases，查看新版本並安裝適用於目前平台的軟體包。</string>
+    <string name="desktop_open_releases">開啟 GitHub Releases</string>
     <string name="desktop_dependency_system_skip">已偵測到可用的系統相依元件，無需下載 Seal 自管副本。</string>
     <string name="desktop_ytdlp_system_managed">yt-dlp 由系統套件管理器管理，Seal 不會下載或覆寫它。</string>
     <string name="desktop_dependency_ytdlp_skip">已偵測到可用的 yt-dlp，已略過 Seal 自管副本下載。</string>

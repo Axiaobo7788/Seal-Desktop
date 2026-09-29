@@ -420,6 +420,9 @@
     <string name="desktop_error_task_not_found">Task not found</string>
     <string name="desktop_dependency_update_complete">yt-dlp update completed.\nStored in the app-private directory:\n%1$s</string>
     <string name="desktop_dependency_update_failed">yt-dlp update failed: %1$s</string>
+    <string name="desktop_app_update">App updates</string>
+    <string name="desktop_manual_update_desc">Seal Desktop does not install application updates automatically. Open GitHub Releases to review and install the appropriate package for your platform.</string>
+    <string name="desktop_open_releases">Open GitHub Releases</string>
     <string name="desktop_dependency_system_skip">Detected usable system dependencies; no Seal-managed copy is needed.</string>
     <string name="desktop_ytdlp_system_managed">yt-dlp is managed by the system package manager. Seal will not download or overwrite it.</string>
     <string name="desktop_dependency_ytdlp_skip">Detected a usable yt-dlp; skipped downloading a Seal-managed copy.</string>
