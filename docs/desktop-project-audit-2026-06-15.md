@@ -825,13 +825,13 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 - 对未翻译语言，在语言页标注翻译不完整，或只暴露覆盖率超过阈值的语言。
 - Weblate 同步前，把 Desktop 新增字符串集中补齐到 default/zh-rCN/zh-rTW。
 
-### 22. ResourceEnvironment 反射方案需要 smoke test 锁住
+### 22. [x] ResourceEnvironment 反射已隔离并由 focused test 锁住
 
-当前语言切换的递归问题看起来已通过缓存 `originalResourceEnvironment` 修好，但实现依赖 Compose Resources 内部类/方法反射。Compose 升级时很容易破。
+当前语言切换仍依赖 Compose Resources 内部 API，但所有类名、方法名、provider 安装和 `ComposeEnvironment` 代理已收口到 `DesktopResourceEnvironmentAdapter`。adapter 在替换 provider 前缓存原始环境，反射或 qualifier 构造失败时回退原始/系统环境，`Main.kt` 不再知道内部 API 名称。
 
-建议：
+当前证据：
 
-- 增加一个 Desktop 启动级 smoke test 或小型 JVM test，验证 `desktopResourceLocaleForTag("zh-Hans")` 能命中 `zh/CN`，`he/id` 能映射到 `iw/in`。
+- focused JVM test 验证当前 Compose API、system-before-provider 顺序、locale override 和反射/provider 失败回退。
 - Compose 版本升级 PR 必须手动验证语言切换。
 
 ### 22A. `AndroidStrings` 与 Compose Resources 的 locale fallback 尚未统一

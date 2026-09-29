@@ -158,6 +158,12 @@ Default, Simplified Chinese and Traditional Chinese values were added where tran
 
 The Android-to-Compose resource sync plus Desktop compilation passed on 2026-09-29, and a fresh targeted scan found no remaining user-visible hard-coded English or Chinese text in the covered paths.
 
+### Compose Resources reflection is isolated and locally verified
+
+`Main.kt` no longer contains Compose Resources internal class names, method names or proxy construction. `DesktopResourceEnvironmentAdapter` now caches the original system environment before provider replacement and contains all reflection behind a controller/bridge boundary. Missing internal APIs, provider installation failures and locale qualifier failures fall back to the default or captured system environment instead of blocking startup.
+
+Focused tests cover initialization order, the current Compose Resources API, locale overrides and failure fallback. Desktop compilation and the focused adapter test passed locally on 2026-09-29. Packaged language switching on Windows/macOS/Linux remains native Human-check evidence, especially after future Compose upgrades.
+
 ### Custom format type wiring is locally verified
 
 The worktree passes `downloadType` into `FormatPageImpl` through an explicit `CustomFormatSelectionPolicy`: Audio is audio-only and disables multi-audio selection, while Video/Playlist preserve video/mixed formats and the configured multi-audio behavior. The pure policy test, Desktop compilation and full Desktop test suite passed locally on 2026-09-29. Visual parity remains a separate human-check surface.
