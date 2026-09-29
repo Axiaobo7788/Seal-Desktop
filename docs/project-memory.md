@@ -26,6 +26,7 @@ A feature is not complete just because its UI exists.
 - `color/`: theme/color support.
 - Product strings originate in `app/src/main/res/values*/strings.xml` and are synchronized into Compose resources.
 - Desktop currently supports JSON/dual/SQLite storage compatibility; SQLite is the structured target, while compatibility paths must remain migration-safe until intentionally removed.
+- Desktop writable paths are owned by `DesktopAppPaths`: Linux uses XDG roots, Windows uses Local AppData, and macOS uses Application Support/Caches. When a native state location replaces the historical `~/.local/state/seal`, migration must retain the legacy source and fall back to it if copying fails.
 
 ## 3. Product Decisions That Must Survive Context Loss
 

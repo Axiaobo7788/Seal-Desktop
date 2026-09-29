@@ -1,27 +1,12 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.paths.DesktopAppPaths
+import com.junkfood.seal.desktop.paths.DesktopPathEnvironment
+import com.junkfood.seal.desktop.paths.resolveDesktopAppPathLayout
 import java.nio.file.Path
 
 internal object DesktopDependencyPaths {
-    fun appPrivateDirectory(): Path {
-        System.getProperty(AUXILIARY_DIR_PROPERTY)
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-        System.getenv(AUXILIARY_DIR_ENVIRONMENT)
-            ?.takeIf { it.isNotBlank() }
-            ?.let(Path::of)
-            ?.let { return it }
-
-        val osName = System.getProperty("os.name").lowercase()
-        return defaultAppPrivateDirectory(
-            isWindows = osName.contains("win"),
-            isMac = osName.contains("mac") || osName.contains("darwin"),
-            userHome = System.getProperty("user.home"),
-            xdgDataHome = System.getenv("XDG_DATA_HOME"),
-            localAppData = System.getenv("LOCALAPPDATA"),
-        )
-    }
+    fun appPrivateDirectory(): Path = DesktopAppPaths.auxiliaryBinariesDirectory()
 
     internal fun defaultAppPrivateDirectory(
         isWindows: Boolean,
@@ -30,20 +15,13 @@ internal object DesktopDependencyPaths {
         xdgDataHome: String?,
         localAppData: String?,
     ): Path =
-        when {
-            isWindows -> Path.of(localAppData ?: "$userHome\\AppData\\Local", "Seal", "bin")
-            isMac -> Path.of(userHome, "Library", "Application Support", "Seal", "bin")
-            else -> {
-                val configuredDataHome =
-                    xdgDataHome
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let(Path::of)
-                        ?.takeIf { it.isAbsolute }
-                val dataHome = configuredDataHome ?: Path.of(userHome, ".local", "share")
-                dataHome.resolve("Seal").resolve("bin")
-            }
-        }
-
-    private const val AUXILIARY_DIR_PROPERTY = "seal.desktop.auxiliaryDir"
-    private const val AUXILIARY_DIR_ENVIRONMENT = "SEAL_DESKTOP_AUXILIARY_DIR"
+        resolveDesktopAppPathLayout(
+            DesktopPathEnvironment(
+                osName = if (isWindows) "Windows" else if (isMac) "macOS" else "Linux",
+                userHome = userHome,
+                xdgDataHome = xdgDataHome,
+                localAppData = localAppData,
+                temporaryDirectory = System.getProperty("java.io.tmpdir"),
+            )
+        ).auxiliaryBinariesDirectory
 }

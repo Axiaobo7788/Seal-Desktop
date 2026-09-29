@@ -862,21 +862,23 @@ workflow 已设置 `DESKTOP_TARGET_FORMATS=pkg`，所以 CI 当前只打 pkg。�
 - `desktopStorageSelfCheck` 的 `json`、`dual`、`sqlite` 三后端均通过，Dual 模式实际破坏 `settings.json` 后可从 SQLite 恢复。
 - SQLite schema 升至 2，新增 `preferences_state`；已存在的 schema 1 数据库通过 `CREATE TABLE IF NOT EXISTS` 非破坏升级。
 
-### 24. Desktop state path 在 Windows/macOS 上不够原生
+### 24. Desktop state path 已收敛到 DesktopAppPaths
 
-证据：
+状态：2026-09-29 纯逻辑与迁移测试已通过，真实 Windows/macOS 打包启动与旧数据迁移仍待原生 runner/Human 复验。
+
+旧路径证据：
 
 - settings 默认：`~/.local/state/seal/settings.json`
 - yt-dlp state 默认：`~/.local/state/seal/yt-dlp`
 
-这在 Linux 合理，但 Windows/macOS 用户更期待 AppData 或 Library/Application Support。辅助二进制路径已有平台化倾向，settings/storage 也应统一。
+旧实现在所有平台默认使用 `~/.local/state`，且 theme、storage、yt-dlp 状态与 auxiliary binaries 分别计算路径。当前全部委托 `DesktopAppPaths`：Linux 使用 XDG，Windows 使用 Local AppData，macOS 使用 Application Support/Caches，保留 storage/auxiliary 自检覆盖参数。
 
-建议：
+迁移策略：
 
-- Windows：`%APPDATA%\Seal` 或 `%LOCALAPPDATA%\Seal`
-- macOS：`~/Library/Application Support/Seal`
-- Linux：继续 XDG
-- 做迁移：新路径不存在时从旧 `.local/state` 导入。
+- 原生目录已有状态时直接使用，不覆盖。
+- 原生目录无状态而旧 `~/.local/state/seal` 有数据时，只复制已知状态文件和 `yt-dlp` 子目录，成功后写 marker，不删除旧副本。
+- 复制失败时清理本次部分副本并继续使用旧目录。
+- `DesktopStoragePathsTest` 覆盖 Linux/Windows/macOS 布局、XDG fallback、新旧优先级、成功迁移与失败回退。
 
 ### 25. SQLite 当前是“JSON payload 表”，不是细粒度关系模型
 

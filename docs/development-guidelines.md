@@ -248,6 +248,7 @@ Changes to this policy require resolver tests for Linux, Windows, macOS Intel, a
 - Before adding a `DownloadPreferences` field, classify it as shared task intent, runtime context, Android-only, Desktop-only, or migration-only. Do not add an uncategorized cross-platform field merely to back one platform's UI.
 - Compatibility fields must be marked migration-only and must not gain new callers.
 - JSON, dual, and SQLite backends must retain equivalent user-visible behavior while more than one is supported.
+- Desktop state, cache, database, settings, cookies, archive, temporary and app-managed binary paths must come from `DesktopAppPaths`; do not reintroduce local `user.home`/XDG/AppData calculations in feature code.
 - Native installers must not pre-create `seal.db` in an installation directory. SQLite is initialized on first run in the user-writable state directory.
 - Corrupt data handling must preserve recoverable user data and expose a diagnosable failure.
 - Private mode must not leave URLs or task payloads in history, queue recovery, logs, or temporary exports beyond the documented session boundary.

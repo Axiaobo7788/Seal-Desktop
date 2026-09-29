@@ -99,6 +99,11 @@ flowchart LR
 - 原子写、损坏隔离、事件日志、自检任务
 - 旧 `settings.json` 继续作为 JSON 兼容源；Dual 模式镜像 SQLite，SQLite 模式在无记录时迁移旧 JSON
 
+### `desktop/paths/`
+- `DesktopAppPaths` 统一 state/cache/data/temp/database/settings/cookies/archive/auxiliary binaries 路径
+- Linux 使用 XDG，Windows 使用 Local AppData，macOS 使用 Application Support/Caches
+- Windows/macOS 首次升级会复制旧 `~/.local/state/seal` 中已知状态项；旧副本保留，失败时继续使用旧目录
+
 ### `desktop/ytdlp/` + `desktop/network/`
 - system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
 - yt-dlp/ffmpeg 执行配置、metadata 获取、统一 `DesktopCookieContext` 和 proxy 运行环境
@@ -147,6 +152,7 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 | Desktop 依赖安装与 Full 工具来源 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/DesktopAuxiliaryDownloader.kt`、`.github/workflows/*_portable.yml` |
 | Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
 | Desktop Cookies UI、统一上下文与缓存 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/cookies/`、`DesktopYtDlpPaths.kt` |
+| Desktop 应用路径与 legacy state 迁移 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/paths/DesktopAppPaths.kt` |
 | Desktop 队列快照 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |

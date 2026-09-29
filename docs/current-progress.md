@@ -121,11 +121,13 @@ Ownership remains explicit:
 
 Focused fake-runner tests cover success, non-zero exit, timeout, missing/non-executable files, cache invalidation, binary replacement in both directions, path replacement races and ownership policy. `DesktopDependencyHealthProbeTest`, `DesktopDependencyPolicyTest` and the full Desktop test suite passed locally on 2026-09-29. The updated Windows/Linux/macOS native smoke matrix still needs a branch run before cross-platform verification is complete.
 
-### DownloadPreferences storage — locally verified; native path migration is next
+### DownloadPreferences storage and DesktopAppPaths — locally verified; native launch evidence pending
 
 `DesktopPreferencesStorage` now follows the same `Json` / `DualWrite` / `Sqlite` selection as queue, history and app settings. Existing `settings.json` remains readable, missing legacy fields are filled from Desktop defaults, corrupt JSON is quarantined, and JSON writes are atomic. Dual mode treats JSON as the compatibility source and mirrors SQLite; SQLite mode migrates JSON when the new `preferences_state` row is absent and falls back to JSON if a SQLite write fails.
 
-Focused migration/backend tests passed, and `desktopStorageSelfCheck` passed independently for json, dual and sqlite on 2026-09-29. The next storage task is the separate `DesktopAppPaths` migration: Windows/macOS still need native state locations plus legacy lookup, so this result does not claim native path parity.
+Focused migration/backend tests passed, and `desktopStorageSelfCheck` passed independently for json, dual and sqlite on 2026-09-29.
+
+`DesktopAppPaths` is now the sole application-path policy for state, cache, data, database, settings, Cookies, download archive, app-managed binaries and temporary files. Linux retains XDG behavior. Windows resolves writable state/data below Local AppData and macOS below Application Support, with platform cache roots. When those native state locations have no data, known files from the historical `~/.local/state/seal` are copied without deleting the source; a copy failure keeps the legacy directory active. Pure path and migration tests pass, but real packaged Windows/macOS launch and migration evidence remains pending.
 
 ## P1 — Current User-Visible Gaps Confirmed In Code
 
@@ -210,12 +212,11 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 1. Authenticate GitHub Actions and dispatch the updated dependency smoke plus macOS packaging workflows from `chore/agent-governance-refresh`; record each OS/architecture result independently.
 2. If the native matrix passes, close the remaining A1/A3 validation debt and commit the focused retry-test/documentation follow-up.
 3. Run the Desktop Cookies Human Review Packet against real browser sessions; do not mark the capability Implemented from fake-process tests alone.
-4. Centralize Desktop state/cache/dependency paths behind `DesktopAppPaths`, preserving lookup/migration from the current `~/.local/state/seal` layout.
-5. Continue other misleading/partial product surfaces:
+4. Continue other misleading/partial product surfaces:
    - Desktop app update page;
    - download archive management/feedback.
-6. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
-7. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
+5. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
+6. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
 
 ## Recently Completed Baseline Worth Preserving
 
