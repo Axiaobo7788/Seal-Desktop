@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.settings
 
 import com.junkfood.seal.desktop.cookies.DesktopCookieCacheMetadata
+import com.junkfood.seal.desktop.cookies.DesktopCookieBrowserPreference
 import com.junkfood.seal.desktop.cookies.DesktopCookieCacheSource
 import com.junkfood.seal.desktop.cookies.DesktopCookieCacheStatus
 import kotlinx.serialization.decodeFromString
@@ -17,6 +18,7 @@ class DesktopAppSettingsSerializationTest {
         val settings = json.decodeFromString<DesktopAppSettings>("""{"languageTag":"en"}""")
 
         assertEquals("en", settings.languageTag)
+        assertEquals(DesktopCookieBrowserPreference(), settings.cookieBrowserPreference)
         assertEquals(DesktopCookieCacheMetadata(), settings.cookieCacheMetadata)
     }
 
@@ -24,10 +26,18 @@ class DesktopAppSettingsSerializationTest {
     fun `cookie source metadata round trips without cookie values`() {
         val original =
             DesktopAppSettings(
+                cookieBrowserPreference =
+                    DesktopCookieBrowserPreference(
+                        browserName = "firefox",
+                        profileId = "native:profile-id",
+                        profileName = "Default",
+                    ),
                 cookieCacheMetadata =
                     DesktopCookieCacheMetadata(
                         source = DesktopCookieCacheSource.Browser,
                         browserName = "firefox",
+                        browserProfileId = "native:profile-id",
+                        browserProfileName = "Default",
                         validationUrl = "https://example.com",
                         validationHost = "example.com",
                         generatedAtEpochMillis = 1234L,
@@ -39,6 +49,7 @@ class DesktopAppSettingsSerializationTest {
         val decoded = json.decodeFromString<DesktopAppSettings>(encoded)
 
         assertEquals(original.cookieCacheMetadata, decoded.cookieCacheMetadata)
+        assertEquals(original.cookieBrowserPreference, decoded.cookieBrowserPreference)
         check(!encoded.contains("cookie-value"))
     }
 }

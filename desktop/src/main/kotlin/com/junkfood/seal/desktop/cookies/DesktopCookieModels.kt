@@ -23,10 +23,19 @@ enum class DesktopCookieCacheStatus {
 data class DesktopCookieCacheMetadata(
     val source: DesktopCookieCacheSource = DesktopCookieCacheSource.None,
     val browserName: String = "",
+    val browserProfileId: String = "",
+    val browserProfileName: String = "",
     val validationUrl: String = "",
     val validationHost: String = "",
     val generatedAtEpochMillis: Long = 0L,
     val lastStatus: DesktopCookieCacheStatus = DesktopCookieCacheStatus.None,
+)
+
+@Serializable
+data class DesktopCookieBrowserPreference(
+    val browserName: String = "",
+    val profileId: String = "",
+    val profileName: String = "",
 )
 
 data class DesktopCookieCacheSnapshot(
@@ -77,6 +86,7 @@ sealed interface DesktopCookieContext {
 
     data class BrowserSource(
         val browser: SupportedBrowser,
+        val profile: String? = null,
         val validationUrl: String,
         val targetFile: Path,
         override val userAgent: String? = null,
@@ -87,6 +97,10 @@ sealed interface DesktopCookieContext {
         override val userAgent: String? = null,
     ) : DesktopCookieContext
 }
+
+internal fun DesktopCookieContext.BrowserSource.browserArgument(): String =
+    profile?.trim()?.takeIf { it.isNotEmpty() }?.let { "${browser.browserName}:$it" }
+        ?: browser.browserName
 
 class DesktopCookieContextException(
     val reason: DesktopCookieUnavailableReason,

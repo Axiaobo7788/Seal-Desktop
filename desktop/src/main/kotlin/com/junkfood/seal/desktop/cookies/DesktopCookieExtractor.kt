@@ -179,7 +179,7 @@ internal fun buildCookieExtractionCommand(
     buildList {
         add(ytDlpPath.toAbsolutePath().normalize().toString())
         add("--cookies-from-browser")
-        add(source.browser.browserName)
+        add(source.browserArgument())
         add("--cookies")
         add(outputFile.toAbsolutePath().normalize().toString())
         source.userAgent?.trim()?.takeIf { it.isNotEmpty() }?.let {

@@ -29,6 +29,34 @@ class DesktopCookieExtractorTest {
     }
 
     @Test
+    fun `selected profile is passed only to browser extraction`() = withExtractorDirectory { directory ->
+        val target = directory.resolve("cookies.txt")
+        val runner = WritingRunner(targetDirectory = directory, execution = successExecution())
+        val extractor = DesktopCookieExtractor(binaryProvider = { directory.resolve("yt-dlp") }, runner = runner)
+
+        extractor.extract(browserSource(target).copy(profile = directory.resolve("Profile 1").toString()))
+
+        val sourceIndex = runner.command.indexOf("--cookies-from-browser")
+        assertEquals("chrome:${directory.resolve("Profile 1")}", runner.command[sourceIndex + 1])
+    }
+
+    @Test
+    fun `warning output does not invalidate successful extracted cookies`() = withExtractorDirectory { directory ->
+        val runner =
+            WritingRunner(
+                targetDirectory = directory,
+                execution = successExecution().copy(stderr = "WARNING: generic extractor fallback"),
+            )
+
+        val result =
+            DesktopCookieExtractor(binaryProvider = { directory.resolve("yt-dlp") }, runner = runner)
+                .extract(browserSource(directory.resolve("cookies.txt")))
+
+        val success = assertIs<DesktopCookieExtractionResult.Success>(result)
+        assertTrue(success.stderrSummary.contains("WARNING:"))
+    }
+
+    @Test
     fun `nonzero exit preserves sanitized diagnostics and old cache`() = withExtractorDirectory { directory ->
         val target = directory.resolve("cookies.txt")
         target.writeText(validCookie("old.example"))
