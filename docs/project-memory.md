@@ -51,6 +51,9 @@ Desktop Cookies is a **Desktop adaptation**, not an Android WebView port.
 - Do not introduce an embedded Desktop WebView merely to mimic Android.
 - Manual Netscape-cookie-file import can remain a fallback.
 - Metadata lookup, final download and retry/resume must consume one coherent resolved cookie state.
+- Browser-source preference and Seal's local cache provenance are separate state. Losing or uninstalling a selected browser must disable browser refresh without invalidating an already valid cache; importing or clearing the cache must not silently replace the browser selection.
+- Browser/profile discovery is blocking platform I/O and must run asynchronously outside Compose recomposition. Persist only a stable non-path profile identifier and a user-facing profile label; keep absolute profile paths transient inside the extraction adapter.
+- Offline domain matching is the default cache verification. A real media URL check is an explicit advanced network action and must distinguish cache, authentication, network, media and extractor failures.
 - The presence of a Cookies screen or cookies file does not mean the Desktop cookies feature is complete.
 
 The detailed capability state belongs in `feature-roadmap.md`.

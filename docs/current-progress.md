@@ -6,7 +6,7 @@
 >
 > Main branch last observed commit: `2a7d1c45b41ddbcede9c01d667a4757781a4e544` — `fix(desktop): harden dependency setup and release packaging` (2026-08-17).
 >
-> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `67baefe7` (`build: record desktop dependency provenance`). The 2026-09-29 implementation work is split into focused local commits; this branch has not yet been pushed or validated by fresh native workflows.
+> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `152162c8` (`feat(desktop): refine cookie source and validation UI`). The two Phase A implementation commits are local-only; this branch has not been pushed or validated by fresh native workflows.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
@@ -14,7 +14,7 @@
 
 The project resumed on 2026-09-28 after more than one month of limited activity.
 
-The latest work closed the local backend/model phases for Cookies, retry semantics, dependency health, DownloadPreferences storage, application paths, download archive handling, subtitle matching, resource-environment isolation and release provenance. Product-level Cookies acceptance, archive management UI, remaining Custom Format/UI parity and native package evidence are still open.
+The latest work closed the local backend/model phases for Cookies, retry semantics, dependency health, DownloadPreferences storage, application paths, download archive handling, subtitle matching, resource-environment isolation and release provenance. Desktop Cookies now also has real browser/profile discovery and its intended three-layer product UI, but native browser/account and visual acceptance remain open. Archive management UI, remaining Custom Format/UI parity and native package evidence are also still open.
 
 The pre-resume dirty worktree was stashed with untracked files, the governance branch was checked out, and the stash was reapplied. A full safety copy remains in `stash@{0}`; the local-only `main` commit `d6f8231e` also remains reachable. Do not drop the stash until the restored changes are reviewed and committed deliberately.
 
@@ -97,6 +97,19 @@ The Desktop-specific backend contract is now implemented and locally verified:
 - imports and generated caches use best-effort owner-only Unix permissions, while Windows keeps normal user-directory ACL behavior;
 - the fake User-Agent checkbox was removed; the existing persisted `userAgentString` is applied consistently through the unified context;
 - clearing only removes Seal's cache, immediately invalidates stats and disables runtime Cookies without touching browser login state.
+- `DesktopBrowserDetector` discovers supported installations and initialized profiles through platform adapters for Windows, Linux and macOS; filesystem and process detection runs on `Dispatchers.IO`, while only stable hashed profile IDs and display names persist;
+- source preference and local-cache provenance are independent: an unavailable or removed browser disables refresh without invalidating an existing usable cache, and importing/clearing a cache does not silently replace the selected browser source;
+- the page is split into Cookies source, local cache and verification layers, with explicit re-detection, profile selection, refresh, import/export/location/clear actions and installed-without-profile feedback;
+- default verification is an offline domain match against parsed Netscape data; actual media URL verification is a separate advanced yt-dlp path with typed authentication/network/media/extractor failures;
+- default English, Simplified Chinese and Traditional Chinese product copy was updated and synchronized to Compose Resources.
+
+Phase A local validation on 2026-09-29:
+
+- `./gradlew :shared:syncAndroidStringsToComposeResources --stacktrace`: passed;
+- `./gradlew :desktop:compileKotlin --stacktrace`: passed after correcting one UI field reference;
+- focused Cookies, app-settings serialization and metadata command tests: passed;
+- `./gradlew :shared:allTests :desktop:test --stacktrace`: passed (`BUILD SUCCESSFUL`, 64 tasks);
+- `git diff --check` and the staged secret-pattern scan passed before both Phase A commits.
 
 The capability remains `Partial / Desktop adaptation` until real Chrome/Chromium, Firefox and Edge sessions verify extraction, metadata, Custom Format, final download, retry and failure feedback on native systems. Safari remains a separate macOS-only review.
 
