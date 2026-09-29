@@ -12,8 +12,19 @@ class DesktopDownloadRetryPreferencesTest {
     fun `retry refreshes runtime settings without replacing task intent`() {
         val original =
             DownloadPreferences.EMPTY.copy(
+                extractAudio = true,
+                downloadPlaylist = false,
+                commandDirectory = "/original/command",
+                downloadSubtitle = true,
+                embedSubtitle = true,
+                keepSubtitle = true,
                 formatIdString = "137+140",
                 subtitleLanguage = "en.*",
+                autoSubtitle = true,
+                convertSubtitle = 1,
+                audioFormat = 2,
+                videoFormat = 3,
+                videoResolution = 2160,
                 videoDirectory = "/original/video",
                 audioDirectory = "/original/audio",
                 outputTemplate = "%(title)s-original",
@@ -35,8 +46,19 @@ class DesktopDownloadRetryPreferencesTest {
             )
         val current =
             DownloadPreferences.EMPTY.copy(
+                extractAudio = false,
+                downloadPlaylist = true,
+                commandDirectory = "/current/command",
+                downloadSubtitle = false,
+                embedSubtitle = false,
+                keepSubtitle = false,
                 formatIdString = "best",
                 subtitleLanguage = "ja",
+                autoSubtitle = false,
+                convertSubtitle = 2,
+                audioFormat = 4,
+                videoFormat = 5,
+                videoResolution = 720,
                 videoDirectory = "/current/video",
                 audioDirectory = "/current/audio",
                 outputTemplate = "%(id)s-current",
@@ -57,10 +79,30 @@ class DesktopDownloadRetryPreferencesTest {
                 forceIpv4 = true,
             )
 
-        val retry = original.withRetryRuntimePreferences(current)
+        val originalRequest =
+            DesktopDownloadRequest(
+                url = "https://example.com/original",
+                type = DesktopDownloadType.Audio,
+                preferences = original,
+            )
+        val retryRequest = originalRequest.withRetryRuntimePreferences(current)
+        val retry = retryRequest.preferences
 
+        assertEquals("https://example.com/original", retryRequest.url)
+        assertEquals(DesktopDownloadType.Audio, retryRequest.type)
+        assertTrue(retry.extractAudio)
+        assertFalse(retry.downloadPlaylist)
+        assertEquals("/original/command", retry.commandDirectory)
+        assertTrue(retry.downloadSubtitle)
+        assertTrue(retry.embedSubtitle)
+        assertTrue(retry.keepSubtitle)
         assertEquals("137+140", retry.formatIdString)
         assertEquals("en.*", retry.subtitleLanguage)
+        assertTrue(retry.autoSubtitle)
+        assertEquals(1, retry.convertSubtitle)
+        assertEquals(2, retry.audioFormat)
+        assertEquals(3, retry.videoFormat)
+        assertEquals(2160, retry.videoResolution)
         assertEquals("/original/video", retry.videoDirectory)
         assertEquals("/original/audio", retry.audioDirectory)
         assertEquals("%(title)s-original", retry.outputTemplate)

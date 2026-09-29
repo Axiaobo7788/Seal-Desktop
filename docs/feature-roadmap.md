@@ -145,7 +145,7 @@ Known planned gaps include:
 - better clip-range editing;
 - remaining visual/interaction parity and localization.
 
-The active worktree now derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`, but that change has not compiled on the current host because dependency resolution is blocked. Treat it as implementation present, not verified completion.
+The active worktree derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`. Desktop compilation, its focused pure policy test and the full Desktop test suite passed locally on 2026-09-29. The capability remains Partial because subtitle matching, clip editing and visual/interaction parity are still unfinished.
 
 Visual parity items require human-check mode.
 
@@ -191,29 +191,29 @@ Do not implement this as an isolated `--cookies` patch and call Cookies complete
 
 ### 2. Retry stale preference semantics
 
-**Classification: Bug — implementation present, validation blocked**
+**Classification: Bug — repair locally verified; native branch run pending**
 
 This was broader than Cookies: retry reused the queued request snapshot and could ignore changed debug/proxy/cookie/etc. preferences.
 
-The current repair preserves original task intent while refreshing live runtime settings. `privateMode` is merged fail-closed and the merged request replaces the controller's running/queue-persistence snapshot. Focused tests were added, but the 2026-09-28 host could not resolve all Gradle dependencies because JVM HTTPS handshakes failed before source compilation.
+The current repair preserves original task intent while refreshing live runtime settings. `privateMode` is merged fail-closed and the merged request replaces the controller's running/queue-persistence snapshot. The focused test now locks request URL/type, custom-command directory, subtitle/format choices, output paths/template, title, clips and chapter splitting; both it and the full Desktop test suite passed locally on 2026-09-29.
 
 ### 3. SponsorBlock empty category emits an invalid argument
 
-**Classification: Bug — implementation present, validation blocked**
+**Classification: Bug — repair locally verified**
 
 SponsorBlock is already an implemented user-facing feature. Enabling it with the default/empty category state must not generate an invalid yt-dlp command.
 
-The current repair omits `--sponsorblock-remove` when the category is blank and preserves explicit non-empty categories. Focused shared plan tests were added, but could not run on the 2026-09-28 host because dependency resolution failed before compilation. Blank is deliberately not interpreted as `all`; broader SponsorBlock product semantics remain a separate decision.
+The current repair omits `--sponsorblock-remove` when the category is blank and preserves explicit non-empty categories. The focused shared plan test and full Shared test suite passed locally on 2026-09-29. Blank is deliberately not interpreted as `all`; broader SponsorBlock product semantics remain a separate decision.
 
 ### 4. Fresh local `createDistributable` can fall back to a broken PATH yt-dlp
 
-**Classification: Repair implemented / verification blocked; provenance work remains**
+**Classification: Repair locally verified / native matrix pending; provenance work remains**
 
 Release workflows and local contributor builds do not currently have the same dependency-population guarantees.
 
 The active worktree now probes yt-dlp/ffmpeg/aria2c and distinguishes `Missing`, `Healthy` and `Broken`. A broken system dependency remains system-owned, a broken selfhost dependency can be repaired in the app-private directory, and packaged dependencies stay read-only. The probe is cached by file identity metadata and explicitly invalidated after app-managed replacement.
 
-This closes the unsafe "exists means usable" assumption in implementation, subject to pending Gradle/native validation. Broader dependency bootstrap/provenance work still includes:
+Focused health, ownership-policy and full Desktop tests passed locally on 2026-09-29. This closes the unsafe "exists means usable" assumption in implementation, but the updated Windows/Linux/macOS dependency smoke matrix still needs a branch run. Broader dependency bootstrap/provenance work still includes:
 
 - an explicit contributor setup/fetch task;
 - pinned/provenance-aware release dependency handling.

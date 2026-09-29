@@ -102,7 +102,7 @@ flowchart LR
 ### `desktop/ytdlp/` + `desktop/network/`
 - system/selfhost/packaged/auto 依赖解析、平台路径和辅助工具下载
 - yt-dlp/ffmpeg 执行配置、metadata 获取、Cookies 文件和 proxy 运行环境
-- 当前重点缺口：认证上下文未贯通 metadata 与下载；依赖仅检查存在性，尚未区分 Healthy/Broken
+- 当前重点缺口：认证上下文未贯通 metadata 与下载；依赖已区分 Missing/Healthy/Broken，但原生多平台 smoke 证据仍待补齐
 
 ### `app/download/` + `app/util/`
 - Android 任务编排、服务保活、通知动作、平台能力集成

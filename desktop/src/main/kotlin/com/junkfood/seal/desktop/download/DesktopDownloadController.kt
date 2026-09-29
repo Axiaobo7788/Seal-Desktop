@@ -621,10 +621,7 @@ class DesktopDownloadController(
         if (runningProcessesByItemId.containsKey(itemId)) return
         canceledItemIds.remove(itemId)
         val request = requestByItemId[itemId] ?: return
-        val retryRequest =
-            request.copy(
-                preferences = request.preferences.withRetryRuntimePreferences(currentPreferences),
-            )
+        val retryRequest = request.withRetryRuntimePreferences(currentPreferences)
         // Queue persistence must observe the same fail-closed privacy state as this retry.
         requestByItemId[itemId] = retryRequest
         startDownloadInternal(itemId, retryRequest, reuseExisting = true)
@@ -926,11 +923,16 @@ private fun isYtDlpErrorLine(line: String): Boolean {
         normalized.contains(" failed")
 }
 
-private data class DesktopDownloadRequest(
+internal data class DesktopDownloadRequest(
     val url: String,
     val type: DesktopDownloadType,
     val preferences: DownloadPreferences,
 )
+
+internal fun DesktopDownloadRequest.withRetryRuntimePreferences(
+    currentPreferences: DownloadPreferences,
+): DesktopDownloadRequest =
+    copy(preferences = preferences.withRetryRuntimePreferences(currentPreferences))
 
 private data class ProgressSnapshot(
     val percent: Float?,

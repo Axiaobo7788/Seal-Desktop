@@ -6,7 +6,7 @@
 >
 > Main branch last observed commit: `2a7d1c45b41ddbcede9c01d667a4757781a4e544` — `fix(desktop): harden dependency setup and release packaging` (2026-08-17).
 >
-> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `72f41cd569c5e28371ab5fd84111d4a27e62f418` (`fix: stabilize download preferences and desktop maintenance`). Documentation baseline: `1c16c39fa9d1bd9f5b26a5227a5b376959b48e85`. The A0-A3 recovery iteration described below is not yet committed.
+> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `ae07428cb61522271d45547940cbbb7f8dbc1865` (`fix(desktop): harden dependency recovery`). The Phase 1 validation follow-up described below has local test/documentation changes that are not yet committed.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
@@ -41,6 +41,8 @@ The 2026-09-29 recovery iteration contains two targeted CI repairs, but no fresh
 - the macOS packaging matrix has `fail-fast: false`, preserving x64 and arm64 evidence independently;
 - the latest failed Windows policy run predates the current Room/KSP and dependency-policy fixes, so its old failure was not suppressed or weakened.
 
+The public GitHub Actions API reports zero workflow runs for `chore/agent-governance-refresh` at `ae07428c`. The current host has neither an authenticated GitHub CLI nor an authenticated browser session, so it could not dispatch the validation workflows. This is an evidence/access blocker, not a native pass or failure.
+
 Action:
 
 - run the updated dependency smoke on Windows x64, Linux x64, macOS x64 and macOS arm64;
@@ -48,29 +50,27 @@ Action:
 - keep OS/architecture results separate;
 - record new run links/results here, not as timeless claims in project memory.
 
-### Local baseline validation remains environment-blocked
+### Local baseline validation is verified; native evidence remains pending
 
-On 2026-09-28, `./gradlew :desktop:compileKotlin` was attempted repeatedly. The first attempt failed resolving a Compose/Kotlin plugin artifact from `plugins.gradle.org`; later attempts progressed through `buildSrc` but failed resolving Android Gradle Plugin and Room artifacts from `dl.google.com`. Java 17, 21 and 25 default HTTPS probes ended with `SSLHandshakeException: Remote host terminated the handshake`, while `curl` could reach the same URLs. A direct JDK 21 probe succeeded when forced to IPv6, but Gradle's Apache HTTP transport still failed after the running daemon was confirmed to have `java.net.preferIPv6Addresses=true`. The temporary repository setting used for that probe was removed.
+The direct 2026-09-29 Gradle retry again failed during root-project classpath resolution because Gradle's Apache HTTP client received `SSLHandshakeException: Remote host terminated the handshake` from Google Maven. A standalone Java HTTPS probe and `curl` both returned HTTP 200, isolating the failure to the host Gradle/TUN route rather than source code.
 
-Consequences:
+Without changing repository sources or Gradle repository configuration, the build was rerun through the host's existing local mixed proxy using command-line JVM proxy properties. This reached source compilation and completed the required local validation:
 
-- source compilation was not reached, so these failures are not evidence of a Kotlin source regression;
-- `./gradlew --offline :shared:allTests :desktop:test --stacktrace` failed during root-project classpath resolution because Room 2.6.1 and AGP 8.7.2 artifacts are not cached;
-- `./gradlew --offline :shared:desktopTest --tests com.junkfood.seal.download.DownloadPlanFactoryTest :desktop:test --tests com.junkfood.seal.desktop.download.DesktopDownloadRetryPreferencesTest --stacktrace` failed at the same configuration boundary;
-- therefore `:shared:allTests`, `:desktop:test` and the new focused tests are not verified;
-- the official Gradle 8.10.2 distribution was cached outside the repository only to restore the wrapper; no generated dependency cache was committed;
-- rerun the required compile/tests on a host where Java can establish HTTPS connections before marking the active repairs complete.
+- `:desktop:compileKotlin`: passed (`BUILD SUCCESSFUL`, 19 tasks);
+- `:shared:allTests`: passed (`BUILD SUCCESSFUL`, 51 tasks, including Desktop and Android debug/release tests);
+- `:desktop:test`: passed (`BUILD SUCCESSFUL`, 28 tasks);
+- focused `DownloadPlanFactoryTest` + `DesktopDownloadRetryPreferencesTest`: passed;
+- focused `DesktopDependencyHealthProbeTest`: passed;
+- focused `CustomFormatSelectionPolicyTest`: passed;
+- focused `DesktopDependencyPolicyTest` + `AndroidStringsTest`: passed;
+- `:shared:syncAndroidStringsToComposeResources :desktop:compileKotlin`: passed and the sync task was up-to-date.
 
-The 2026-09-29 rerun reproduced the same boundary:
-
-- `timeout 240s ./gradlew :desktop:compileKotlin --stacktrace` reached only the `buildSrc` tasks and timed out with exit code 124 before Desktop compilation;
-- the focused A0/A3 test command also reached only `buildSrc` and timed out with exit code 124 before any test task;
-- `./gradlew --offline :shared:allTests :desktop:test --stacktrace` failed during root-project configuration because Room 2.6.1 and AGP 8.7.2 artifacts are not cached;
-- no Kotlin source test or compilation result is claimed from these commands.
+The retry-focused test now explicitly locks the request URL/type, custom-command directory, subtitle switches, format fields, output paths/template, title, clips and split-by-chapter while refreshing only the documented runtime context. No product behavior changed; the request merge was extracted as an internal testable helper.
 
 Static checks completed on 2026-09-29:
 
-- Android and Compose default/Simplified Chinese/Traditional Chinese string resources are byte-for-byte synchronized and parse with `xmllint`;
+- Android and Compose default/Simplified Chinese/Traditional Chinese string resources remain synchronized;
+- the user-visible hard-coded-string rescan found only allowed codec names, URLs, package IDs, CLI/category tokens, filenames and internal self-check/debug text;
 - changed workflows parse as YAML and the Unix smoke script passes `bash -n`;
 - `git diff --check` passes;
 - `actionlint` is not installed on this host, so workflow schema validation remains pending.
@@ -101,21 +101,21 @@ The intended Desktop design is now explicit in project memory/roadmap:
 
 When implementing this, fix the end-to-end cookie contract rather than only adding one metadata argument.
 
-### Retry stale preferences — implementation and focused coverage present, validation blocked
+### Retry stale preferences — locally verified, native branch run pending
 
 The active worktree now merges current live runtime settings into the original request before retry.
 
 Preserved task intent includes format, subtitles, output directories and title overrides. Refreshed runtime context includes cookies/browser source, aria2c, fragment concurrency, debug, proxy, user agent, rate limit, IPv4 and download-archive policy. Privacy is fail-closed: either snapshot enabling `privateMode` keeps the retry private, and the merged request controls queue persistence.
 
-`DesktopDownloadRetryPreferencesTest` now also locks audio directory, output template, clip ranges and split-by-chapter as task intent. Gradle dependency resolution still blocked execution on 2026-09-29.
+`DesktopDownloadRetryPreferencesTest` now explicitly locks request URL/type, custom-command directory, subtitle switches, format fields, video/audio directories, output template, title override, clip ranges and split-by-chapter as task intent. The focused retry test and the full Desktop test suite passed on 2026-09-29.
 
-### SponsorBlock empty category — implementation and focused coverage present, validation blocked
+### SponsorBlock empty category — locally verified
 
 `DownloadPlanFactory` now omits the SponsorBlock option for a blank category and preserves explicit category values. It does not silently broaden blank to `all`.
 
-Focused shared tests cover blank and explicit categories, but Gradle dependency resolution still blocked execution on 2026-09-29.
+Focused shared tests cover blank and explicit categories. The focused `DownloadPlanFactoryTest` and full Shared test suite passed on 2026-09-29.
 
-### Dependency health and source ownership — implementation present, validation blocked
+### Dependency health and source ownership — locally verified, native matrix pending
 
 Dependency resolution now distinguishes `Missing`, `Healthy` and `Broken` instead of trusting file existence. yt-dlp, ffmpeg and aria2c are probed with bounded version commands; stdout, stderr, exit code and timeout diagnostics are retained. Results are cached by tool name, absolute path, modification time, size and executable state, with explicit invalidation after app-managed downloads.
 
@@ -127,7 +127,7 @@ Ownership remains explicit:
 - `auto` prefers a healthy private dependency, then a healthy system dependency, and never treats a broken PATH shim as usable;
 - aria2c remains optional and a temporary failed probe no longer rewrites the saved user preference.
 
-Focused fake-runner tests cover success, non-zero exit, timeout, missing/non-executable files, cache invalidation, binary replacement in both directions, path replacement races and ownership policy. They are present but not executed because Gradle configuration remains blocked.
+Focused fake-runner tests cover success, non-zero exit, timeout, missing/non-executable files, cache invalidation, binary replacement in both directions, path replacement races and ownership policy. `DesktopDependencyHealthProbeTest`, `DesktopDependencyPolicyTest` and the full Desktop test suite passed locally on 2026-09-29. The updated Windows/Linux/macOS native smoke matrix still needs a branch run before cross-platform verification is complete.
 
 ## P1 — Current User-Visible Gaps Confirmed In Code
 
@@ -149,7 +149,7 @@ This is already classified in `feature-roadmap.md` as Partial / Decision needed.
 
 This is a planned partial feature rather than a regression.
 
-### Desktop user-visible hard-coded string sweep — implementation present, validation blocked
+### Desktop user-visible hard-coded string sweep — locally verified
 
 The 2026-09-29 sweep moved the known Desktop runtime strings into the Android XML source and synchronized Compose resources. Covered areas include:
 
@@ -162,9 +162,11 @@ The 2026-09-29 sweep moved the known Desktop runtime strings into the Android XM
 
 Default, Simplified Chinese and Traditional Chinese values were added where translation was reliable. Other locales intentionally fall back to default instead of receiving machine-filled English copies. Technical identifiers such as `OPUS`, `M4A`, package IDs, URLs, SponsorBlock category tokens and issue-tracker names remain literal by design.
 
-### Custom format type wiring is present but unverified
+The Android-to-Compose resource sync plus Desktop compilation passed on 2026-09-29, and a fresh targeted scan found no remaining user-visible hard-coded English or Chinese text in the covered paths.
 
-The worktree passes `downloadType` into `FormatPageImpl` through an explicit `CustomFormatSelectionPolicy`: Audio is audio-only and disables multi-audio selection, while Video/Playlist preserve video/mixed formats and the configured multi-audio behavior. Pure policy tests are present, but compilation and behavioral validation remain blocked by local dependency resolution.
+### Custom format type wiring is locally verified
+
+The worktree passes `downloadType` into `FormatPageImpl` through an explicit `CustomFormatSelectionPolicy`: Audio is audio-only and disables multi-audio selection, while Video/Playlist preserve video/mixed formats and the configured multi-audio behavior. The pure policy test, Desktop compilation and full Desktop test suite passed locally on 2026-09-29. Visual parity remains a separate human-check surface.
 
 Remaining high-risk areas to re-check when touching this page:
 
@@ -207,15 +209,14 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 
 ## Recommended Resume Order
 
-1. Rerun `:desktop:compileKotlin`, `:shared:allTests`, `:desktop:test` and the A0/A3 focused tests on a host without the Java HTTPS failure.
-2. Run the updated dependency and macOS packaging workflows; record each OS/architecture result independently.
-3. Review the A0-A3 worktree and commit only after source tests and native evidence have been evaluated.
-4. Implement the Desktop Cookies feature as one end-to-end system-browser flow rather than a metadata-only patch.
-5. Continue other misleading/partial product surfaces:
+1. Authenticate GitHub Actions and dispatch the updated dependency smoke plus macOS packaging workflows from `chore/agent-governance-refresh`; record each OS/architecture result independently.
+2. If the native matrix passes, close the remaining A1/A3 validation debt and commit the focused retry-test/documentation follow-up.
+3. Only after that gate, implement the Desktop Cookies feature as one end-to-end system-browser flow rather than a metadata-only patch.
+4. Continue other misleading/partial product surfaces:
    - Desktop app update page;
    - download archive management/feedback.
-6. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
-7. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
+5. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual/product decisions.
+6. Only then do broad toolchain upgrades unless a security/compatibility issue makes them urgent.
 
 ## Recently Completed Baseline Worth Preserving
 
