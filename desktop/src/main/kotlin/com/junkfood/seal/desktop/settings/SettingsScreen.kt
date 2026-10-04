@@ -80,6 +80,7 @@ fun DesktopSettingsScreen(
     settingsState: DesktopSettingsState,
     appSettingsState: DesktopAppSettingsState,
     themeState: DesktopThemeState,
+    hasActiveDownloads: () -> Boolean = { false },
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
     var cookiesParentPage by remember { mutableStateOf(SettingsPage.Network) }
@@ -147,6 +148,7 @@ fun DesktopSettingsScreen(
                     appSettings = appSettingsState.settings,
                     onUpdateAppSettings = appSettingsState::update,
                     onBack = { currentPage = null },
+                    hasActiveDownloads = hasActiveDownloads,
                 )
 
             SettingsPage.Directory ->

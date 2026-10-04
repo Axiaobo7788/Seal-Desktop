@@ -56,6 +56,8 @@ import com.junkfood.seal.shared.generated.resources.env_pref_system
 import com.junkfood.seal.shared.generated.resources.env_preference
 import com.junkfood.seal.shared.generated.resources.download_archive
 import com.junkfood.seal.shared.generated.resources.download_archive_desc
+import com.junkfood.seal.shared.generated.resources.desktop_archive_manage
+import com.junkfood.seal.shared.generated.resources.desktop_archive_manage_desc
 import com.junkfood.seal.shared.generated.resources.download_notification
 import com.junkfood.seal.shared.generated.resources.download_notification_desc
 import com.junkfood.seal.shared.generated.resources.download_playlist
@@ -84,7 +86,9 @@ internal fun GeneralSettingsPage(
     appSettings: DesktopAppSettings,
     onUpdateAppSettings: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     onBack: () -> Unit,
+    hasActiveDownloads: () -> Boolean = { false },
 ) {
+    var showArchiveDialog by remember { mutableStateOf(false) }
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
     var showEnvPrefDialog by remember { mutableStateOf(false) }
     val envResolution by
@@ -184,6 +188,13 @@ internal fun GeneralSettingsPage(
             checked = preferences.useDownloadArchive,
         ) { checked -> onUpdate { it.copy(useDownloadArchive = checked) } }
 
+        ActionCard(
+            title = stringResource(Res.string.desktop_archive_manage),
+            description = stringResource(Res.string.desktop_archive_manage_desc),
+            icon = Icons.Rounded.Archive,
+            onClick = { showArchiveDialog = true },
+        )
+
         ToggleCard(
             title = stringResource(Res.string.sponsorblock),
             description = stringResource(Res.string.sponsorblock_desc),
@@ -199,6 +210,12 @@ internal fun GeneralSettingsPage(
             onClick = { showSponsorBlockDialog = true }
         )
     }
+
+    DownloadArchiveDialog(
+        visible = showArchiveDialog,
+        hasActiveDownloads = hasActiveDownloads,
+        onDismiss = { showArchiveDialog = false },
+    )
 
     if (showSponsorBlockDialog) {
         SponsorBlockDialog(

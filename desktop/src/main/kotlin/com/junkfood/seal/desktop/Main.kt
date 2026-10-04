@@ -537,6 +537,10 @@ private fun ContentArea(
                     settingsState = settingsState,
                     appSettingsState = appSettingsState,
                     themeState = themeState,
+                    hasActiveDownloads = {
+                        downloadController.hasOngoingTasks() ||
+                            com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager.hasOngoingTasks()
+                    },
                 )
             Destination.CustomCommand ->
                 DesktopCustomCommandScreen(
