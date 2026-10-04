@@ -193,7 +193,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Lite
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -233,7 +233,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Full
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"

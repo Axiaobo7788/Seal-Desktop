@@ -175,7 +175,7 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot "$env:LITE_INSTALLER_SRC" `
             -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Lite app image" `
+            -Label "Lite app image" -Flavor Lite `
             -VerifySqlite
 
       - name: Package Lite installer (Windows)
@@ -212,7 +212,7 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot $installDir `
             -LaunchPath "$env:LITE_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Installed Lite EXE" `
+            -Label "Installed Lite EXE" -Flavor Lite `
             -VerifySqlite
 
       - name: Inject tools for Full version
@@ -252,7 +252,7 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot "$env:FULL_INSTALLER_SRC" `
             -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Full app image" `
+            -Label "Full app image" -Flavor Full `
             -VerifySqlite
 
       - name: Package Full installer (Windows)
@@ -296,7 +296,7 @@ jobs:
           & "$env:GITHUB_WORKSPACE\.github\scripts\smoke_windows_app_image.ps1" `
             -AppRoot $installDir `
             -LaunchPath "$env:FULL_INSTALLER_SRC_LAUNCH_PATH" `
-            -Label "Installed Full EXE" `
+            -Label "Installed Full EXE" -Flavor Full `
             -VerifySqlite
 
       - name: Prepare Full, Lite, Min distributions (Windows)

@@ -9,7 +9,10 @@ param(
 
   [int]$TimeoutSeconds = 12,
 
-  [switch]$VerifySqlite
+  [switch]$VerifySqlite,
+
+  [ValidateSet("Lite", "Full")]
+  [string]$Flavor
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,14 +23,13 @@ function Resolve-SmokeLauncher([string]$root, [string]$launchPath) {
     throw "$Label launch target not found: $nativeLauncher"
   }
 
-  if ($nativeLauncher.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {
-    $batLauncher = [System.IO.Path]::ChangeExtension($nativeLauncher, ".bat")
-    if (Test-Path $batLauncher) {
-      return [PSCustomObject]@{
-        FileName = "cmd.exe"
-        Arguments = "/c ""$batLauncher"""
-        DiagnosticPath = $batLauncher
-      }
+  # Never substitute a sibling BAT for an EXE: the installer must launch the
+  # exact configured target, or a broken native JVM launcher could pass smoke.
+  if ([System.IO.Path]::GetExtension($nativeLauncher) -in @(".bat", ".cmd")) {
+    return [PSCustomObject]@{
+      FileName = "cmd.exe"
+      Arguments = "/d /s /c """"$nativeLauncher"""""
+      DiagnosticPath = $nativeLauncher
     }
   }
 
@@ -66,6 +68,10 @@ function Write-SmokeLogs([string]$stdout, [string]$stderr, [switch]$Print) {
 }
 
 $rootPath = (Resolve-Path $AppRoot).Path
+if ($Flavor) {
+  & python (Join-Path $PSScriptRoot "verify_packaged_tools.py") --app-root $rootPath --flavor $Flavor --expected-commit $env:GITHUB_SHA
+  if ($LASTEXITCODE -ne 0) { throw "$Label packaged tool verification failed." }
+}
 $launcher = Resolve-SmokeLauncher $rootPath $LaunchPath
 $tempRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { [System.IO.Path]::GetTempPath() } else { $env:RUNNER_TEMP }
 $stdoutPath = Join-Path $tempRoot ("seal-smoke-{0}-stdout.log" -f ([Guid]::NewGuid().ToString("N")))

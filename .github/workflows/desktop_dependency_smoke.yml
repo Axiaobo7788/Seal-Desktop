@@ -38,6 +38,24 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Test packaged tool integrity checks
+        shell: bash
+        run: python .github/scripts/test_verify_packaged_tools.py
+
+      - name: Validate Windows packaging PowerShell syntax
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem .github/scripts -Filter '*.ps1' | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | Format-List
+              throw "PowerShell parse failed: $($_.Name)"
+            }
+          }
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -47,9 +65,18 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Test dependency source and package-manager policies
+      - name: Test dependency ownership, cookies, paths, locales, and storage contracts
         shell: bash
-        run: ./gradlew :desktop:test --tests 'com.junkfood.seal.desktop.ytdlp.*' --stacktrace
+        run: ./gradlew :desktop:test :shared:desktopTest --stacktrace
+
+      - name: Verify JSON, dual-write, and SQLite storage on the native runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for backend in json dual sqlite; do
+            ./gradlew :desktop:desktopStorageSelfCheck \
+              "-PstorageBackend=$backend" "-PstorageStateDir=$RUNNER_TEMP/seal-storage-$backend" --stacktrace
+          done
 
       - name: Download and execute application-managed dependencies
         shell: bash

@@ -157,7 +157,7 @@ jobs:
           [[ -n "$app_root" ]]
           launcher="$(find "$app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$app_root" "$launcher" "Lite app image (Linux x64)" 12 true
+            "$app_root" "$launcher" "Lite app image (Linux x64)" 12 true Lite
 
           deb="$(find dist-installers-lite -type f -name '*.deb' | head -n 1)"
           [[ -n "$deb" ]]
@@ -169,7 +169,7 @@ jobs:
           [[ -n "$installed_app_root" ]]
           installed_launcher="$(find "$installed_app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$installed_app_root" "$installed_launcher" "Extracted Lite DEB (Linux x64)" 12 true
+            "$installed_app_root" "$installed_launcher" "Extracted Lite DEB (Linux x64)" 12 true Lite
 
       - name: Inject tools for Full version
         shell: bash
@@ -263,7 +263,18 @@ jobs:
           [[ -n "$provenance" ]]
 
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$app_root" "$launcher" "Full app image (Linux x64)" 12 true
+            "$app_root" "$launcher" "Full app image (Linux x64)" 12 true Full
+
+          deb="$(find dist-installers-full -type f -name '*.deb' | head -n 1)"
+          [[ -n "$deb" ]]
+          extracted_root="$RUNNER_TEMP/seal-full-deb"
+          mkdir -p "$extracted_root"
+          dpkg-deb -x "$deb" "$extracted_root"
+          installed_launcher="$(find "$extracted_root" -type f -path '*/bin/Seal' | head -n 1)"
+          [[ -x "$installed_launcher" ]]
+          installed_app_root="$(dirname "$(dirname "$installed_launcher")")"
+          xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
+            "$installed_app_root" "$installed_launcher" "Extracted Full DEB (Linux x64)" 12 true Full
 
       - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v6
