@@ -2,11 +2,11 @@
 
 > Role: short current-state page for resuming work.
 >
-> Refreshed: 2026-09-29
+> Refreshed: 2026-10-04
 >
 > Main branch last observed commit: `2a7d1c45b41ddbcede9c01d667a4757781a4e544` — `fix(desktop): harden dependency setup and release packaging` (2026-08-17).
 >
-> Active resume branch: `chore/agent-governance-refresh`. Last reviewed implementation commit: `152162c8` (`feat(desktop): refine cookie source and validation UI`). The two Phase A implementation commits are local-only; this branch has not been pushed or validated by fresh native workflows.
+> Active resume branch: `chore/agent-governance-refresh`. Remote baseline checked this round: `c76512b8`. Latest local implementation: `d1766eab` (`feat(desktop): add download archive management`), preceded by dependency repair `b1222fca` and CI hardening `4b48ce7a`. These three commits are local-only; fresh branch native workflow evidence is still unavailable.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
@@ -14,7 +14,9 @@
 
 The project resumed on 2026-09-28 after more than one month of limited activity.
 
-The latest work closed the local backend/model phases for Cookies, retry semantics, dependency health, DownloadPreferences storage, application paths, download archive handling, subtitle matching, resource-environment isolation and release provenance. Desktop Cookies now also has real browser/profile discovery and its intended three-layer product UI, but native browser/account and visual acceptance remain open. Archive management UI, remaining Custom Format/UI parity and native package evidence are also still open.
+The locally tested backend/model phases for Cookies, retry semantics, dependency health, DownloadPreferences storage, application paths, download archive handling, subtitle matching, resource-environment isolation and release provenance remain intact. This round adds archive management UI and guards, corrupt dependency-ZIP recovery and stricter native packaging checks. Cookies/browser/account acceptance, archive UI acceptance and current-branch Windows/macOS evidence remain open.
+
+Phase A is **not sealed**: Actions dispatch access is unavailable. Safe local Phase B implementation is complete, but no later product phase was started. Detailed evidence and the concrete Human Review Packet are in [the 2026-10-04 maintenance note](history/maintenance-validation-2026-10-04.md).
 
 The pre-resume dirty worktree was stashed with untracked files, the governance branch was checked out, and the stash was reapplied. A full safety copy remains in `stash@{0}`; the local-only `main` commit `d6f8231e` also remains reachable. Do not drop the stash until the restored changes are reviewed and committed deliberately.
 
@@ -32,16 +34,28 @@ Latest inspected native packaging evidence at the expected main baseline (`2a7d1
 - [Linux x64 portable/package run 32002024745](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/32002024745): success;
 - [macOS package run 32002024659](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/32002024659): arm64 failed at `Smoke test Lite app and installed PKG`; x64 was canceled by that matrix failure.
 
-The latest scheduled dependency-download smoke inspected on 2026-09-28 is [run 35838426850](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/35838426850): Linux x64 and macOS x64 succeeded, macOS arm64 failed while setting up JDK 21, and Windows x64 failed in the dependency source/package-manager policy tests. The last all-green matrix remains [run 31594392569](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/31594392569) from 2026-08-12.
+The latest scheduled dependency smoke inspected this round is [run 36698411228](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/36698411228), dated 2026-09-30, on **main at `2a7d1c45`**, not the active branch:
 
-The 2026-09-29 recovery iteration contains two targeted CI repairs, but no fresh native run exists yet:
+| Platform | Actual evidence | Classification |
+| --- | --- | --- |
+| Windows x64 | JDK setup failed with a JetBrains API rate-limit error; source tests/download never ran | Third-party/setup blocker, not JVM launch evidence |
+| Linux x64 | Dependency smoke succeeded | Older main only |
+| macOS x64 | Dependency smoke succeeded | Older main only |
+| macOS arm64 | JDK setup and source tests succeeded; ffprobe ZIP extraction failed with `Unexpected end of ZLIB input stream` | External transfer/archive failure exposed unsafe direct extraction |
+
+The branch already contains the earlier Temurin/Bash/matrix repairs. This round adds safeguards without weakening acceptance:
 
 - dependency smoke uses Temurin 21 instead of JetBrains Runtime because that job tests command-line dependencies, not Compose rendering;
 - the macOS/Linux app-image smoke no longer uses Bash 4-only lowercase expansion, which is unavailable in macOS system Bash 3.2;
 - the macOS packaging matrix has `fail-fast: false`, preserving x64 and arm64 evidence independently;
-- the latest failed Windows policy run predates the current Room/KSP and dependency-policy fixes, so its old failure was not suppressed or weakened.
+- truncated/corrupt ZIP payloads are staged and size/CRC checked before promotion; transient IO failures retry at most three times without replacing old tools on extraction failure;
+- native dependency smoke now runs the complete Desktop and Shared Desktop tests plus json/dual/sqlite self-checks on each runner;
+- Lite/Full app images and installed/extracted packages validate absence of tools or actual SHA256, version and build-commit provenance respectively;
+- Windows smoke no longer silently substitutes a BAT for a requested EXE; Linux Full DEB gained the same extracted-package startup check as Lite.
 
-The active local branch contains commits that are not on its remote tracking branch, so the current implementation has no native workflow evidence yet. Do not reuse older main/branch runs as proof for these changes. Pushing or dispatching workflows was outside this local implementation round.
+The Actions API returned zero runs for `chore/agent-governance-refresh`. The available connector is read-only, this shell has neither `gh` nor an Actions token, and the available browser is logged out. No workflow was dispatched. GitHub fetch succeeded; GitLab fetch failed for missing shell credentials. No merge, release, force-push or user-data replacement occurred.
+
+Local Linux x64 **Lite shrink app-image** creation and startup succeeded on 2026-10-04: the real launcher stayed alive for 12 seconds and created a 28,672-byte SQLite database in isolated state. This is not Full/DEB/RPM or Windows/macOS verification, and no visual acceptance was performed.
 
 Action:
 
@@ -56,31 +70,21 @@ Windows, Linux and both macOS architecture workflows now generate and smoke-chec
 
 The release workflow no longer combines each platform's unrelated latest successful run. It resolves one target commit, requires all platform workflows to have succeeded at that exact `head_sha`, and publishes `BUILD_PROVENANCE.txt` plus `SHA256SUMS`. YAML, Bash blocks, the async github-script JavaScript and the manifest generator passed local static checks on 2026-09-29. A real Actions build/release dry run is still required; moving dependency URLs and action SHA pinning remain open policy work.
 
-### Local baseline validation is verified; native evidence remains pending
+### Local baseline verified; native evidence remains pending
 
-The direct 2026-09-29 Gradle retry again failed during root-project classpath resolution because Gradle's Apache HTTP client received `SSLHandshakeException: Remote host terminated the handshake` from Google Maven. A standalone Java HTTPS probe and `curl` both returned HTTP 200, isolating the failure to the host Gradle/TUN route rather than source code.
+The 2026-10-04 local baseline completed without repository/network-source workarounds:
 
-Without changing repository sources or Gradle repository configuration, the build was rerun through the host's existing local mixed proxy using command-line JVM proxy properties. This reached source compilation and completed the required local validation:
+- `:shared:syncAndroidStringsToComposeResources :desktop:compileKotlin :shared:allTests :desktop:test`: passed; Shared Desktop and Android debug/release tests executed;
+- focused `DesktopAuxiliaryDownloaderTest`: passed, including corrupt/truncated ZIP preservation, bounded retry and cancellation;
+- focused archive service/editor tests: 16 passed, including stale draft protection, active-download guards and read/save/clear failures;
+- final full Desktop run: 138 tests, zero failures/errors/skips; Shared Desktop, Android debug and Android release each passed 20 tests;
+- `desktopStorageSelfCheck` passed independently for json, dual and sqlite in isolated temporary state; expected corruption-injection diagnostics in Dual mode ended in successful SQLite fallback;
+- new packaged-tool verifier Python tests: 8 passed;
+- four affected workflows: `actionlint`, YAML/Python parsing and Bash syntax checks passed;
+- PowerShell parsing is prepared in native Windows CI, but **not locally verified** because `pwsh` is unavailable;
+- default/Simplified Chinese/Traditional Chinese XML and generated Compose Resources are synchronized; other locales deliberately use default fallback.
 
-- `:desktop:compileKotlin`: passed (`BUILD SUCCESSFUL`, 19 tasks);
-- `:shared:allTests`: passed (`BUILD SUCCESSFUL`, 51 tasks, including Desktop and Android debug/release tests);
-- `:desktop:test`: passed (`BUILD SUCCESSFUL`, 28 tasks);
-- focused `DownloadPlanFactoryTest` + `DesktopDownloadRetryPreferencesTest`: passed;
-- focused `DesktopDependencyHealthProbeTest`: passed;
-- focused `CustomFormatSelectionPolicyTest`: passed;
-- focused `DesktopDependencyPolicyTest` + `AndroidStringsTest`: passed;
-- `:shared:syncAndroidStringsToComposeResources :desktop:compileKotlin`: passed and the sync task was up-to-date.
-
-The retry-focused test now explicitly locks the request URL/type, custom-command directory, subtitle switches, format fields, output paths/template, title, clips and split-by-chapter while refreshing only the documented runtime context. No product behavior changed; the request merge was extracted as an internal testable helper.
-
-Static checks completed on 2026-09-29:
-
-- Android and Compose default/Simplified Chinese/Traditional Chinese string resources remain synchronized;
-- the user-visible hard-coded-string rescan found only allowed codec names, URLs, package IDs, CLI/category tokens, filenames and internal self-check/debug text;
-- changed workflows parse as YAML, their Bash blocks pass `bash -n`, and github-script JavaScript passes an async-wrapper syntax check;
-- `actionlint` passes for the four affected workflows via `go run github.com/rhysd/actionlint/cmd/actionlint@latest`;
-- `git diff --check` passes;
-- PowerShell scripts were not parsed by a local `pwsh` because this host does not provide it; Windows Actions remains the required native check.
+Exact commands and evidence boundaries are recorded in the linked maintenance note. Existing AGP/Kotlin compatibility and Gradle 9 deprecation warnings remain; the toolchain was not upgraded.
 
 ## P1 — Issue #4 Triage
 
@@ -157,11 +161,13 @@ The inactive auto-update switch, update-channel choices and no-op check button h
 
 This closes the misleading-entry defect without claiming a three-platform self-updater. Automatic release checks, package selection and platform-native replacement remain separately deferred product work.
 
-### Download archive backend is verified; management UI remains
+### Download archive management is implemented; UI acceptance remains
 
 `DesktopDownloadArchiveService` now owns exact entry parsing, count/contains/precheck, editable reads, atomic save and clear operations. Normal and custom-command downloads no longer report yt-dlp's exit-0 archive skip as an ordinary completion; normal downloads also precheck known extractor/media IDs and surface the localized archive explanation without adding history.
 
-Focused archive tests cover missing/empty files, exact duplicate detection, malformed lines, atomic edit/clear and concurrent read/write snapshots. The full Desktop test suite and compilation passed locally on 2026-09-29. `GeneralSettingsPage.kt` still lacks the planned view/edit/clear/open management UI, so the product capability remains Partial.
+`Settings -> General -> Manage download archive` now exposes path/count/content, refresh, opening the containing folder, explicit edit/save and confirmed clear. A session-only editor consumes the existing service without changing its atomic backend. It retains drafts on failures, confirms discarding on close/refresh, blocks writes while normal/custom-command tasks are active, and rejects a stale snapshot after a detected external change. Clearing removes archive IDs only, not downloaded files; existing archive-skip feedback remains untouched.
+
+The focused service/editor tests passed locally (16 tests). The capability stays **Partial / Human-check pending** until compact/wide layout, themes/locales, selection/keyboard/scroll, confirmations and native folder-opening behavior are reviewed. Simultaneous external-process writes are not transactionally locked across the read/check/write boundary; do not edit the archive concurrently outside Seal.
 
 ### Desktop user-visible hard-coded string sweep — locally verified
 
@@ -211,7 +217,7 @@ Important current examples:
 - multi-URL input and Saved URLs;
 - download-history multi-select/bulk actions;
 - automatic application update behavior beyond the implemented manual flow;
-- download archive management;
+- archive management UI acceptance (implementation now present);
 - remaining custom-format parity;
 - private-directory product decision.
 
@@ -237,8 +243,8 @@ The audit still flags `EmitLanguagesSection` provenance/clarity as maintenance d
 1. Push the focused branch only after review, then run dependency smoke and native packaging on Windows x64, Linux x64, macOS x64 and macOS arm64; record each result independently.
 2. Run the Desktop Cookies Human Review Packet against real Chrome/Chromium, Firefox and Edge sessions, with Safari as a separate macOS check; do not mark the capability Implemented from fake-process tests alone.
 3. Verify packaged locale switching, legacy-state migration, SQLite startup and `THIRD_PARTY_VERSIONS.txt` inclusion on every affected native package.
-4. Implement the download-archive management UI without reopening the already-tested backend contract.
-5. Re-enter playlist/input/history/custom-format parity work from `feature-roadmap.md`, using human checkpoints for visual and animation decisions.
+4. Review the implemented archive management surface using the current Human Review Packet; do not reopen its tested backend just to add UI polish.
+5. After the native evidence and current UI checkpoint, continue with playlist item selection, then retry UX/input/history/custom-format work from `feature-roadmap.md`.
 6. Treat automatic updates, stable dependency pinning/action SHA policy and broad toolchain upgrades as separate scoped work.
 
 ## Recently Completed Baseline Worth Preserving

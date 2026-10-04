@@ -2,7 +2,7 @@
 
 > Role: product capability status and planned Desktop adaptations.
 >
-> Refreshed: 2026-09-29
+> Refreshed: 2026-10-04
 >
 > This document answers a question that bug trackers do not answer well: **is a behavior broken, or has the planned Desktop feature never been completed?**
 >
@@ -82,16 +82,19 @@ The current manual flow is complete for its stated scope; the stages above remai
 
 ### Download archive management — **Partial**
 
-The execution layer and tested backend can use and manage `download-archive.txt`, but Desktop still lacks the planned management experience.
+The execution layer and tested backend can use and manage `download-archive.txt`. The Desktop management surface is now implemented, with native visual/interaction acceptance still pending.
 
 Current code provides exact entry parsing, count/contains/precheck, editable reads, atomic save/clear and explicit read failures. Normal downloads precheck known archive IDs, while normal and custom-command execution both classify yt-dlp's exit-0 archive skip as a readable error rather than `Completed`. Focused tests and the full Desktop test suite passed locally on 2026-09-29.
 
-Planned user capabilities:
+Current user capabilities:
 
-- show archive location and count;
-- open/view entries;
-- edit or clear with confirmation;
-- expose the existing readable "already archived" outcome in the future management surface.
+- show archive path, entry count, malformed-line count and raw content;
+- refresh or open the containing folder with readable failure feedback;
+- explicitly edit/save and confirm clearing, using the existing atomic service;
+- retain failed-save drafts and confirm discarding unsaved changes on close/refresh;
+- block mutations during active downloads/custom commands and reject detected stale editor snapshots.
+
+The service/editor tests passed locally on 2026-10-04 (16 tests). Existing readable "already archived" skip feedback is preserved. This remains **Partial** until native layout, keyboard/selection/scroll, confirmations, animation feel and folder-opening behavior pass Human-check. The optimistic external-change check is not a cross-process transaction lock; simultaneous external writers remain a documented limitation.
 
 ### Playlist item selection — **Planned**
 

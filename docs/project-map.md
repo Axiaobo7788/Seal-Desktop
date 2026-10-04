@@ -1,6 +1,6 @@
 # Seal-Desktop Project Map
 
-> 更新时间：2026-09-29
+> 更新时间：2026-10-04
 >
 > 本文用于回答三件事：这个项目在做什么、模块在哪里、当前行动清单看哪里。
 >
@@ -90,6 +90,7 @@ flowchart LR
 - Desktop 下载队列、状态管理、执行控制
 - 与下载配置页联动（普通下载 + 命令模式）
 - `archive/DesktopDownloadArchiveService` 统一归档读取、精确预检、原子编辑/清空和跳过结果分类
+- `archive/DesktopDownloadArchiveEditor` 管理临时草稿、错误/忙碌状态和写入保护；`settings/general/DownloadArchiveDialog` 提供查看、编辑、刷新、打开目录与确认清空入口
 
 ### `desktop/customcommand/`
 - 自定义命令模板、任务管理、日志视图
@@ -160,7 +161,7 @@ Desktop 不复制 Android 内嵌 WebView 登录机制，详见 `docs/feature-roa
 | Desktop metadata 获取 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/ytdlp/YtDlpMetadataFetcher.kt` |
 | Desktop Cookies UI、浏览器检测、统一上下文与缓存 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/network/CookiesSettingsPage.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/cookies/DesktopBrowserDetector.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/cookies/DesktopCookieValidation.kt`、`DesktopYtDlpPaths.kt` |
 | Desktop 应用路径与 legacy state 迁移 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/paths/DesktopAppPaths.kt` |
-| Desktop 下载归档后端 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/archive/DesktopDownloadArchiveService.kt` |
+| Desktop 下载归档管理 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/archive/DesktopDownloadArchiveService.kt`、`DesktopDownloadArchiveEditor.kt`、`desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/general/DownloadArchiveDialog.kt` |
 | Desktop 队列快照 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadQueueStorage.kt` |
 | 跨端下载计划 | `shared/src/commonMain/kotlin/com/junkfood/seal/download/DownloadPlanFactory.kt` |
 | Desktop 设置状态 | `desktop/src/main/kotlin/com/junkfood/seal/desktop/settings/DesktopSettingsState.kt` |

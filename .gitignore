@@ -26,3 +26,6 @@ local.properties
 # Keep engineering Markdown in Git while ignoring local screenshots or scratch assets.
 /docs/*
 !/docs/*.md
+!/docs/history/
+/docs/history/*
+!/docs/history/*.md
