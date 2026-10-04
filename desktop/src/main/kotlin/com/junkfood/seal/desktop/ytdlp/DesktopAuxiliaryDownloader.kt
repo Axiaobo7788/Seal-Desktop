@@ -1,6 +1,7 @@
 package com.junkfood.seal.desktop.ytdlp
 
 import com.junkfood.seal.desktop.i18n.AndroidStrings
+import java.io.IOException
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -9,8 +10,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.Locale
-import java.util.zip.ZipInputStream
+import java.time.Duration
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 object DesktopAuxiliaryDownloader {
@@ -19,6 +22,7 @@ object DesktopAuxiliaryDownloader {
 
     private val httpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NORMAL)
+        .connectTimeout(Duration.ofSeconds(20))
         .build()
 
     suspend fun downloadYtDlpBinary(
@@ -36,6 +40,8 @@ object DesktopAuxiliaryDownloader {
             downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
             onLog(AndroidStrings.format("desktop_dependency_update_complete", dir))
             return@withContext true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             onLog(AndroidStrings.format("desktop_dependency_update_failed", e.message.orEmpty()))
             return@withContext false
@@ -78,21 +84,19 @@ object DesktopAuxiliaryDownloader {
                     ),
                 )
                 val archivePath = dir.resolve(download.archiveName)
-                downloadFile(download.url, archivePath)
                 try {
-                    onLog(
-                        AndroidStrings.format(
-                            "desktop_dependency_downloaded_extracting",
-                            download.tools.joinToString(),
-                        ),
-                    )
-
-                    if (download.archiveName.endsWith(".zip")) {
-                        extractZipAndMoveTools(archivePath, dir, isWin, download.tools)
-                    } else if (download.archiveName.endsWith(".tar.xz")) {
-                        extractTarXzAndMoveTools(archivePath, dir, download.tools)
-                    } else {
-                        error(AndroidStrings.format("desktop_dependency_unsupported_archive", download.archiveName))
+                    retryDependencyTransfer(onRetry = { attempt ->
+                        onLog(AndroidStrings.format("desktop_dependency_transfer_retry", attempt, 3))
+                    }) {
+                        downloadFile(download.url, archivePath)
+                        onLog(AndroidStrings.format("desktop_dependency_downloaded_extracting", download.tools.joinToString()))
+                        if (download.archiveName.endsWith(".zip")) {
+                            extractZipAndMoveTools(archivePath, dir, isWin, download.tools)
+                        } else if (download.archiveName.endsWith(".tar.xz")) {
+                            extractTarXzAndMoveTools(archivePath, dir, download.tools)
+                        } else {
+                            error(AndroidStrings.format("desktop_dependency_unsupported_archive", download.archiveName))
+                        }
                     }
                 } finally {
                     Files.deleteIfExists(archivePath)
@@ -102,6 +106,8 @@ object DesktopAuxiliaryDownloader {
             DesktopDependencyResolver.invalidateHealth()
             onLog(AndroidStrings.format("desktop_dependency_setup_complete", dir))
             return@withContext true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             onLog(AndroidStrings.format("desktop_dependency_setup_error", e.message.orEmpty()))
             return@withContext false
@@ -125,7 +131,7 @@ object DesktopAuxiliaryDownloader {
         )
     }
 
-    private fun downloadYtDlpTo(
+    private suspend fun downloadYtDlpTo(
         dir: Path,
         isWin: Boolean,
         isMac: Boolean,
@@ -143,7 +149,7 @@ object DesktopAuxiliaryDownloader {
         val ytDlpUrl = getYtDlpUrl(isWin, isMac, ytDlpUpdateChannel)
         val ytDlpFileName = if (isWin) "yt-dlp.exe" else "yt-dlp"
         val ytDlpPath = dir.resolve(ytDlpFileName)
-        downloadFile(ytDlpUrl, ytDlpPath)
+        retryDependencyTransfer { downloadFile(ytDlpUrl, ytDlpPath) }
 
         if (!isWin) {
             ytDlpPath.toFile().setExecutable(true, false)
@@ -220,13 +226,19 @@ object DesktopAuxiliaryDownloader {
     private fun downloadFile(url: String, target: Path) {
         val partialTarget = target.resolveSibling("${target.fileName}.part")
         Files.deleteIfExists(partialTarget)
-        val request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build()
+        val request = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofMinutes(3)).GET().build()
         try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(partialTarget))
             if (response.statusCode() !in 200..299) {
-                throw RuntimeException(
+                throw IOException(
                     AndroidStrings.format("desktop_dependency_http_error", response.statusCode(), url),
                 )
+            }
+            val expectedSize = response.headers().firstValueAsLong("Content-Length")
+            if (Files.size(partialTarget) == 0L ||
+                (expectedSize.isPresent && Files.size(partialTarget) != expectedSize.asLong)
+            ) {
+                throw IOException(AndroidStrings.get("desktop_dependency_incomplete_transfer"))
             }
             Files.move(partialTarget, target, StandardCopyOption.REPLACE_EXISTING)
         } catch (error: Exception) {
@@ -241,27 +253,7 @@ object DesktopAuxiliaryDownloader {
         isWin: Boolean,
         tools: Set<String>,
     ) {
-        val remainingTools = tools.toMutableSet()
-        ZipInputStream(Files.newInputStream(zipFile)).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val archiveFileName = entry.name.substringAfterLast('/').substringAfterLast('\\')
-                    val toolName = archiveFileName.removeSuffix(".exe")
-                    if (toolName in remainingTools) {
-                        val outputFileName = if (isWin) "$toolName.exe" else toolName
-                        val outPath = targetDir.resolve(outputFileName)
-                        Files.copy(zis, outPath, StandardCopyOption.REPLACE_EXISTING)
-                        if (!isWin) outPath.toFile().setExecutable(true, false)
-                        remainingTools.remove(toolName)
-                    }
-                }
-                entry = zis.nextEntry
-            }
-        }
-        check(remainingTools.isEmpty()) {
-            AndroidStrings.format("desktop_dependency_archive_missing_tools", remainingTools.joinToString())
-        }
+        installDependencyZip(zipFile, targetDir, isWin, tools)
     }
 
     private fun extractTarXzAndMoveTools(tarFile: Path, targetDir: Path, tools: Set<String>) {
@@ -291,6 +283,23 @@ object DesktopAuxiliaryDownloader {
         }
     }
 
+}
+
+internal suspend fun retryDependencyTransfer(
+    retryDelayMillis: Long = 1_000,
+    onRetry: (Int) -> Unit = {},
+    transfer: () -> Unit,
+) {
+    repeat(3) { attempt ->
+        try {
+            transfer()
+            return
+        } catch (error: IOException) {
+            if (attempt == 2) throw error
+            onRetry(attempt + 2)
+            delay(retryDelayMillis)
+        }
+    }
 }
 
 internal data class PortableDependencySelection(

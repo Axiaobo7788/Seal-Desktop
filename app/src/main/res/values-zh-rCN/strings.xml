@@ -461,6 +461,9 @@
     <string name="desktop_dependency_ytdlp_ready">yt-dlp 已下载并完成配置。</string>
     <string name="desktop_dependency_http_error">下载失败，HTTP %1$d：%2$s</string>
     <string name="desktop_dependency_archive_missing_tools">压缩包中缺少工具：%1$s</string>
+    <string name="desktop_dependency_transfer_retry">下载或压缩包校验失败，正在重试（%1$d/%2$d）…</string>
+    <string name="desktop_dependency_incomplete_transfer">下载的文件为空或不完整。</string>
+    <string name="desktop_dependency_invalid_archive">下载的压缩包已损坏或包含无效的工具文件。</string>
     <string name="desktop_dependency_tar_extract_failed">无法解压压缩包，请确认系统已安装 tar 和 xz-utils。</string>
     <string name="desktop_dependency_probe_missing">可执行文件不存在：%1$s</string>
     <string name="desktop_dependency_probe_not_file">依赖路径不是普通文件：%1$s</string>

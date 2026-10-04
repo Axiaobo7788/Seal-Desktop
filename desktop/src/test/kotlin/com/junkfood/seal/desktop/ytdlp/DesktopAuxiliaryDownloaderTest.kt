@@ -2,15 +2,22 @@ package com.junkfood.seal.desktop.ytdlp
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.io.IOException
+import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 
 class DesktopAuxiliaryDownloaderTest {
     @Test
@@ -146,5 +153,86 @@ class DesktopAuxiliaryDownloaderTest {
                 paths.sorted(Comparator.reverseOrder()).forEach { it.deleteIfExists() }
             }
         }
+    }
+
+    @Test
+    fun `truncated zip does not replace existing tools or leave staging files`() = withArchive { root, archive ->
+        writeZip(archive, "ffmpeg" to "new", "ffprobe" to "new")
+        root.resolve("ffmpeg").writeText("old ffmpeg")
+        root.resolve("ffprobe").writeText("old ffprobe")
+        Files.write(archive, Files.readAllBytes(archive).dropLast(30).toByteArray())
+
+        assertFailsWith<IOException> { installDependencyZip(archive, root, false, setOf("ffmpeg", "ffprobe")) }
+        assertEquals("old ffmpeg", root.resolve("ffmpeg").readText())
+        assertEquals("old ffprobe", root.resolve("ffprobe").readText())
+        assertFalse(Files.list(root).use { files -> files.anyMatch { it.fileName.toString().startsWith("dependency-stage-") } })
+    }
+
+    @Test
+    fun `crc mismatch rejects payload before replacing any tools`() = withArchive { root, archive ->
+        writeZip(archive, "ffmpeg" to "new")
+        root.resolve("ffmpeg").writeText("old")
+        val bytes = Files.readAllBytes(archive)
+        // STORED entry data follows the 30-byte local header and the filename.
+        bytes[30 + "ffmpeg".length] = 'X'.code.toByte()
+        Files.write(archive, bytes)
+        assertFailsWith<IOException> { installDependencyZip(archive, root, false, setOf("ffmpeg")) }
+        assertEquals("old", root.resolve("ffmpeg").readText())
+    }
+
+    @Test
+    fun `missing second tool does not replace first tool`() = withArchive { root, archive ->
+        writeZip(archive, "ffmpeg" to "new")
+        root.resolve("ffmpeg").writeText("old")
+        assertFailsWith<IllegalStateException> { installDependencyZip(archive, root, false, setOf("ffmpeg", "ffprobe")) }
+        assertEquals("old", root.resolve("ffmpeg").readText())
+    }
+
+    @Test
+    fun `transient corrupt transfer retries and persistent failure remains visible`() = runBlocking {
+        var attempts = 0
+        val retries = mutableListOf<Int>()
+        retryDependencyTransfer(0, retries::add) {
+            if (++attempts < 3) throw IOException("truncated")
+        }
+        assertEquals(3, attempts)
+        assertEquals(listOf(2, 3), retries)
+        attempts = 0
+        val error = assertFailsWith<IOException> {
+            retryDependencyTransfer(0) { attempts++; throw IOException("still truncated") }
+        }
+        assertEquals(3, attempts)
+        assertEquals("still truncated", error.message)
+    }
+
+    @Test
+    fun `cancellation and contract errors are never retried`() = runBlocking {
+        var attempts = 0
+        assertFailsWith<CancellationException> {
+            retryDependencyTransfer(0) { attempts++; throw CancellationException() }
+        }
+        assertEquals(1, attempts)
+        assertFailsWith<IllegalStateException> { retryDependencyTransfer(0) { error("missing tool") } }
+        Unit
+    }
+
+    private fun writeZip(path: Path, vararg files: Pair<String, String>) {
+        ZipOutputStream(Files.newOutputStream(path)).use { zip ->
+            files.forEach { (name, text) ->
+                val bytes = text.toByteArray()
+                zip.putNextEntry(ZipEntry(name).apply {
+                    method = ZipEntry.STORED
+                    size = bytes.size.toLong()
+                    crc = CRC32().apply { update(bytes) }.value
+                })
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+        }
+    }
+
+    private fun withArchive(test: (Path, Path) -> Unit) {
+        val root = createTempDirectory("seal-archive-integrity")
+        try { test(root, root.resolve("tools.zip")) } finally { root.toFile().deleteRecursively() }
     }
 }

@@ -474,6 +474,9 @@
     <string name="desktop_dependency_ytdlp_ready">yt-dlp downloaded and configured.</string>
     <string name="desktop_dependency_http_error">Download failed with HTTP %1$d: %2$s</string>
     <string name="desktop_dependency_archive_missing_tools">Missing tools in archive: %1$s</string>
+    <string name="desktop_dependency_transfer_retry">Download or archive validation failed. Retrying (%1$d/%2$d)…</string>
+    <string name="desktop_dependency_incomplete_transfer">The downloaded file is empty or incomplete.</string>
+    <string name="desktop_dependency_invalid_archive">The downloaded archive is corrupt or contains invalid tool files.</string>
     <string name="desktop_dependency_tar_extract_failed">Could not extract the archive. Make sure tar and xz-utils are installed.</string>
     <string name="desktop_dependency_probe_missing">Executable does not exist: %1$s</string>
     <string name="desktop_dependency_probe_not_file">Dependency path is not a regular file: %1$s</string>
