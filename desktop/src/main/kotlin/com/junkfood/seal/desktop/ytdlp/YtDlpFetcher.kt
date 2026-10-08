@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import java.nio.file.Path
 
@@ -32,7 +33,7 @@ class YtDlpFetcher(
     ): YtDlpUpdateResult {
         val resolution = resolveDependencies()
         if (resolution.ytDlpUpdateDisposition() == YtDlpUpdateDisposition.SystemManaged) {
-            onLog("yt-dlp 由系统包管理器管理，Seal 不会下载或覆盖它。")
+            onLog(AndroidStrings.get("desktop_ytdlp_system_managed"))
             return YtDlpUpdateResult.SystemManaged(resolution.ytDlp?.path)
         }
 
@@ -55,7 +56,9 @@ class YtDlpFetcher(
 
     fun ensureBinary(): Path =
         ensureDependencies().ytDlp?.path
-            ?: throw EnvironmentMissingException("yt-dlp is not bundled and not found in system or auxiliary paths.")
+            ?: throw EnvironmentMissingException(
+                AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp"),
+            )
 }
 
 internal enum class YtDlpUpdateDisposition {

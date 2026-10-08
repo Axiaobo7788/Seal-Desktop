@@ -1,5 +1,7 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
+import java.io.IOException
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -8,8 +10,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.Locale
-import java.util.zip.ZipInputStream
+import java.time.Duration
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 object DesktopAuxiliaryDownloader {
@@ -18,6 +22,7 @@ object DesktopAuxiliaryDownloader {
 
     private val httpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NORMAL)
+        .connectTimeout(Duration.ofSeconds(20))
         .build()
 
     suspend fun downloadYtDlpBinary(
@@ -33,10 +38,12 @@ object DesktopAuxiliaryDownloader {
 
         try {
             downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
-            onLog("yt-dlp 更新完成。\n文件存放在私人便携目录:\n$dir")
+            onLog(AndroidStrings.format("desktop_dependency_update_complete", dir))
             return@withContext true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            onLog("yt-dlp 更新失败: ${e.message}")
+            onLog(AndroidStrings.format("desktop_dependency_update_failed", e.message.orEmpty()))
             return@withContext false
         }
     }
@@ -51,7 +58,7 @@ object DesktopAuxiliaryDownloader {
         val dir = auxiliaryDirectory(isWin, isMac)
 
         if (selection.isEmpty) {
-            onLog("已使用检测到的系统依赖，无需下载 Seal 自管副本。")
+            onLog(AndroidStrings.get("desktop_dependency_system_skip"))
             return@withContext true
         }
 
@@ -65,32 +72,44 @@ object DesktopAuxiliaryDownloader {
             if (selection.ytDlp) {
                 downloadYtDlpTo(dir, isWin, isMac, ytDlpUpdateChannel, onLog)
             } else {
-                onLog("已检测到可用的 yt-dlp，跳过自管副本下载。")
+                onLog(AndroidStrings.get("desktop_dependency_ytdlp_skip"))
             }
 
             for (download in ffmpegDownloads) {
-                onLog("正在下载 ${download.tools.joinToString()} (来源: ${download.source})...")
+                onLog(
+                    AndroidStrings.format(
+                        "desktop_dependency_downloading_source",
+                        download.tools.joinToString(),
+                        download.source,
+                    ),
+                )
                 val archivePath = dir.resolve(download.archiveName)
-                downloadFile(download.url, archivePath)
                 try {
-                    onLog("${download.tools.joinToString()} 下载完成，准备解压...")
-
-                    if (download.archiveName.endsWith(".zip")) {
-                        extractZipAndMoveTools(archivePath, dir, isWin, download.tools)
-                    } else if (download.archiveName.endsWith(".tar.xz")) {
-                        extractTarXzAndMoveTools(archivePath, dir, download.tools)
-                    } else {
-                        error("不支持的依赖压缩格式: ${download.archiveName}")
+                    retryDependencyTransfer(onRetry = { attempt ->
+                        onLog(AndroidStrings.format("desktop_dependency_transfer_retry", attempt, 3))
+                    }) {
+                        downloadFile(download.url, archivePath)
+                        onLog(AndroidStrings.format("desktop_dependency_downloaded_extracting", download.tools.joinToString()))
+                        if (download.archiveName.endsWith(".zip")) {
+                            extractZipAndMoveTools(archivePath, dir, isWin, download.tools)
+                        } else if (download.archiveName.endsWith(".tar.xz")) {
+                            extractTarXzAndMoveTools(archivePath, dir, download.tools)
+                        } else {
+                            error(AndroidStrings.format("desktop_dependency_unsupported_archive", download.archiveName))
+                        }
                     }
                 } finally {
                     Files.deleteIfExists(archivePath)
                 }
             }
 
-            onLog("🎉 环境依赖全自动配置成功！\n文件存放在私人便携目录:\n$dir")
+            DesktopDependencyResolver.invalidateHealth()
+            onLog(AndroidStrings.format("desktop_dependency_setup_complete", dir))
             return@withContext true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            onLog("❌ 发生异常: ${e.message}")
+            onLog(AndroidStrings.format("desktop_dependency_setup_error", e.message.orEmpty()))
             return@withContext false
         }
     }
@@ -112,25 +131,31 @@ object DesktopAuxiliaryDownloader {
         )
     }
 
-    private fun downloadYtDlpTo(
+    private suspend fun downloadYtDlpTo(
         dir: Path,
         isWin: Boolean,
         isMac: Boolean,
         ytDlpUpdateChannel: Int,
         onLog: (String) -> Unit,
     ) {
-        val channelName = if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) "Nightly" else "Stable"
-        onLog("正在下载 yt-dlp ($channelName, 来源: GitHub Releases)...")
+        val channelName =
+            if (ytDlpUpdateChannel == YT_DLP_CHANNEL_NIGHTLY) {
+                AndroidStrings.get("nightly_channel")
+            } else {
+                AndroidStrings.get("stable_channel")
+            }
+        onLog(AndroidStrings.format("desktop_dependency_downloading_ytdlp", channelName))
 
         val ytDlpUrl = getYtDlpUrl(isWin, isMac, ytDlpUpdateChannel)
         val ytDlpFileName = if (isWin) "yt-dlp.exe" else "yt-dlp"
         val ytDlpPath = dir.resolve(ytDlpFileName)
-        downloadFile(ytDlpUrl, ytDlpPath)
+        retryDependencyTransfer { downloadFile(ytDlpUrl, ytDlpPath) }
 
         if (!isWin) {
             ytDlpPath.toFile().setExecutable(true, false)
         }
-        onLog("yt-dlp 下载完成并配置。")
+        DesktopDependencyResolver.invalidateHealth(ytDlpPath)
+        onLog(AndroidStrings.get("desktop_dependency_ytdlp_ready"))
     }
 
     private fun getYtDlpUrl(isWin: Boolean, isMac: Boolean, ytDlpUpdateChannel: Int): String {
@@ -201,11 +226,19 @@ object DesktopAuxiliaryDownloader {
     private fun downloadFile(url: String, target: Path) {
         val partialTarget = target.resolveSibling("${target.fileName}.part")
         Files.deleteIfExists(partialTarget)
-        val request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build()
+        val request = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofMinutes(3)).GET().build()
         try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(partialTarget))
             if (response.statusCode() !in 200..299) {
-                throw RuntimeException("下载失败 HTTP ${response.statusCode()}: $url")
+                throw IOException(
+                    AndroidStrings.format("desktop_dependency_http_error", response.statusCode(), url),
+                )
+            }
+            val expectedSize = response.headers().firstValueAsLong("Content-Length")
+            if (Files.size(partialTarget) == 0L ||
+                (expectedSize.isPresent && Files.size(partialTarget) != expectedSize.asLong)
+            ) {
+                throw IOException(AndroidStrings.get("desktop_dependency_incomplete_transfer"))
             }
             Files.move(partialTarget, target, StandardCopyOption.REPLACE_EXISTING)
         } catch (error: Exception) {
@@ -220,27 +253,7 @@ object DesktopAuxiliaryDownloader {
         isWin: Boolean,
         tools: Set<String>,
     ) {
-        val remainingTools = tools.toMutableSet()
-        ZipInputStream(Files.newInputStream(zipFile)).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val archiveFileName = entry.name.substringAfterLast('/').substringAfterLast('\\')
-                    val toolName = archiveFileName.removeSuffix(".exe")
-                    if (toolName in remainingTools) {
-                        val outputFileName = if (isWin) "$toolName.exe" else toolName
-                        val outPath = targetDir.resolve(outputFileName)
-                        Files.copy(zis, outPath, StandardCopyOption.REPLACE_EXISTING)
-                        if (!isWin) outPath.toFile().setExecutable(true, false)
-                        remainingTools.remove(toolName)
-                    }
-                }
-                entry = zis.nextEntry
-            }
-        }
-        check(remainingTools.isEmpty()) {
-            "压缩包中缺少工具: ${remainingTools.joinToString()}"
-        }
+        installDependencyZip(zipFile, targetDir, isWin, tools)
     }
 
     private fun extractTarXzAndMoveTools(tarFile: Path, targetDir: Path, tools: Set<String>) {
@@ -250,7 +263,7 @@ object DesktopAuxiliaryDownloader {
                 ProcessBuilder("tar", "-xf", tarFile.toAbsolutePath().toString(), "-C", tmpDir.toAbsolutePath().toString())
                     .start()
             if (process.waitFor() != 0) {
-                throw RuntimeException("tar解压失败，请确保系统已安装 tar 和 xz-utils")
+                throw RuntimeException(AndroidStrings.get("desktop_dependency_tar_extract_failed"))
             }
 
             val remainingTools = tools.toMutableSet()
@@ -263,13 +276,30 @@ object DesktopAuxiliaryDownloader {
                 }
             }
             check(remainingTools.isEmpty()) {
-                "压缩包中缺少工具: ${remainingTools.joinToString()}"
+                AndroidStrings.format("desktop_dependency_archive_missing_tools", remainingTools.joinToString())
             }
         } finally {
             tmpDir.toFile().deleteRecursively()
         }
     }
 
+}
+
+internal suspend fun retryDependencyTransfer(
+    retryDelayMillis: Long = 1_000,
+    onRetry: (Int) -> Unit = {},
+    transfer: () -> Unit,
+) {
+    repeat(3) { attempt ->
+        try {
+            transfer()
+            return
+        } catch (error: IOException) {
+            if (attempt == 2) throw error
+            onRetry(attempt + 2)
+            delay(retryDelayMillis)
+        }
+    }
 }
 
 internal data class PortableDependencySelection(

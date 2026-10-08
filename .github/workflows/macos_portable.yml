@@ -22,6 +22,8 @@ env:
 jobs:
   build-macos-portable:
     strategy:
+      # Keep x64 and arm64 evidence independent when one native runner fails.
+      fail-fast: false
       matrix:
         include:
           - arch: x64
@@ -150,6 +152,28 @@ jobs:
             fi
           done
 
+      - name: Record bundled tool provenance (macOS ${{ matrix.arch }})
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/write_tool_provenance.py \
+            --output dist-bin/THIRD_PARTY_VERSIONS.txt \
+            --build-commit "$GITHUB_SHA" \
+            --build-workflow "$GITHUB_WORKFLOW" \
+            --build-run-id "$GITHUB_RUN_ID" \
+            --platform macos \
+            --architecture "${{ matrix.arch }}" \
+            --yt-dlp dist-bin/yt-dlp_macos \
+            --yt-dlp-url "$YT_DLP_MACOS_URL" \
+            --yt-dlp-source-type moving-nightly-release \
+            --ffmpeg dist-bin/ffmpeg \
+            --ffmpeg-url "${{ matrix.ffmpeg_url }}" \
+            --ffmpeg-source-type moving-third-party-build \
+            --ffprobe dist-bin/ffprobe \
+            --ffprobe-url "${{ matrix.ffprobe_url }}" \
+            --ffprobe-source-type moving-third-party-build
+          cat dist-bin/THIRD_PARTY_VERSIONS.txt
+
       - name: Build Lite installers (macOS ${{ matrix.arch }})
         shell: bash
         run: |
@@ -169,7 +193,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Lite
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -209,7 +233,7 @@ jobs:
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Full
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -224,6 +248,8 @@ jobs:
             fi
             chmod +x "$packaged_tool"
           done
+          provenance="$(find "$app_bundle" -type f -name THIRD_PARTY_VERSIONS.txt | head -n 1)"
+          [[ -n "$provenance" ]]
           smoke_app "$app_bundle" "Full app image (${{ matrix.arch }})"
 
           sudo rm -rf /Applications/Seal.app

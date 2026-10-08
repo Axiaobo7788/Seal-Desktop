@@ -15,6 +15,14 @@ import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveException
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchivePrecheck
+import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveService
+import com.junkfood.seal.desktop.download.archive.downloadArchiveIdentity
+import com.junkfood.seal.desktop.download.archive.wasSkippedByDownloadArchive
+import com.junkfood.seal.desktop.cookies.DesktopCookieContextException
+import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.util.DesktopNotifier
@@ -23,6 +31,7 @@ import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
+import com.junkfood.seal.desktop.ytdlp.buildDownloadExecutionArgs
 import com.junkfood.seal.download.SelectionMerge
 import com.junkfood.seal.download.buildDownloadPlan
 import com.junkfood.seal.ui.download.queue.DownloadQueueItemState
@@ -67,6 +76,8 @@ class DesktopDownloadController(
                     environmentPreferenceProvider = { appSettingsProvider().environmentPreference },
                 ),
         ),
+    private val cookieResolver: DesktopCookieResolver = DesktopCookieResolver(),
+    private val archiveService: DesktopDownloadArchiveService = DesktopDownloadArchiveService(),
     private val historyStorage: DesktopDownloadHistoryStorage = DesktopDownloadHistoryStorage(),
     private val queueStorage: DesktopDownloadQueueStorage = DesktopDownloadQueueStorage(),
 ) {
@@ -136,7 +147,7 @@ class DesktopDownloadController(
             runningProcessesByItemId[itemId]?.cancel()
             runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by exit"))
             updateQueueItem(itemId) {
-                it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停")
+                it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
             }
         }
         persistQueueStateNow()
@@ -197,6 +208,7 @@ class DesktopDownloadController(
             metadataFetcher.fetch(
                 url,
                 proxyUrl = runtimeProxy,
+                cookieContext = cookieResolver.resolve(basePreferences),
             )
         }
     }
@@ -212,17 +224,7 @@ class DesktopDownloadController(
     }
 
     private fun buildCliArgs(plan: com.junkfood.seal.download.DownloadPlan, config: DownloadPlanExecutor.ExecutionConfig): List<String> {
-        val args = mutableListOf<String>()
-        args += plan.asCliArgs()
-        args += config.extraArgs
-        if (plan.needsCookiesFile && config.cookiesFile != null) {
-            args += listOf("--cookies", config.cookiesFile.toAbsolutePath().toString())
-        }
-        if (plan.needsArchiveFile && config.archiveFile != null) {
-            args += listOf("--download-archive", config.archiveFile.toAbsolutePath().toString())
-        }
-        args += config.url
-        return args
+        return buildDownloadExecutionArgs(plan, config)
     }
 
     private fun refreshRunningSnapshot() {
@@ -248,7 +250,9 @@ class DesktopDownloadController(
         canceledItemIds.add(itemId)
         runningProcessesByItemId[itemId]?.cancel()
         runningJobsByItemId[itemId]?.cancel(CancellationException("Canceled by user"))
-        updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+        updateQueueItem(itemId) {
+            it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+        }
     }
 
     fun deleteQueueItem(itemId: String) {
@@ -441,7 +445,14 @@ class DesktopDownloadController(
         requestByItemId[itemId] = request
 
         launchManagedDownload(itemId) {
-            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}] (custom)")
+            appendLog(
+                AndroidStrings.format(
+                    "desktop_download_log_start",
+                    trimmed,
+                    AndroidStrings.get(type.name.lowercase(Locale.ROOT)),
+                    AndroidStrings.get("desktop_download_log_custom_suffix"),
+                ),
+            )
 
             updateQueueItem(itemId) {
                 it.copy(
@@ -457,24 +468,40 @@ class DesktopDownloadController(
                 )
             }
 
+            if (!precheckDownloadArchive(itemId, effectivePreferences, selection.videoInfo)) {
+                return@launchManagedDownload
+            }
+
             val plan =
                 buildDownloadPlan(
                     selection.videoInfo,
                     effectivePreferences,
                     playlistUrl = trimmed,
-                    playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    playlistItem = 0,
                     aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 
             val config =
-                executor.defaultConfigFor(
-                    plan,
-                    url = trimmed,
-                    paths = DesktopYtDlpPaths,
-                    preferences = effectivePreferences,
-                )
-            val cliArgs = buildCliArgs(plan, config)
-            updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
+                try {
+                    executor.defaultConfigFor(
+                        plan,
+                        url = trimmed,
+                        paths = DesktopYtDlpPaths,
+                        preferences = effectivePreferences,
+                        cookieContext = cookieResolver.resolve(effectivePreferences),
+                    ).also { resolvedConfig ->
+                        val cliArgs = buildCliArgs(plan, resolvedConfig)
+                        updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
+                    }
+                } catch (error: DesktopCookieContextException) {
+                    val message = error.message ?: error.toString()
+                    appendLog(AndroidStrings.format("desktop_log_error", message))
+                    appendItemLog(itemId, message)
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Error, progressText = message, errorMessage = message)
+                    }
+                    return@launchManagedDownload
+                }
 
             try {
                 updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Running, progressText = "") }
@@ -505,21 +532,29 @@ class DesktopDownloadController(
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                     return@launchManagedDownload
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = effectivePreferences.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
                 val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
                 val exitCode = result.exitCode
-                val lastError = result.stderr.lastOrNull()
+                val lastError =
+                    if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                    else result.stderr.lastOrNull()
 
                 updateQueueItem(itemId) {
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        progressText = if (success) "" else "Exit code $exitCode",
+                        progressText =
+                            if (success) ""
+                            else if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                            else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
@@ -541,12 +576,12 @@ class DesktopDownloadController(
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Completed",
+                            title = AndroidStrings.get("download_success_msg"),
                             message = selection.videoInfo.title
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = selection.videoInfo.title
                         )
                     }
@@ -554,22 +589,28 @@ class DesktopDownloadController(
             } catch (e: CancellationException) {
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                 }
             } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                val dependencyMessage =
+                    e.message?.takeIf { it.isNotBlank() }
+                        ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                appendItemLog(itemId, dependencyMessage)
                 updateQueueItem(itemId) {
                     it.copy(
                         status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                        progressText = dependencyMessage,
                     )
                 }
                 environmentMissingEvent.tryEmit(Unit)
                 return@launchManagedDownload
             } catch (e: Exception) {
-                appendLog("download failed: ${e.message}")
-                appendItemLog(itemId, "[err] ${e.message}")
+                val errorMessage = e.message ?: e.toString()
+                appendLog(AndroidStrings.format("desktop_download_log_failed", errorMessage))
+                appendItemLog(itemId, "[err] $errorMessage")
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
@@ -584,7 +625,7 @@ class DesktopDownloadController(
                     }
                     if (appSettings.downloadNotificationEnabled) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = selection.videoInfo.title
                         )
                     }
@@ -596,12 +637,15 @@ class DesktopDownloadController(
         }
     }
 
-    fun resumeIfPossible(itemId: String) {
+    fun resumeIfPossible(itemId: String, currentPreferences: DownloadPreferences) {
         if (runningJobsByItemId[itemId]?.isActive == true) return
         if (runningProcessesByItemId.containsKey(itemId)) return
         canceledItemIds.remove(itemId)
         val request = requestByItemId[itemId] ?: return
-        startDownloadInternal(itemId, request, reuseExisting = true)
+        val retryRequest = request.withRetryRuntimePreferences(currentPreferences)
+        // Queue persistence must observe the same fail-closed privacy state as this retry.
+        requestByItemId[itemId] = retryRequest
+        startDownloadInternal(itemId, retryRequest, reuseExisting = true)
     }
 
     private fun startDownloadInternal(
@@ -630,31 +674,56 @@ class DesktopDownloadController(
         }
 
         launchManagedDownload(itemId) {
-            appendLog("start: $trimmed [${type.name.lowercase(Locale.getDefault())}]")
+            appendLog(
+                AndroidStrings.format(
+                    "desktop_download_log_start",
+                    trimmed,
+                    AndroidStrings.get(type.name.lowercase(Locale.ROOT)),
+                    "",
+                ),
+            )
 
             val appSettings = appSettingsProvider()
             val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(effectivePreferences, appSettings)
+            val cookieContext = cookieResolver.resolve(effectivePreferences)
             val videoInfo =
                 try {
                     withContext(Dispatchers.IO) {
                         metadataFetcher.fetch(
                             trimmed,
                             proxyUrl = runtimeProxy,
+                            cookieContext = cookieContext,
                         )
                     }
                 } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
-                updateQueueItem(itemId) {
-                    it.copy(
-                        status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                    val dependencyMessage =
+                        e.message?.takeIf { it.isNotBlank() }
+                            ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                    appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                    appendItemLog(itemId, dependencyMessage)
+                    updateQueueItem(itemId) {
+                        it.copy(
+                            status = DownloadQueueStatus.Error,
+                            progressText = dependencyMessage,
+                        )
+                    }
+                    environmentMissingEvent.tryEmit(Unit)
+                    return@launchManagedDownload
+                } catch (e: DesktopCookieContextException) {
+                    val message = e.message ?: e.toString()
+                    appendLog(AndroidStrings.format("desktop_log_error", message))
+                    appendItemLog(itemId, message)
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Error, progressText = message, errorMessage = message)
+                    }
+                    return@launchManagedDownload
+                } catch (e: Exception) {
+                    appendLog(
+                        AndroidStrings.format(
+                            "desktop_metadata_log_failed",
+                            e.message ?: e.toString(),
+                        ),
                     )
-                }
-                environmentMissingEvent.tryEmit(Unit)
-                return@launchManagedDownload
-            } catch (e: Exception) {
-                    appendLog("metadata failed: ${e.message}")
                     VideoInfo(originalUrl = trimmed, webpageUrl = trimmed, title = trimmed)
                 }
 
@@ -675,6 +744,10 @@ class DesktopDownloadController(
                 )
             }
 
+            if (!precheckDownloadArchive(itemId, effectivePreferences, videoInfo)) {
+                return@launchManagedDownload
+            }
+
             val preferencesWithProxy = DesktopProxyResolver.applyToPreferences(effectivePreferences, appSettings)
 
             val plan =
@@ -682,7 +755,7 @@ class DesktopDownloadController(
                     videoInfo,
                     preferencesWithProxy,
                     playlistUrl = trimmed,
-                    playlistItem = if (type == DesktopDownloadType.Playlist) 0 else 0,
+                    playlistItem = 0,
                     aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                 )
 
@@ -692,6 +765,7 @@ class DesktopDownloadController(
                     url = trimmed,
                     paths = DesktopYtDlpPaths,
                     preferences = preferencesWithProxy,
+                    cookieContext = cookieContext,
                 )
             val cliArgs = buildCliArgs(plan, config)
             updateQueueItem(itemId) { it.copy(cliArgs = cliArgs, logLines = emptyList()) }
@@ -725,21 +799,29 @@ class DesktopDownloadController(
 
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                     return@launchManagedDownload
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = preferencesWithProxy.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 val filePath = if (success) extractDestinationPath(result.stdout + result.stderr, config.workingDirectory) else null
                 val fileSize = filePath?.let { runCatching { Files.size(Path.of(it)) }.getOrNull() }
                 val exitCode = result.exitCode
-                val lastError = result.stderr.lastOrNull()
+                val lastError =
+                    if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                    else result.stderr.lastOrNull()
 
                 updateQueueItem(itemId) {
                     it.copy(
                         status = if (success) DownloadQueueStatus.Completed else DownloadQueueStatus.Error,
                         progress = if (success) 1f else it.progress,
-                        progressText = if (success) "" else "Exit code $exitCode",
+                        progressText =
+                            if (success) ""
+                            else if (archiveSkipped) AndroidStrings.get("download_archive_error")
+                            else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
@@ -761,12 +843,12 @@ class DesktopDownloadController(
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Completed",
+                            title = AndroidStrings.get("download_success_msg"),
                             message = videoInfo.title
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = videoInfo.title
                         )
                     }
@@ -774,22 +856,28 @@ class DesktopDownloadController(
             } catch (e: CancellationException) {
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
-                    updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "已暂停") }
+                    updateQueueItem(itemId) {
+                        it.copy(status = DownloadQueueStatus.Canceled, progressText = AndroidStrings.get("status_paused"))
+                    }
                 }
             } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
-                appendLog("Error: ${e.message}")
-                appendItemLog(itemId, "Exception: Environment missing - yt-dlp or ffmpeg not found")
+                val dependencyMessage =
+                    e.message?.takeIf { it.isNotBlank() }
+                        ?: AndroidStrings.format("desktop_dependency_required_missing", "yt-dlp, ffmpeg")
+                appendLog(AndroidStrings.format("desktop_log_error", dependencyMessage))
+                appendItemLog(itemId, dependencyMessage)
                 updateQueueItem(itemId) {
                     it.copy(
                         status = DownloadQueueStatus.Error,
-                        progressText = "缺少必要依赖(yt-dlp/ffmpeg)",
+                        progressText = dependencyMessage,
                     )
                 }
                 environmentMissingEvent.tryEmit(Unit)
                 return@launchManagedDownload
             } catch (e: Exception) {
-                appendLog("download failed: ${e.message}")
-                appendItemLog(itemId, "[err] ${e.message}")
+                val errorMessage = e.message ?: e.toString()
+                appendLog(AndroidStrings.format("desktop_download_log_failed", errorMessage))
+                appendItemLog(itemId, "[err] $errorMessage")
                 val canceled = canceledItemIds.remove(itemId)
                 if (canceled) {
                     updateQueueItem(itemId) { it.copy(status = DownloadQueueStatus.Canceled, progressText = "") }
@@ -804,7 +892,7 @@ class DesktopDownloadController(
                     }
                     if (appSettings.downloadNotificationEnabled) {
                         DesktopNotifier.sendNotification(
-                            title = "Download Error",
+                            title = AndroidStrings.get("download_error_msg"),
                             message = videoInfo.title
                         )
                     }
@@ -814,6 +902,53 @@ class DesktopDownloadController(
                 refreshRunningSnapshot()
             }
         }
+    }
+
+    private suspend fun precheckDownloadArchive(
+        itemId: String,
+        preferences: DownloadPreferences,
+        videoInfo: VideoInfo,
+    ): Boolean {
+        if (!preferences.useDownloadArchive) return true
+        val identity = videoInfo.downloadArchiveIdentity() ?: return true
+
+        val precheck =
+            try {
+                archiveService.precheck(identity.extractor, identity.mediaId)
+            } catch (error: DesktopDownloadArchiveException) {
+                val reason = error.cause?.message ?: error.message.orEmpty()
+                val message =
+                    AndroidStrings.format(
+                        "desktop_download_archive_read_failed",
+                        error.archivePath.toAbsolutePath(),
+                        reason,
+                    )
+                appendLog(AndroidStrings.format("desktop_log_error", message))
+                appendItemLog(itemId, "[err] $message")
+                updateQueueItem(itemId) {
+                    it.copy(
+                        status = DownloadQueueStatus.Error,
+                        progressText = message,
+                        errorMessage = message,
+                    )
+                }
+                return false
+            }
+
+        if (precheck is DesktopDownloadArchivePrecheck.AlreadyArchived) {
+            val message = AndroidStrings.get("download_archive_error")
+            appendLog(message)
+            appendItemLog(itemId, message)
+            updateQueueItem(itemId) {
+                it.copy(
+                    status = DownloadQueueStatus.Error,
+                    progressText = message,
+                    errorMessage = message,
+                )
+            }
+            return false
+        }
+        return true
     }
 
     private fun updateQueueItem(itemId: String, transform: (DownloadQueueItemState) -> DownloadQueueItemState) {
@@ -875,11 +1010,16 @@ private fun isYtDlpErrorLine(line: String): Boolean {
         normalized.contains(" failed")
 }
 
-private data class DesktopDownloadRequest(
+internal data class DesktopDownloadRequest(
     val url: String,
     val type: DesktopDownloadType,
     val preferences: DownloadPreferences,
 )
+
+internal fun DesktopDownloadRequest.withRetryRuntimePreferences(
+    currentPreferences: DownloadPreferences,
+): DesktopDownloadRequest =
+    copy(preferences = preferences.withRetryRuntimePreferences(currentPreferences))
 
 private data class ProgressSnapshot(
     val percent: Float?,

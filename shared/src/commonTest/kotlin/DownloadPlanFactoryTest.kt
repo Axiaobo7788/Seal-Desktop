@@ -3,6 +3,7 @@ package com.junkfood.seal.download
 import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.VideoInfo
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -69,5 +70,61 @@ class DownloadPlanFactoryTest {
         assertFalse(args.contains("--embed-subs"))
         assertFalse(args.contains("--remux-video"))
         assertFalse(args.contains("--merge-output-format"))
+    }
+
+    @Test
+    fun `split chapters keeps both chapter and final output templates`() {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = VideoInfo(vcodec = "vp9"),
+                preferences = DownloadPreferences.EMPTY.copy(splitByChapter = true),
+            )
+
+        val args = plan.asCliArgs()
+        val outputTemplates =
+            args.zipWithNext().filter { (option, _) -> option == "-o" }.map { (_, value) -> value }
+
+        assertTrue(args.contains("--split-chapters"))
+        assertEquals(
+            listOf(
+                "chapter:%(title).200B/%(section_number)d - %(section_title).200B.%(ext)s",
+                "%(title).200B/%(title).200B.%(ext)s",
+            ),
+            outputTemplates,
+        )
+    }
+
+    @Test
+    fun `enabled SponsorBlock with an empty category does not emit an invalid argument`() {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = VideoInfo(vcodec = "vp9"),
+                preferences =
+                    DownloadPreferences.EMPTY.copy(
+                        sponsorBlock = true,
+                        sponsorBlockCategory = "   ",
+                    ),
+            )
+
+        assertFalse(plan.asCliArgs().contains("--sponsorblock-remove"))
+    }
+
+    @Test
+    fun `enabled SponsorBlock preserves a non-empty category expression`() {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = VideoInfo(vcodec = "vp9"),
+                preferences =
+                    DownloadPreferences.EMPTY.copy(
+                        sponsorBlock = true,
+                        sponsorBlockCategory = " sponsor,intro ",
+                    ),
+            )
+
+        assertTrue(
+            plan.asCliArgs().containsAll(
+                listOf("--sponsorblock-remove", "sponsor,intro"),
+            ),
+        )
     }
 }

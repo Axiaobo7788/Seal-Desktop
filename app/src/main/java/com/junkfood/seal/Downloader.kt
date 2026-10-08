@@ -1,8 +1,5 @@
 package com.junkfood.seal
 
-import android.app.PendingIntent
-import android.util.Log
-import androidx.annotation.CheckResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.platform.ClipboardManager
@@ -14,23 +11,18 @@ import com.junkfood.seal.App.Companion.startService
 import com.junkfood.seal.App.Companion.stopService
 import com.junkfood.seal.database.objects.CommandTemplate
 import com.junkfood.seal.util.COMMAND_DIRECTORY
-import com.junkfood.seal.util.DownloadPreferences
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.NotificationUtil
-import com.junkfood.seal.util.PlaylistEntry
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.PreferenceUtil.getString
 import com.junkfood.seal.util.ToastUtil
 import com.junkfood.seal.util.VideoInfo
-import com.junkfood.seal.util.createFromPreferences
 import com.junkfood.seal.util.toHttpsUrl
 import com.yausername.youtubedl_android.YoutubeDL
-import java.util.concurrent.CancellationException
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -280,14 +272,11 @@ object Downloader {
         mutableErrorState.update { ErrorState.DownloadError(url, errorReport) }
     }
 
-    }
-
     fun updatePlaylistResult(playlistResult: PlaylistResult = PlaylistResult()) =
         mutablePlaylistResult.update { playlistResult }
 
     fun executeCommandWithUrl(url: String) =
         applicationScope.launch(Dispatchers.IO) { DownloadUtil.executeCommandInBackground(url) }
-
 
     fun onProcessStarted() = mutableProcessCount.update { it + 1 }
 

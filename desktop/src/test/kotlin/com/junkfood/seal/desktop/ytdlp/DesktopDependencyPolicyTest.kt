@@ -6,6 +6,8 @@ import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DesktopDependencyPolicyTest {
     @Test
@@ -26,12 +28,57 @@ class DesktopDependencyPolicyTest {
     }
 
     @Test
+    fun `broken system yt-dlp remains system managed and is never overwritten by updater`() {
+        val resolution =
+            resolution(
+                preference = EnvPrefAuto,
+                ytDlpSource = DesktopDependencySource.SystemPath,
+                ytDlpHealthy = false,
+            )
+
+        assertEquals(YtDlpUpdateDisposition.SystemManaged, resolution.ytDlpUpdateDisposition())
+        assertTrue(resolution.missingPortableDependencies().ytDlp)
+        assertFalse(resolution.isComplete)
+        assertEquals(listOf("yt-dlp"), resolution.brokenNames)
+    }
+
+    @Test
+    fun `auto mode selects healthy system dependency over broken selfhost dependency`() {
+        val privateDependency = dependency("yt-dlp", DesktopDependencySource.AppPrivate, healthy = false)
+        val systemDependency = dependency("yt-dlp", DesktopDependencySource.SystemPath, healthy = true)
+
+        assertEquals(systemDependency, chooseAutoDependency(privateDependency, systemDependency))
+    }
+
+    @Test
+    fun `broken selfhost dependency is selected for portable repair without changing ownership`() {
+        val resolution =
+            resolution(
+                preference = EnvPrefBundled,
+                ytDlpSource = DesktopDependencySource.AppPrivate,
+                ytDlpHealthy = false,
+            )
+
+        assertTrue(resolution.missingPortableDependencies().ytDlp)
+        assertEquals(DesktopDependencySource.AppPrivate, resolution.ytDlp?.source)
+        assertEquals(YtDlpUpdateDisposition.DownloadAppPrivate, resolution.ytDlpUpdateDisposition())
+    }
+
+    @Test
     fun `bundled and auto private dependencies remain app-managed`() {
         val bundled = resolution(EnvPrefBundled, DesktopDependencySource.AppPrivate)
         val auto = resolution(EnvPrefAuto, DesktopDependencySource.AppPrivate)
 
         assertEquals(YtDlpUpdateDisposition.DownloadAppPrivate, bundled.ytDlpUpdateDisposition())
         assertEquals(YtDlpUpdateDisposition.DownloadAppPrivate, auto.ytDlpUpdateDisposition())
+    }
+
+    @Test
+    fun `packaged dependency is read only and updates install an app-private replacement`() {
+        val resolution = resolution(EnvPrefBundled, DesktopDependencySource.Packaged)
+
+        assertEquals(YtDlpUpdateDisposition.DownloadAppPrivate, resolution.ytDlpUpdateDisposition())
+        assertEquals(DesktopDependencySource.Packaged, resolution.ytDlp?.source)
     }
 
     @Test
@@ -60,6 +107,25 @@ class DesktopDependencyPolicyTest {
         assertEquals(2, commands.size)
         assertEquals(listOf("yt-dlp.yt-dlp", "Gyan.FFmpeg"), commands.map { it[it.indexOf("--id") + 1] })
         assertEquals(true, commands.all { "--exact" in it && "--disable-interactivity" in it })
+    }
+
+    @Test
+    fun `windows delegates broken system dependency repair to package manager`() {
+        val commands =
+            systemDependencyInstallCommands(
+                isWindows = true,
+                isMac = false,
+                resolution =
+                    resolution(
+                        preference = EnvPrefSystem,
+                        ytDlpSource = DesktopDependencySource.SystemPath,
+                        ffmpegSource = DesktopDependencySource.SystemPath,
+                        ytDlpHealthy = false,
+                        ffmpegHealthy = true,
+                    ),
+            )
+
+        assertEquals(listOf("yt-dlp.yt-dlp"), commands.map { it[it.indexOf("--id") + 1] })
     }
 
     @Test
@@ -130,18 +196,31 @@ class DesktopDependencyPolicyTest {
         preference: Int,
         ytDlpSource: DesktopDependencySource?,
         ffmpegSource: DesktopDependencySource? = DesktopDependencySource.SystemPath,
+        ytDlpHealthy: Boolean = true,
+        ffmpegHealthy: Boolean = true,
     ): DesktopDependencyResolution =
         DesktopDependencyResolution(
             environmentPreference = preference,
-            ytDlp = ytDlpSource?.let { dependency("yt-dlp", it) },
-            ffmpeg = ffmpegSource?.let { dependency("ffmpeg", it) },
+            ytDlp = ytDlpSource?.let { dependency("yt-dlp", it, ytDlpHealthy) },
+            ffmpeg = ffmpegSource?.let { dependency("ffmpeg", it, ffmpegHealthy) },
             aria2c = null,
         )
 
-    private fun dependency(name: String, source: DesktopDependencySource): ResolvedDesktopDependency =
+    private fun dependency(
+        name: String,
+        source: DesktopDependencySource,
+        healthy: Boolean = true,
+    ): ResolvedDesktopDependency =
         ResolvedDesktopDependency(
             name = name,
             path = Path.of("/test", name),
             source = source,
+            health =
+                DesktopDependencyHealth(
+                    status =
+                        if (healthy) DesktopDependencyHealthStatus.Healthy
+                        else DesktopDependencyHealthStatus.Broken,
+                    diagnostic = if (healthy) null else "test failure",
+                ),
         )
 }

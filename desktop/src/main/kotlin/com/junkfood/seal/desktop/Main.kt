@@ -1,5 +1,3 @@
-@file:OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
-
 package com.junkfood.seal.desktop
 
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -43,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +77,7 @@ import com.junkfood.seal.desktop.download.DesktopDownloadScreen
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryPage
 import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
 import com.junkfood.seal.desktop.i18n.desktopResourceLocaleForTag
+import com.junkfood.seal.desktop.i18n.DesktopResourceEnvironmentAdapter
 import com.junkfood.seal.desktop.i18n.normalizeDesktopLanguageTag
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.desktop.theme.DesktopSealTheme
@@ -96,111 +94,17 @@ import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_generic
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_title
 import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
+import com.junkfood.seal.shared.generated.resources.desktop_placeholder_android_parity
+import com.junkfood.seal.shared.generated.resources.desktop_placeholder_download_tip
 import com.junkfood.seal.shared.generated.resources.download_queue
 import com.junkfood.seal.shared.generated.resources.downloads_history
 import com.junkfood.seal.shared.generated.resources.settings
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import java.lang.reflect.Proxy
 import java.util.Locale
 
-private var languageOverrideTag: String? = null
 val originalSystemLocale = Locale.getDefault()
-
-private val originalResourceEnvironment: Any by lazy { systemResourceEnvironment() }
-
-@Suppress("UNCHECKED_CAST")
-private fun currentResourceEnvironment(): Any {
-    val base = originalResourceEnvironment
-    val tag = languageOverrideTag?.takeIf { it.isNotBlank() } ?: return base
-    val resourceLocale = desktopResourceLocaleForTag(tag)
-
-    val languageQualifierClass = Class.forName("org.jetbrains.compose.resources.LanguageQualifier")
-    val regionQualifierClass = Class.forName("org.jetbrains.compose.resources.RegionQualifier")
-    val themeQualifierClass = Class.forName("org.jetbrains.compose.resources.ThemeQualifier")
-    val densityQualifierClass = Class.forName("org.jetbrains.compose.resources.DensityQualifier")
-    val resourceEnvironmentClass = Class.forName("org.jetbrains.compose.resources.ResourceEnvironment")
-
-    val baseLanguage = getQualifier(base, "getLanguage\$library")
-    val baseRegion = getQualifier(base, "getRegion\$library")
-    val baseTheme = getQualifier(base, "getTheme\$library")
-    val baseDensity = getQualifier(base, "getDensity\$library")
-
-    val language =
-        resourceLocale.language.takeIf { it.isNotBlank() }?.let {
-            languageQualifierClass.getConstructor(String::class.java).newInstance(it)
-        } ?: baseLanguage
-
-    val region =
-        resourceLocale.region?.let {
-            regionQualifierClass.getConstructor(String::class.java).newInstance(it)
-        } ?: baseRegion
-
-    val ctor =
-        resourceEnvironmentClass.getConstructor(
-            languageQualifierClass,
-            regionQualifierClass,
-            themeQualifierClass,
-            densityQualifierClass,
-        )
-
-    return ctor.newInstance(language, region, baseTheme, baseDensity)
-}
-
-private fun getQualifier(target: Any, methodName: String): Any =
-    runCatching { target.javaClass.getMethod(methodName).invoke(target) }.getOrElse { null }
-        ?: error("Missing qualifier: $methodName")
-
-private fun systemResourceEnvironment(): Any {
-    val clazz = Class.forName("org.jetbrains.compose.resources.ResourceEnvironmentKt")
-    val method = clazz.getMethod("getSystemResourceEnvironment")
-    return method.invoke(null)
-}
-
-private fun installResourceEnvironmentProvider() {
-    runCatching {
-        originalResourceEnvironment
-        val clazz = Class.forName("org.jetbrains.compose.resources.ResourceEnvironmentKt")
-        val method = clazz.getMethod("setGetResourceEnvironment", kotlin.reflect.KFunction::class.java)
-        method.invoke(null, ::currentResourceEnvironment)
-    }
-}
-
-@Suppress("UNCHECKED_CAST")
-@Composable
-private fun ProvideResourceEnvironment(environment: Any, content: @Composable () -> Unit) {
-    val localEnv = remember {
-        runCatching {
-            val clazz = Class.forName("org.jetbrains.compose.resources.ResourceEnvironmentKt")
-            val method = clazz.getMethod("getLocalComposeEnvironment")
-            method.invoke(null) as androidx.compose.runtime.ProvidableCompositionLocal<Any>
-        }.getOrNull()
-    }
-
-    if (localEnv != null) {
-        val composeEnvironment = remember(environment) {
-            val interfaceClass = Class.forName("org.jetbrains.compose.resources.ComposeEnvironment")
-            Proxy.newProxyInstance(
-                interfaceClass.classLoader,
-                arrayOf(interfaceClass),
-            ) { proxy, method, args ->
-                when (method.name) {
-                    "rememberEnvironment" -> environment
-                    "toString" -> "DesktopComposeEnvironment($environment)"
-                    "hashCode" -> System.identityHashCode(proxy)
-                    "equals" -> proxy === args?.firstOrNull()
-                    else -> null
-                }
-            }
-        }
-        CompositionLocalProvider(localEnv provides composeEnvironment) {
-            content()
-        }
-    } else {
-        content()
-    }
-}
 
 fun main() = application {
     try {
@@ -214,7 +118,7 @@ fun main() = application {
         // 如果系统不支持 Taskbar API（如部分 Linux 桌面环境），捕获异常直接忽略，不影响正常运行
     }
 
-    installResourceEnvironmentProvider()
+    DesktopResourceEnvironmentAdapter.installProvider()
     val appSettingsState = rememberDesktopAppSettingsState()
     val downloadController = remember { DesktopDownloadController(appSettingsProvider = { appSettingsState.settings }) }
     val themeState = rememberDesktopThemeState()
@@ -228,7 +132,7 @@ fun main() = application {
             ?.let { desktopResourceLocaleForTag(it).locale }
             ?: originalSystemLocale
 
-    languageOverrideTag = normalizedLanguageTag
+    DesktopResourceEnvironmentAdapter.setLanguageOverride(normalizedLanguageTag)
 
     SideEffect {
         Locale.setDefault(locale)
@@ -248,7 +152,7 @@ fun main() = application {
         icon = androidx.compose.ui.res.painterResource("icon.png"),
         state = rememberWindowState(width = 1300.dp, height = 800.dp),
     ) {
-        ProvideResourceEnvironment(currentResourceEnvironment()) {
+        DesktopResourceEnvironmentAdapter.Provide {
             DesktopSealTheme(themeState = themeState, window = window) {
                 Surface {
                     DesktopApp(
@@ -633,6 +537,10 @@ private fun ContentArea(
                     settingsState = settingsState,
                     appSettingsState = appSettingsState,
                     themeState = themeState,
+                    hasActiveDownloads = {
+                        downloadController.hasOngoingTasks() ||
+                            com.junkfood.seal.desktop.customcommand.DesktopCustomCommandTaskManager.hasOngoingTasks()
+                    },
                 )
             Destination.CustomCommand ->
                 DesktopCustomCommandScreen(
@@ -676,8 +584,14 @@ private fun PlaceholderScreen(text: String, modifier: Modifier = Modifier, onMen
         } else {
             Text(text, style = MaterialTheme.typography.headlineSmall)
         }
-        Text("This page is not available on Desktop yet.", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            stringResource(Res.string.desktop_placeholder_android_parity),
+            style = MaterialTheme.typography.bodyMedium,
+        )
         HorizontalDivider()
-        Text("Tip: use the Android app for now.", style = MaterialTheme.typography.bodySmall)
+        Text(
+            stringResource(Res.string.desktop_placeholder_download_tip),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }

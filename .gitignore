@@ -20,7 +20,12 @@ local.properties
 .devcontainer
 .gradle.properties
 /desktop/build
+# Full packaging stages downloaded tool payloads here.
+/desktop/appResources/
 /shared/build
 # Keep engineering Markdown in Git while ignoring local screenshots or scratch assets.
 /docs/*
 !/docs/*.md
+!/docs/history/
+/docs/history/*
+!/docs/history/*.md

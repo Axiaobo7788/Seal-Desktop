@@ -97,6 +97,28 @@ jobs:
           ./dist-bin/ffprobe -version | head -n 1
           file dist-bin/yt-dlp dist-bin/ffmpeg dist-bin/ffprobe
 
+      - name: Record bundled tool provenance (Linux)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/write_tool_provenance.py \
+            --output dist-bin/THIRD_PARTY_VERSIONS.txt \
+            --build-commit "$GITHUB_SHA" \
+            --build-workflow "$GITHUB_WORKFLOW" \
+            --build-run-id "$GITHUB_RUN_ID" \
+            --platform linux \
+            --architecture x64 \
+            --yt-dlp dist-bin/yt-dlp \
+            --yt-dlp-url "$YT_DLP_LINUX_URL" \
+            --yt-dlp-source-type moving-nightly-release \
+            --ffmpeg dist-bin/ffmpeg \
+            --ffmpeg-url "$FFMPEG_LINUX_URL" \
+            --ffmpeg-source-type moving-master-build \
+            --ffprobe dist-bin/ffprobe \
+            --ffprobe-url "$FFMPEG_LINUX_URL" \
+            --ffprobe-source-type moving-master-build
+          cat dist-bin/THIRD_PARTY_VERSIONS.txt
+
       - name: Build Lite installers (Linux)
         shell: bash
         run: |
@@ -135,7 +157,7 @@ jobs:
           [[ -n "$app_root" ]]
           launcher="$(find "$app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$app_root" "$launcher" "Lite app image (Linux x64)" 12 true
+            "$app_root" "$launcher" "Lite app image (Linux x64)" 12 true Lite
 
           deb="$(find dist-installers-lite -type f -name '*.deb' | head -n 1)"
           [[ -n "$deb" ]]
@@ -147,7 +169,7 @@ jobs:
           [[ -n "$installed_app_root" ]]
           installed_launcher="$(find "$installed_app_root/bin" -maxdepth 1 -type f -executable ! -name '*.so' | head -n 1)"
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$installed_app_root" "$installed_launcher" "Extracted Lite DEB (Linux x64)" 12 true
+            "$installed_app_root" "$installed_launcher" "Extracted Lite DEB (Linux x64)" 12 true Lite
 
       - name: Inject tools for Full version
         shell: bash
@@ -237,9 +259,22 @@ jobs:
               exit 1
             fi
           done
+          provenance="$(find "$app_root" -type f -name THIRD_PARTY_VERSIONS.txt | head -n 1)"
+          [[ -n "$provenance" ]]
 
           xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
-            "$app_root" "$launcher" "Full app image (Linux x64)" 12 true
+            "$app_root" "$launcher" "Full app image (Linux x64)" 12 true Full
+
+          deb="$(find dist-installers-full -type f -name '*.deb' | head -n 1)"
+          [[ -n "$deb" ]]
+          extracted_root="$RUNNER_TEMP/seal-full-deb"
+          mkdir -p "$extracted_root"
+          dpkg-deb -x "$deb" "$extracted_root"
+          installed_launcher="$(find "$extracted_root" -type f -path '*/bin/Seal' | head -n 1)"
+          [[ -x "$installed_launcher" ]]
+          installed_app_root="$(dirname "$(dirname "$installed_launcher")")"
+          xvfb-run -a bash .github/scripts/smoke_unix_app_image.sh \
+            "$installed_app_root" "$installed_launcher" "Extracted Full DEB (Linux x64)" 12 true Full
 
       - name: Upload Portable Full artifact
         uses: actions/upload-artifact@v6

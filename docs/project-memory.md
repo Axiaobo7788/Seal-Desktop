@@ -1,0 +1,179 @@
+# Seal-Desktop Project Memory
+
+> Role: durable project context for humans and coding agents.
+>
+> Last reviewed: 2026-09-29
+>
+> Do not put short-lived TODOs, one-off command output, or temporary CI failures here. Those belong in `current-progress.md` or dated audit/history documents.
+
+## 1. Project Identity
+
+Seal-Desktop is a Desktop port and cross-platform evolution of Seal around yt-dlp.
+
+The project is not a literal Android clone. Android is a behavioral reference, while Desktop may use native platform adaptations where Android mechanisms do not make sense.
+
+Core product goal:
+
+`URL/input -> metadata/configuration -> platform-neutral download plan -> platform adapter -> yt-dlp/ffmpeg execution -> queue/history/storage -> user feedback`
+
+A feature is not complete just because its UI exists.
+
+## 2. Architecture Memory
+
+- `app/`: Android product integration, services, Room, MMKV, Android filesystem and youtubedl-android integration.
+- `desktop/`: Compose Desktop UI, JVM process execution, desktop settings/storage, file pickers, dependency resolution and native packaging.
+- `shared/`: platform-neutral models, download plans, reusable business rules and cross-platform UI contracts.
+- `color/`: theme/color support.
+- Product strings originate in `app/src/main/res/values*/strings.xml` and are synchronized into Compose resources.
+- Desktop currently supports JSON/dual/SQLite storage compatibility; SQLite is the structured target, while compatibility paths must remain migration-safe until intentionally removed.
+- Desktop writable paths are owned by `DesktopAppPaths`: Linux uses XDG roots, Windows uses Local AppData, and macOS uses Application Support/Caches. When a native state location replaces the historical `~/.local/state/seal`, migration must retain the legacy source and fall back to it if copying fails.
+- Compose Resources internal reflection is isolated behind `DesktopResourceEnvironmentAdapter`; application/navigation code must not depend directly on internal class or method names, and reflection failure must preserve system-resource startup.
+
+## 3. Product Decisions That Must Survive Context Loss
+
+### Platform parity
+
+Every Android/Desktop comparison should be classified as one of:
+
+- exact parity;
+- Desktop adaptation;
+- deferred;
+- unsupported.
+
+Do not copy Android-only behavior merely to make a Desktop screen look complete.
+
+### Desktop cookies
+
+Desktop Cookies is a **Desktop adaptation**, not an Android WebView port.
+
+- Android may use Cookie Profiles and an embedded WebView.
+- Desktop must use the user's installed/system browser session as the primary cookie/authentication source.
+- Do not introduce an embedded Desktop WebView merely to mimic Android.
+- Manual Netscape-cookie-file import can remain a fallback.
+- Metadata lookup, final download and retry/resume must consume one coherent resolved cookie state.
+- Browser-source preference and Seal's local cache provenance are separate state. Losing or uninstalling a selected browser must disable browser refresh without invalidating an already valid cache; importing or clearing the cache must not silently replace the browser selection.
+- Browser/profile discovery is blocking platform I/O and must run asynchronously outside Compose recomposition. Persist only a stable non-path profile identifier and a user-facing profile label; keep absolute profile paths transient inside the extraction adapter.
+- Offline domain matching is the default cache verification. A real media URL check is an explicit advanced network action and must distinguish cache, authentication, network, media and extractor failures.
+- The presence of a Cookies screen or cookies file does not mean the Desktop cookies feature is complete.
+
+The detailed capability state belongs in `feature-roadmap.md`.
+
+### Desktop application updates
+
+Desktop application updates are manual unless a future scoped feature explicitly implements native release checking and replacement.
+
+- About/update UI may open this repository's Releases page and must describe the manual behavior honestly.
+- Legacy `autoUpdateEnabled` and `updateChannel` fields exist only for backward-compatible reads; they are not an active product contract.
+- Do not copy Android APK replacement semantics into Windows, macOS or Linux without a separate platform design and native verification.
+
+### Dependency ownership
+
+- `system`: user/OS-owned PATH or package-manager binary; detect but never overwrite.
+- `selfhost`: Seal-owned app-private binary; in-app downloader may update it.
+- packaged app-private resources: read-only at runtime and replaced with app updates.
+- `auto`: resolve available sources and download only missing required components.
+- `yt-dlp + ffmpeg` are required for a complete Desktop download environment.
+- `aria2c` remains optional.
+- Executable existence is not availability. Runtime resolution must classify dependencies as `Missing`, `Healthy` or `Broken` by a bounded version probe.
+- Dependency probes are blocking process I/O and must run off the Compose UI thread. Cache them by tool/path/file identity and invalidate after app-managed replacement.
+- A broken `system` dependency remains package-manager-owned, a broken `selfhost` dependency may be redownloaded into app-private storage, and a `packaged` dependency is read-only for the lifetime of that application package.
+
+### Privacy
+
+`privateMode` is a persistence/history policy, not merely a UI label.
+
+Do not treat `privateDirectory` as equivalent to `privateMode`. Android private-directory semantics do not automatically transfer to Desktop.
+
+### Retry semantics
+
+Desktop retry/resume combines two kinds of state instead of choosing one complete settings snapshot:
+
+- freeze task intent from the original request, including media/format selection, subtitles, output directories and title overrides;
+- refresh live runtime context from current settings, including Cookies/browser source, proxy, user agent, rate limit, IPv4, debug, aria2c, fragment concurrency and download-archive policy;
+- merge `privateMode` fail-closed: a task is private when either the original request or current settings is private, and the merged request must also govern queue/history persistence.
+
+Do not replace the original request wholesale with current preferences, and do not retry with a completely stale runtime context.
+
+### UI parity
+
+Visual similarity is insufficient. Parity review includes state transitions, error/loading states, keyboard/mouse behavior, scrolling, animation feel, responsive layout and localization.
+
+Human evidence is expected for visual/animation claims.
+
+## 4. Known Historical Traps
+
+These have repeatedly caused false-completion or maintenance problems:
+
+- treating planned/partial migration work as if a mature feature regressed;
+- visible settings whose values never reach execution;
+- Android-specific binary/path assumptions leaking into Desktop;
+- platform adaptations being judged only by screenshots;
+- hard-coded user-visible English/Chinese in Desktop notifications, dialogs, picker titles and status text;
+- old migration/compatibility fields attracting new callers;
+- local Linux packaging success being treated as proof of Windows/macOS behavior;
+- stale dated validation evidence being read as a current pass;
+- one very large audit document mixing current priorities with historical investigation.
+
+Before acting on an old audit item or external bug report, re-check current code and `feature-roadmap.md`.
+
+## 5. Packaging And Release Memory
+
+Native packaging is part of runtime correctness, not merely artifact creation.
+
+For release/shrinking work:
+
+- a package that builds but does not launch is a failure;
+- SQLite must be exercised after packaging because ProGuard/JNI/ServiceLoader issues may appear only at runtime;
+- Windows, Linux and macOS evidence are independent;
+- macOS Intel and arm64 are independent packaging targets when both are supported;
+- never infer a native runner result from another OS.
+- release assembly must select Windows, Linux and macOS artifacts from the same target commit, never each workflow's unrelated latest successful run;
+- Full artifacts must carry the actual packaged tool version, SHA256, source classification/URL and build commit, and release output must publish artifact checksums;
+- recording moving/nightly sources provides traceability, not reproducibility; stable pinning and action SHA policy remain separate decisions.
+
+## 6. Documentation Model
+
+The project uses five documentation layers:
+
+1. `AGENTS.md`: mandatory short execution contract.
+2. `docs/project-memory.md`: durable project facts and decisions.
+3. `docs/feature-roadmap.md`: product capability state and planned Desktop adaptations.
+4. `docs/current-progress.md`: current resume point, priorities and verification debt.
+5. dated audit/history documents: detailed evidence, old investigations and migration history.
+
+`docs/development-guidelines.md` contains detailed engineering rules.
+`docs/project-map.md` contains navigation and stable code entry points.
+
+This separation is intentional. Avoid growing a single "everything" document again.
+
+## 7. Resume Protocol
+
+After a long pause:
+
+1. read `AGENTS.md`, this file, `feature-roadmap.md`, and `current-progress.md`;
+2. inspect the current branch/head and recent commits;
+3. classify issue reports as bug vs partial/planned/decision-needed before implementation;
+4. revalidate active P0/P1 items against current code;
+5. compare relevant upstream changes when parity or dependencies may have moved;
+6. run the smallest useful compile/test smoke before trusting old status;
+7. update `current-progress.md` with the new resume point.
+
+## 8. Updating This Memory
+
+Add something here only when it is likely to remain useful across many tasks.
+
+Good examples:
+
+- module ownership;
+- a durable product decision;
+- a migration invariant;
+- a recurring platform trap;
+- a validation rule that future work must remember.
+
+Bad examples:
+
+- "test X passed today";
+- "issue Y is next";
+- a temporary error log;
+- a one-off workaround;
+- today's dependency version check.

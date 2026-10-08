@@ -28,8 +28,9 @@ class CustomCommandPlanTest {
         val args = plan.asCliArgs()
         // Order: options then urls
         assertTrue(args.containsAll(listOf("--newline", "-P", "/tmp/cmd", "--downloader", "libaria2c.so", "--restrict-filenames")))
-        assertTrue(args.contains("--add-header"))
-        assertTrue(args.contains("User-Agent:UA"))
+        assertFalse(args.contains("--add-header"))
+        assertFalse(args.contains("User-Agent:UA"))
+        assertFalse(args.contains("--cookies-from-browser"))
         assertEquals(listOf("u1", "u2"), args.takeLast(2))
     }
 

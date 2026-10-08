@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.paths.DesktopAppPaths
 import com.junkfood.seal.util.DownloadPreferences
 import java.nio.file.Files
 import java.nio.file.Path
@@ -10,13 +11,12 @@ import kotlin.io.path.exists
  * Desktop-side path conventions for yt-dlp assets and downloads.
  */
 object DesktopYtDlpPaths {
-    private val stateRoot: Path by lazy { resolveStateRoot() }
     private val downloadsRoot: Path by lazy { resolveDownloadsRoot() }
 
-        fun clearTempFiles(): Int {
+    fun clearTempFiles(): Int {
         var count = 0
         runCatching {
-            val appTempDir = Path.of(System.getProperty("java.io.tmpdir"), "seal")
+            val appTempDir = DesktopAppPaths.temporaryDirectory()
             if (appTempDir.exists()) {
                 val files = Files.walk(appTempDir).filter { Files.isRegularFile(it) }.toList()
                 for (file in files) {
@@ -29,20 +29,18 @@ object DesktopYtDlpPaths {
         return count
     }
 
-        fun tempDirectory(): Path {
-        return Path.of(System.getProperty("java.io.tmpdir"), "seal")
-    }
+    fun tempDirectory(): Path = DesktopAppPaths.temporaryDirectory()
 
     fun cookiesFile(): Path {
-        val dir = stateRoot
-        dir.createDirectories()
-        return dir.resolve("cookies.txt")
+        val file = DesktopAppPaths.cookiesFile()
+        file.parent?.createDirectories()
+        return file
     }
 
     fun archiveFile(): Path {
-        val dir = stateRoot
-        dir.createDirectories()
-        return dir.resolve("download-archive.txt")
+        val file = DesktopAppPaths.downloadArchiveFile()
+        file.parent?.createDirectories()
+        return file
     }
 
     fun defaultDownloadDirectory(): Path = ensureDirectory(downloadsRoot)
@@ -82,13 +80,6 @@ object DesktopYtDlpPaths {
             }
         val path = runCatching { Path.of(expanded) }.getOrNull() ?: return null
         return if (path.isAbsolute) path else downloadsRoot.resolve(path).normalize()
-    }
-
-    private fun resolveStateRoot(): Path {
-        val xdg = System.getenv("XDG_STATE_HOME")?.takeIf { it.isNotBlank() }?.let { Path.of(it) }
-        if (xdg != null) return xdg.resolve("seal/yt-dlp")
-        val home = System.getProperty("user.home")
-        return Path.of(home, ".local", "state", "seal", "yt-dlp")
     }
 
     private fun resolveDownloadsRoot(): Path {

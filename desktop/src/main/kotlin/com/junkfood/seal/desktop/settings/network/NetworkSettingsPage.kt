@@ -1,5 +1,7 @@
 package com.junkfood.seal.desktop.settings.network
 
+import com.junkfood.seal.desktop.cookies.SupportedBrowser
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Info
@@ -11,7 +13,6 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material.icons.rounded.OfflineBolt
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -21,13 +22,13 @@ import com.junkfood.seal.desktop.network.DesktopProxyAutoDetector
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
-import com.junkfood.seal.desktop.settings.network.SupportedBrowser
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
 import com.junkfood.seal.desktop.settings.TextFieldCard
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolution
+import com.junkfood.seal.desktop.ytdlp.DesktopDependencyHealthStatus
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
@@ -40,6 +41,18 @@ import com.junkfood.seal.shared.generated.resources.concurrent_download_desc
 import com.junkfood.seal.shared.generated.resources.concurrent_download_num
 import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_desc
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_desc
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_not_found
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_result
+import com.junkfood.seal.shared.generated.resources.desktop_auto_proxy_detect_title
+import com.junkfood.seal.shared.generated.resources.desktop_cookies_browser_source
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_detecting
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_broken
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_healthy
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_missing
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_packaged
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_selfhost
+import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_system
 import com.junkfood.seal.shared.generated.resources.force_ipv4
 import com.junkfood.seal.shared.generated.resources.force_ipv4_desc
 import com.junkfood.seal.shared.generated.resources.general_settings
@@ -80,21 +93,42 @@ internal fun NetworkSettingsPage(
             }
     }
     val aria2cDependency = dependencyResolution?.aria2c
-    val aria2cAvailable = dependencyResolution == null || aria2cDependency != null
+    val aria2cAvailable = dependencyResolution == null || aria2cDependency?.health?.isHealthy == true
+    val dependencyDetecting = stringResource(Res.string.desktop_dependency_status_detecting)
+    val dependencyMissing = stringResource(Res.string.desktop_dependency_status_missing)
+    val dependencyHealthy = stringResource(Res.string.desktop_dependency_status_healthy)
+    val dependencyBroken = stringResource(Res.string.desktop_dependency_status_broken)
+    val sourceSelfhost = stringResource(Res.string.desktop_dependency_source_selfhost)
+    val sourcePackaged = stringResource(Res.string.desktop_dependency_source_packaged)
+    val sourceSystem = stringResource(Res.string.desktop_dependency_source_system)
     val aria2Description =
         aria2cDependency?.let { dependency ->
-            "aria2c: ${dependency.source.label()} - ${dependency.path.toAbsolutePath()}"
+            val source =
+                when (dependency.source) {
+                    DesktopDependencySource.AppPrivate -> sourceSelfhost
+                    DesktopDependencySource.Packaged -> sourcePackaged
+                    DesktopDependencySource.SystemPath -> sourceSystem
+                }
+            val status =
+                when (dependency.health.status) {
+                    DesktopDependencyHealthStatus.Healthy -> dependencyHealthy
+                    DesktopDependencyHealthStatus.Broken -> dependencyBroken
+                    DesktopDependencyHealthStatus.Missing -> dependencyMissing
+                }
+            val detail =
+                dependency.health.version
+                    ?.takeIf { it.isNotBlank() }
+                    ?: dependency.health.diagnostic?.takeIf { it.isNotBlank() }
+            buildString {
+                append("aria2c: $source · $status")
+                detail?.let { append(" · ${it.lineSequence().first().take(160)}") }
+                append("\n${dependency.path.toAbsolutePath()}")
+            }
         } ?: if (dependencyResolution == null) {
-            "aria2c: detecting..."
+            "aria2c: $dependencyDetecting"
         } else {
-            "${stringResource(Res.string.aria2_desc)}\naria2c: missing"
+            "${stringResource(Res.string.aria2_desc)}\naria2c: $dependencyMissing"
         }
-
-    LaunchedEffect(dependencyResolution, preferences.aria2c) {
-        if (dependencyResolution != null && aria2cDependency == null && preferences.aria2c) {
-            onUpdate { it.copy(aria2c = false) }
-        }
-    }
 
     var showRateLimitDialog by remember { mutableStateOf(false) }
     var showProxyDialog by remember { mutableStateOf(false) }
@@ -151,15 +185,16 @@ internal fun NetworkSettingsPage(
         )
 
         ToggleCard(
-            title = "自动检测本机代理（Xray）",
-            description = "开启后自动检测本机 xray 端口并覆盖上方代理地址",
+            title = stringResource(Res.string.desktop_auto_proxy_detect_title),
+            description = stringResource(Res.string.desktop_auto_proxy_detect_desc),
             icon = Icons.Rounded.SignalWifi4Bar,
             checked = appSettings.autoProxyEnabled,
             enabled = preferences.proxy,
         ) { checked -> onUpdateAppSettings { it.copy(autoProxyEnabled = checked) } }
 
         if (preferences.proxy && appSettings.autoProxyEnabled) {
-            PreferenceInfo(text = "当前检测结果：${detectedProxy ?: "未检测到可用 xray 代理"}")
+            val proxyResult = detectedProxy ?: stringResource(Res.string.desktop_auto_proxy_detect_not_found)
+            PreferenceInfo(text = stringResource(Res.string.desktop_auto_proxy_detect_result, proxyResult))
         }
 
         SelectionCard(
@@ -194,7 +229,7 @@ internal fun NetworkSettingsPage(
         if (preferences.cookies) {
             val cookieInfoText = if (preferences.cookiesBrowser.isNotEmpty()) {
                 val browserName = SupportedBrowser.fromName(preferences.cookiesBrowser)?.displayName ?: preferences.cookiesBrowser
-                "Cookies 将自动从 $browserName 提取"
+                stringResource(Res.string.desktop_cookies_browser_source, browserName)
             } else {
                 cookiePath
             }
@@ -202,9 +237,3 @@ internal fun NetworkSettingsPage(
         }
     }
 }
-
-private fun DesktopDependencySource.label(): String =
-    when (this) {
-        DesktopDependencySource.AppPrivate -> "selfhost"
-        DesktopDependencySource.SystemPath -> "system"
-    }

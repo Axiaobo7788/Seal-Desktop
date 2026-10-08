@@ -80,8 +80,10 @@ fun DesktopSettingsScreen(
     settingsState: DesktopSettingsState,
     appSettingsState: DesktopAppSettingsState,
     themeState: DesktopThemeState,
+    hasActiveDownloads: () -> Boolean = { false },
 ) {
     var currentPage by remember { mutableStateOf<SettingsPage?>(null) }
+    var cookiesParentPage by remember { mutableStateOf(SettingsPage.Network) }
     var templateEditId by remember { mutableStateOf<Int?>(null) }
     val saveableStateHolder = rememberSaveableStateHolder()
 
@@ -146,6 +148,7 @@ fun DesktopSettingsScreen(
                     appSettings = appSettingsState.settings,
                     onUpdateAppSettings = appSettingsState::update,
                     onBack = { currentPage = null },
+                    hasActiveDownloads = hasActiveDownloads,
                 )
 
             SettingsPage.Directory ->
@@ -180,7 +183,10 @@ fun DesktopSettingsScreen(
                     onUpdate = settingsState::update,
                     appSettings = appSettingsState.settings,
                     onUpdateAppSettings = appSettingsState::update,
-                    onOpenCookies = { currentPage = SettingsPage.Cookies },
+                    onOpenCookies = {
+                        cookiesParentPage = SettingsPage.Network
+                        currentPage = SettingsPage.Cookies
+                    },
                     onBack = { currentPage = null },
                 )
 
@@ -188,7 +194,9 @@ fun DesktopSettingsScreen(
                 com.junkfood.seal.desktop.settings.network.CookiesSettingsPage(
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
-                    onBack = { currentPage = SettingsPage.Network }
+                    appSettings = appSettingsState.settings,
+                    onUpdateAppSettings = appSettingsState::update,
+                    onBack = { currentPage = cookiesParentPage },
                 )
 
             SettingsPage.Commands ->
@@ -244,13 +252,15 @@ fun DesktopSettingsScreen(
                     onUpdateAppSettings = appSettingsState::update,
                     preferences = settingsState.preferences,
                     onUpdate = settingsState::update,
+                    onOpenCookies = {
+                        cookiesParentPage = SettingsPage.Troubleshooting
+                        currentPage = SettingsPage.Cookies
+                    },
                     onBack = { currentPage = null },
                 )
 
             SettingsPage.About ->
                 AboutSettingsPage(
-                    settings = appSettingsState.settings,
-                    onUpdate = appSettingsState::update,
                     onOpenCredits = { currentPage = SettingsPage.Credits },
                     onOpenUpdate = { currentPage = SettingsPage.Update },
                     onBack = { currentPage = null },
@@ -258,8 +268,6 @@ fun DesktopSettingsScreen(
                 
             SettingsPage.Update ->
                 UpdateSettingsPage(
-                    settings = appSettingsState.settings,
-                    onUpdate = appSettingsState::update,
                     onBack = { currentPage = SettingsPage.About },
                 )
 

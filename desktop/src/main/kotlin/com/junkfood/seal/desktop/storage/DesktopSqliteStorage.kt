@@ -4,6 +4,9 @@ import com.junkfood.seal.desktop.download.DesktopQueueBackup
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryEntry
 import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
+import com.junkfood.seal.desktop.settings.decodeDesktopPreferences
+import com.junkfood.seal.desktop.settings.encodeDesktopPreferences
+import com.junkfood.seal.util.DownloadPreferences
 import java.sql.Connection
 import java.sql.DriverManager
 import kotlin.io.path.createDirectories
@@ -14,12 +17,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 internal object DesktopSqliteStorage {
-    private const val SCHEMA_VERSION = 1
+    private const val SCHEMA_VERSION = 2
 
     private const val TABLE_SCHEMA_META = "schema_meta"
     private const val TABLE_QUEUE_STATE = "queue_state"
     private const val TABLE_HISTORY_STATE = "history_state"
     private const val TABLE_APP_SETTINGS_STATE = "app_settings_state"
+    private const val TABLE_PREFERENCES_STATE = "preferences_state"
 
     private val storageJson = Json {
         prettyPrint = false
@@ -151,6 +155,44 @@ internal object DesktopSqliteStorage {
         }
     }
 
+    fun readPreferences(): DownloadPreferences? =
+        runCatching {
+            ensureInitialized()
+            withConnection { connection ->
+                connection.prepareStatement("SELECT payload FROM $TABLE_PREFERENCES_STATE WHERE id = 1")
+                    .use { statement ->
+                        statement.executeQuery().use { rs ->
+                            if (!rs.next()) return@withConnection null
+                            decodeDesktopPreferences(rs.getString("payload"))
+                        }
+                    }
+            }
+        }.onFailure {
+            logWarning("Failed to read download preferences from SQLite", it)
+        }.getOrNull()
+
+    fun writePreferences(preferences: DownloadPreferences): Boolean =
+        runCatching {
+            ensureInitialized()
+            withConnection { connection ->
+                connection.prepareStatement(
+                    """
+                    INSERT INTO $TABLE_PREFERENCES_STATE (id, payload, updated_at)
+                    VALUES (1, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      payload = excluded.payload,
+                      updated_at = excluded.updated_at
+                    """.trimIndent()
+                ).use { statement ->
+                    statement.setString(1, encodeDesktopPreferences(preferences))
+                    statement.setLong(2, System.currentTimeMillis())
+                    statement.executeUpdate()
+                }
+            }
+        }.onFailure {
+            logWarning("Failed to write download preferences to SQLite", it)
+        }.isSuccess
+
     private fun ensureInitialized() {
         if (initialized) return
 
@@ -162,8 +204,7 @@ internal object DesktopSqliteStorage {
             withConnection { connection ->
                 connection.autoCommit = false
                 runCatching {
-                    createTables(connection)
-                    ensureSchemaVersion(connection)
+                    migrateSchema(connection)
                     importJsonOnFirstRun(connection)
                     connection.commit()
                 }.onFailure { error ->
@@ -180,6 +221,11 @@ internal object DesktopSqliteStorage {
                 details = mapOf("path" to dbPath.toAbsolutePath().toString()),
             )
         }
+    }
+
+    internal fun migrateSchema(connection: Connection) {
+        createTables(connection)
+        ensureSchemaVersion(connection)
     }
 
     private fun createTables(connection: Connection) {
@@ -219,12 +265,34 @@ internal object DesktopSqliteStorage {
                 )
                 """.trimIndent()
             )
+            statement.execute(
+                """
+                CREATE TABLE IF NOT EXISTS $TABLE_PREFERENCES_STATE (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    payload TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
         }
     }
 
     private fun ensureSchemaVersion(connection: Connection) {
+        val existingVersion =
+            connection.prepareStatement(
+                "SELECT value FROM $TABLE_SCHEMA_META WHERE key = 'schema_version'"
+            ).use { statement ->
+                statement.executeQuery().use { rs ->
+                    if (rs.next()) rs.getString("value").toIntOrNull() else null
+                }
+            }
+
+        require(existingVersion == null || existingVersion <= SCHEMA_VERSION) {
+            "Unsupported desktop storage schema version: $existingVersion"
+        }
+
         connection.prepareStatement(
-            "INSERT OR IGNORE INTO $TABLE_SCHEMA_META (key, value) VALUES ('schema_version', ?)"
+            "INSERT OR REPLACE INTO $TABLE_SCHEMA_META (key, value) VALUES ('schema_version', ?)"
         ).use { statement ->
             statement.setString(1, SCHEMA_VERSION.toString())
             statement.executeUpdate()

@@ -7,10 +7,11 @@ launcher="${2:?Application launcher is required}"
 label="${3:-Unix app image}"
 timeout_seconds="${4:-12}"
 verify_sqlite="${5:-false}"
+flavor="${6:-}"
 
-case "${verify_sqlite,,}" in
-  true|1|yes|on) verify_sqlite=true ;;
-  false|0|no|off) verify_sqlite=false ;;
+case "$verify_sqlite" in
+  true|TRUE|True|1|yes|YES|Yes|on|ON|On) verify_sqlite=true ;;
+  false|FALSE|False|0|no|NO|No|off|OFF|Off) verify_sqlite=false ;;
   *)
     echo "Unsupported SQLite verification flag: $verify_sqlite"
     exit 2
@@ -31,6 +32,10 @@ fi
 app_root="$(cd "$app_root" && pwd -P)"
 launcher_dir="$(cd "$(dirname "$launcher")" && pwd -P)"
 launcher="$launcher_dir/$(basename "$launcher")"
+if [[ -n "$flavor" ]]; then
+  python3 "$(dirname "$0")/verify_packaged_tools.py" \
+    --app-root "$app_root" --flavor "$flavor" --expected-commit "${GITHUB_SHA:?Build commit is required}"
+fi
 
 stdout_log="${RUNNER_TEMP:-/tmp}/seal-smoke-${RANDOM}-stdout.log"
 stderr_log="${RUNNER_TEMP:-/tmp}/seal-smoke-${RANDOM}-stderr.log"

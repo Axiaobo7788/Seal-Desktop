@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.sp
 import com.junkfood.seal.R
 import com.junkfood.seal.download.DownloaderV2
 import com.junkfood.seal.download.TaskFactory
+import com.junkfood.seal.download.filterSubtitleLanguages
 import com.junkfood.seal.ui.component.ClearButton
 import com.junkfood.seal.ui.component.ConfirmButton
 import com.junkfood.seal.ui.component.DismissButton
@@ -139,7 +140,7 @@ fun FormatPage(
         if (downloadSubtitle) {
             videoInfo
                 .run { subtitles.keys + automaticCaptions.keys }
-                .filterWithRegex(subtitleLanguageRegex)
+                .filterSubtitleLanguages(subtitleLanguageRegex)
         } else {
             emptySet()
         }
@@ -160,7 +161,7 @@ fun FormatPage(
         with(config) {
             diffSubtitleLanguages =
                 (selectedSubtitles + selectedAutoCaptions)
-                    .run { this - this.filterWithRegex(subtitleLanguageRegex) }
+                    .run { this - this.filterSubtitleLanguages(subtitleLanguageRegex) }
                     .toSet()
 
             downloader.enqueue(
@@ -1017,11 +1018,6 @@ private fun ClickableTextAction(
                     .padding(vertical = 4.dp, horizontal = 12.dp),
         )
     }
-}
-
-fun <T : Collection<String>> T.filterWithRegex(subtitleLanguageRegex: String): Set<String> {
-    val regexGroup = subtitleLanguageRegex.split(',')
-    return filter { language -> regexGroup.any { Regex(it).matchEntire(language) != null } }.toSet()
 }
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -8,6 +8,7 @@ import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryEntry
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryStorage
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopAppSettingsStorage
+import com.junkfood.seal.desktop.settings.DesktopPreferencesStorage
 import com.junkfood.seal.util.DownloadPreferences
 import kotlin.io.path.createDirectories
 import kotlin.io.path.readText
@@ -66,36 +67,44 @@ fun main() = runBlocking {
     val queueStorage = DesktopDownloadQueueStorage()
     val historyStorage = DesktopDownloadHistoryStorage()
     val settingsStorage = DesktopAppSettingsStorage()
+    val preferencesStorage = DesktopPreferencesStorage()
 
     val queueBackup = sampleQueueBackup()
     val historyEntries = sampleHistory()
     val settings = sampleSettings()
+    val preferences = DownloadPreferences.EMPTY.copy(formatIdString = "self-check-format")
 
     queueStorage.save(queueBackup)
     historyStorage.save(historyEntries)
     settingsStorage.save(settings)
+    preferencesStorage.save(preferences)
 
     val loadedQueue = queueStorage.load()
     val loadedHistory = historyStorage.load()
     val loadedSettings = settingsStorage.load()
+    val loadedPreferences = preferencesStorage.load()
 
     check(loadedQueue.items.size == queueBackup.items.size, "Queue size mismatch after save/load")
     check(loadedHistory.isNotEmpty(), "History should not be empty after save/load")
     check(loadedSettings?.customCommandLabel == settings.customCommandLabel, "Settings mismatch after save/load")
+    check(loadedPreferences?.formatIdString == preferences.formatIdString, "Preferences mismatch after save/load")
 
     if (DesktopStorageConfig.backend == DesktopStorageBackend.DualWrite) {
         val queuePath = queueJsonPath()
         val historyPath = historyJsonPath()
         val settingsPath = appSettingsJsonPath()
+        val preferencesPath = preferencesJsonPath()
 
         // Corrupt JSON files to verify dual mode fallback can recover from SQLite.
         queuePath.writeText("{\"broken\":")
         historyPath.writeText("{\"broken\":")
         settingsPath.writeText("{\"broken\":")
+        preferencesPath.writeText("{\"broken\":")
 
         val queueAfterCorruption = queueStorage.load()
         val historyAfterCorruption = historyStorage.load()
         val settingsAfterCorruption = settingsStorage.load()
+        val preferencesAfterCorruption = preferencesStorage.load()
 
         check(
             queueAfterCorruption.items.any { it.id == "selfcheck-1" },
@@ -109,13 +118,19 @@ fun main() = runBlocking {
             settingsAfterCorruption?.customCommandLabel == "self-check",
             "Dual mode settings fallback to SQLite failed",
         )
+        check(
+            preferencesAfterCorruption?.formatIdString == "self-check-format",
+            "Dual mode preferences fallback to SQLite failed",
+        )
 
         val quarantinedQueue = queuePath.parent?.toFile()?.listFiles()?.any { it.name.contains("queue.json.corrupt-") } == true
         val quarantinedHistory = historyPath.parent?.toFile()?.listFiles()?.any { it.name.contains("history.json.corrupt-") } == true
         val quarantinedSettings = settingsPath.parent?.toFile()?.listFiles()?.any { it.name.contains("app-settings.json.corrupt-") } == true
+        val quarantinedPreferences = preferencesPath.parent?.toFile()?.listFiles()?.any { it.name.contains("settings.json.corrupt-") } == true
         check(quarantinedQueue, "Queue corrupted file was not quarantined")
         check(quarantinedHistory, "History corrupted file was not quarantined")
         check(quarantinedSettings, "Settings corrupted file was not quarantined")
+        check(quarantinedPreferences, "Preferences corrupted file was not quarantined")
     }
 
     if (DesktopStorageConfig.backend == DesktopStorageBackend.Sqlite) {
@@ -131,5 +146,6 @@ fun main() = runBlocking {
         println("[DesktopStorageSelfCheck] queue.json bytes=${queueJsonPath().readText().length}")
         println("[DesktopStorageSelfCheck] history.json bytes=${historyJsonPath().readText().length}")
         println("[DesktopStorageSelfCheck] app-settings.json bytes=${appSettingsJsonPath().readText().length}")
+        println("[DesktopStorageSelfCheck] settings.json bytes=${preferencesJsonPath().readText().length}")
     }
 }

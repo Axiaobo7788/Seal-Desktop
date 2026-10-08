@@ -4,12 +4,17 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.junkfood.seal.desktop.network.DesktopProxyResolver
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DESKTOP_ARIA2C_DOWNLOADER
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
+import com.junkfood.seal.desktop.cookies.DesktopCookieContext
+import com.junkfood.seal.desktop.cookies.DesktopCookieResolver
+import com.junkfood.seal.desktop.download.archive.wasSkippedByDownloadArchive
+import com.junkfood.seal.desktop.cookies.ytDlpArguments
 import com.junkfood.seal.download.CustomCommandPlan
 import com.junkfood.seal.download.YtDlpOption
 import com.junkfood.seal.download.buildCustomCommandPlan
@@ -56,6 +61,7 @@ object DesktopCustomCommandTaskManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val executor = DownloadPlanExecutor()
+    private val cookieResolver = DesktopCookieResolver()
     private val runningProcesses = ConcurrentHashMap<String, DownloadPlanExecutor.RunningProcess>()
     private val canceledTaskIds = ConcurrentHashMap.newKeySet<String>()
 
@@ -96,7 +102,7 @@ object DesktopCustomCommandTaskManager {
     ): Result<String> {
         val urls = parseUrls(urlInput)
         if (urls.isEmpty()) {
-            return Result.failure(IllegalArgumentException("URL is empty"))
+            return Result.failure(IllegalArgumentException(AndroidStrings.get("url_empty")))
         }
 
         val taskId = "cmd-${System.currentTimeMillis()}-${(_tasks.size + 1)}"
@@ -120,7 +126,7 @@ object DesktopCustomCommandTaskManager {
         if (appSettings.downloadNotificationEnabled) {
             scope.launch {
                 DesktopNotifier.sendNotification(
-                    title = "Command Started",
+                    title = AndroidStrings.get("desktop_command_started"),
                     message = template.label,
                 )
             }
@@ -137,7 +143,14 @@ object DesktopCustomCommandTaskManager {
                         aria2cDownloader = DESKTOP_ARIA2C_DOWNLOADER,
                     )
                 configFile = writeTemplateConfig(taskId, template.template)
-                val args = buildCommandArgs(plan, urls, configFile)
+                val args =
+                    buildDesktopCustomCommandArgs(
+                        plan = plan,
+                        urls = urls,
+                        configFile = configFile,
+                        cookieContext = cookieResolver.resolve(preferences),
+                        archiveFile = DesktopYtDlpPaths.archiveFile(),
+                    )
 
                 val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(preferences, appSettings)
                 val proxyEnv = DesktopProxyResolver.buildProxyEnvironment(runtimeProxy)
@@ -177,16 +190,17 @@ object DesktopCustomCommandTaskManager {
                     return@launch
                 }
 
-                val success = result.exitCode == 0
+                val archiveSkipped = preferences.useDownloadArchive && result.wasSkippedByDownloadArchive()
+                val success = result.exitCode == 0 && !archiveSkipped
                 if (appSettings.downloadNotificationEnabled) {
                     if (success) {
                         DesktopNotifier.sendNotification(
-                            title = "Command Completed",
+                            title = AndroidStrings.get("desktop_command_completed"),
                             message = template.label
                         )
                     } else {
                         DesktopNotifier.sendNotification(
-                            title = "Command Error",
+                            title = AndroidStrings.get("desktop_command_error"),
                             message = template.label
                         )
                     }
@@ -201,7 +215,9 @@ object DesktopCustomCommandTaskManager {
                             if (success) {
                                 null
                             } else {
-                                result.stderr.lastOrNull { line -> isYtDlpErrorLine(line) }
+                                if (archiveSkipped) {
+                                    AndroidStrings.get("download_archive_error")
+                                } else result.stderr.lastOrNull { line -> isYtDlpErrorLine(line) }
                                     ?: result.stderr.lastOrNull()
                             },
                         exitCode = result.exitCode,
@@ -241,7 +257,7 @@ object DesktopCustomCommandTaskManager {
         appSettings: DesktopAppSettings = DesktopAppSettings(),
     ): Result<String> {
         val task = _tasks.firstOrNull { it.id == taskId }
-            ?: return Result.failure(IllegalArgumentException("Task not found"))
+            ?: return Result.failure(IllegalArgumentException(AndroidStrings.get("desktop_error_task_not_found")))
 
         return start(
             urlInput = task.urlInput,
@@ -279,24 +295,6 @@ object DesktopCustomCommandTaskManager {
         }
     }
 
-    private fun buildCommandArgs(plan: CustomCommandPlan, urls: List<String>, configFile: Path): List<String> {
-        val args = mutableListOf<String>()
-        args += plan.options.flatMap { it.asCliArgs() }
-        if (plan.needsCookiesFile) {
-            args += listOf("--cookies", DesktopYtDlpPaths.cookiesFile().toAbsolutePath().toString())
-        }
-        if (plan.needsArchiveFile) {
-            args +=
-                listOf(
-                    "--download-archive",
-                    DesktopYtDlpPaths.archiveFile().toAbsolutePath().toString(),
-                )
-        }
-        args += listOf("--config-locations", configFile.toAbsolutePath().toString())
-        args += urls
-        return args
-    }
-
     private fun writeTemplateConfig(taskId: String, template: String): Path {
         val dir = DesktopYtDlpPaths.tempDirectory()
         runCatching { Files.createDirectories(dir) }
@@ -330,3 +328,22 @@ object DesktopCustomCommandTaskManager {
             normalized.contains(" failed")
     }
 }
+
+internal fun buildDesktopCustomCommandArgs(
+    plan: CustomCommandPlan,
+    urls: List<String>,
+    configFile: Path,
+    cookieContext: DesktopCookieContext,
+    archiveFile: Path,
+): List<String> =
+    buildList {
+        addAll(plan.options.flatMap { it.asCliArgs() })
+        addAll(cookieContext.ytDlpArguments())
+        if (plan.needsArchiveFile) {
+            add("--download-archive")
+            add(archiveFile.toAbsolutePath().toString())
+        }
+        add("--config-locations")
+        add(configFile.toAbsolutePath().toString())
+        addAll(urls)
+    }

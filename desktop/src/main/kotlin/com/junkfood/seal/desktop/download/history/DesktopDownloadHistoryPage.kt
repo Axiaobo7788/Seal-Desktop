@@ -76,6 +76,7 @@ import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.backup_type
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.clipboard
+import com.junkfood.seal.shared.generated.resources.close
 import com.junkfood.seal.shared.generated.resources.copy_link
 import com.junkfood.seal.shared.generated.resources.delete
 import com.junkfood.seal.shared.generated.resources.download_history_imported
@@ -99,6 +100,7 @@ import com.junkfood.seal.shared.generated.resources.remove
 import com.junkfood.seal.shared.generated.resources.search
 import com.junkfood.seal.shared.generated.resources.search_in_downloads
 import com.junkfood.seal.shared.generated.resources.show_more_actions
+import com.junkfood.seal.shared.generated.resources.status_error
 import com.junkfood.seal.shared.generated.resources.thumbnail
 import com.junkfood.seal.shared.generated.resources.unknown
 import com.junkfood.seal.shared.generated.resources.unavailable
@@ -147,6 +149,8 @@ fun DesktopDownloadHistoryPage(
     var audioFilter by remember { mutableStateOf(false) }
     var videoFilter by remember { mutableStateOf(false) }
     var activeSourceIndex by remember { mutableStateOf(-1) }
+    val importFileDialogTitle = stringResource(Res.string.import_backup)
+    val exportFileDialogTitle = stringResource(Res.string.export_backup)
 
     var actionsOpen by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
@@ -390,7 +394,7 @@ fun DesktopDownloadHistoryPage(
                             DesktopHistoryExportType.DownloadHistory -> "seal-history.json"
                             DesktopHistoryExportType.UrlList -> "seal-urls.txt"
                         }
-                        val path = pickSavePath(suggested)
+                        val path = pickSavePath(exportFileDialogTitle, suggested)
                         if (path != null) {
                             onExportToFile(type, path) { res ->
                                 res.exceptionOrNull()?.let { errorDialog = it.message ?: it.toString() }
@@ -416,7 +420,7 @@ fun DesktopDownloadHistoryPage(
                 showImportDialog = false
                 when (destination) {
                     DesktopHistoryIoDestination.File -> {
-                        val path = pickOpenPath()
+                        val path = pickOpenPath(importFileDialogTitle)
                         if (path != null) {
                             onImportFromFile(path) { res ->
                                 res.onSuccess { count ->
@@ -460,9 +464,9 @@ fun DesktopDownloadHistoryPage(
             visible = errorDialog != null,
             onDismissRequest = { errorDialog = null },
             confirmButton = {
-                Button(onClick = { errorDialog = null }) { Text("OK") }
+                Button(onClick = { errorDialog = null }) { Text(stringResource(Res.string.close)) }
             },
-            title = { Text("Error") },
+            title = { Text(stringResource(Res.string.status_error)) },
             text = { Text(errorDialogHost.orEmpty()) },
         )
 
@@ -873,15 +877,15 @@ private fun DesktopHistoryImportDialog(
     )
 }
 
-private fun pickOpenPath(): Path? {
-    val dialog = FileDialog(null as Frame?, "Import", FileDialog.LOAD)
+private fun pickOpenPath(title: String): Path? {
+    val dialog = FileDialog(null as Frame?, title, FileDialog.LOAD)
     dialog.isVisible = true
     val file = dialog.file ?: return null
     return runCatching { Path.of(dialog.directory, file) }.getOrNull()
 }
 
-private fun pickSavePath(suggestedFileName: String): Path? {
-    val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE)
+private fun pickSavePath(title: String, suggestedFileName: String): Path? {
+    val dialog = FileDialog(null as Frame?, title, FileDialog.SAVE)
     dialog.file = suggestedFileName
     dialog.isVisible = true
     val file = dialog.file ?: return null

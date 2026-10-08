@@ -1,6 +1,8 @@
 # Android 与 Desktop 交付进度总览（2026-04-27）
 
 > 归档说明（2026-07-08）：本文保留为 2026-04 阶段的历史进度基线和迁移决策记录。当前项目整体整理、Android/Desktop parity、冗余代码清理和新的未完成项已经合并到 `docs/desktop-project-audit-2026-06-15.md`。本文中“唯一进度基线”“P1 0 项 + P2 2 项”等结论仅代表当时快照，不再作为当前状态依据。
+>
+> 失效结论（2026-08-25）：本文的“Cookies 后端闭环”和“队列 Resume 已完成”只表示当时已有最小 UI/执行接线。后续复核确认 metadata 认证、UA、浏览器辅助语义、重试模式和依赖健康仍有缺口，当前状态以审计文档 D-01 至 D-04 为准。
 
 ## 1. 目的与范围
 - 本文曾是 Android 与 Desktop 对齐收尾阶段的进度基线，聚焦后端、迁移与模块边界；当前已降级为历史基线。
@@ -9,7 +11,7 @@
 
 ## 2. 结论摘要（历史快照）
 - 历史快照：Desktop 相对 Android 当时剩余 P1 0 项 + P2 2 项。
-- 已完成项：并发下载调度、窗口关闭语义、SQLite 数据持久化（三后端 DualWrite）、模板备份语义、Cookies 后端闭环、自定义命令通知闭环（started/completed/error）、自定义命令任务恢复语义升级（Interrupted 状态）。
+- 当时标记的已完成项：并发下载调度、窗口关闭语义、SQLite 数据持久化（三后端 DualWrite）、模板备份语义、Cookies 最小闭环、自定义命令通知闭环（started/completed/error）、自定义命令任务恢复语义升级（Interrupted 状态）。其中 Cookies 完成结论已被后续复核撤销。
 - 可废除逻辑分三档：立即可删 1 项、条件下线 1 组、必须保留 1 组。
 
 ### 2.1 文档治理结论
@@ -151,11 +153,11 @@
 - 结构化事件日志：[`DesktopStorageEventLogger`](../desktop/src/main/kotlin/com/junkfood/seal/desktop/storage/DesktopStorageEventLogger.kt#L17)
 - 自检脚本：[`DesktopStorageSelfCheckMain`](../desktop/src/main/kotlin/com/junkfood/seal/desktop/storage/DesktopStorageSelfCheckMain.kt#L62)、[Gradle 任务注册](../desktop/build.gradle.kts#L55)
 
-### 3.4 Cookies 后端管理（已完成）
-- 当前状态：Desktop 已补全文件导入/导出/清除/计数/开关检查最小闭环，通过 `FileDialog` + `DesktopYtDlpPaths.cookiesFile()` 实现 Netscape 格式 cookies 管理。
-- 执行层 `--cookies` 注入已就绪（`DesktopDownloadController` + `DesktopCustomCommandTaskManager`），与 UI 开关联动。
-- 详细分析：[cookies-gap-analysis.md](cookies-gap-analysis.md)
-- 实现计划：[cookies-implementation-plan.md](cookies-implementation-plan.md)（Task 1-5 全部完成）
+### 3.4 Cookies 后端管理（历史最小闭环，当前结论已失效）
+- 2026-04 当时完成了文件导入/导出/清除/计数、开关检查和正式下载阶段的 Netscape 文件注入。
+- 后续确认 Desktop 的真实模型是“已登录浏览器辅助生成一个全局 cookies 文件”，不是 Android Cookie Profiles，也不是应用可以独立获得登录态。
+- metadata/格式页尚未接入同一认证上下文，UA 控件也没有完整落到持久化和执行层，因此不能继续标记为功能完成。
+- 当前证据、产品边界和修复顺序统一见 [`desktop-project-audit-2026-06-15.md`](desktop-project-audit-2026-06-15.md) 的 D-01、I4-1 和 13d。
 
 ### 3.5 通知交互动作（已完成 / Desktop 平台限制说明）
 - 现状：自定义命令任务已具备完整通知生命周期：**任务开始**发送 "Command Started" 系统通知，运行中通过应用内悬浮卡片（`DesktopCustomCommandNotificationOverlay`）提供取消/查看日志动作，**完成/失败**发送 "Command Completed/Error" 系统通知。普通下载任务已具备 Completed/Error 系统通知。
@@ -234,9 +236,9 @@
 4. 保留 2 项 P1 增强项（通知增强、任务恢复语义升级）和 1 项 P2 UI 完备度差距。
 5. 将 3.7.2 从 3 项扩展为 12 项，3.7.3 从 8 项压缩为 3 项。
 
-#### 3.7.5 后续建议（下一轮）
-1. 补齐自定义命令通知：至少增加运行中进度通知与可点击动作入口。
-2. 将任务恢复语义从 Running -> Canceled 升级为可选的继续/恢复能力，或明确定义为只保留历史快照。
+#### 3.7.5 当时后续建议及后续结果
+1. ~~补齐自定义命令通知。~~ 后续已增加 started/completed/error 通知和应用内覆盖层；系统通知原生动作仍属于平台专项。
+2. ~~将任务恢复语义从 Running -> Canceled 升级。~~ 后续已使用独立 Interrupted 状态；普通下载队列的重试语义是另一项现行缺口。
 3. 为设置页、侧边栏页和下载入口补回归用例。
 
 ## 4. 可废除后端逻辑清单
@@ -304,9 +306,10 @@
 1. Desktop 下载并发调度（`Semaphore(3)` + `withPermit`）。
   - [并发上限](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L53)
   - [并发门禁](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L224)
-2. 队列 Resume/Cancel 链路。
+2. 队列 Resume/Cancel 基础链路（历史接线完成，不代表重试语义已经收敛）。
   - [Resume 入口](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L572)
   - [Cancel 入口](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L234)
+  - 当前缺口：Canceled/Error 共用动作、失败阶段未持久化、没有“编辑并重试”；见现行审计 D-03 与 13k。
 3. yt-dlp 进度解析与展示链路。
   - [进度更新入口](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L774)
   - [ETA/速度解析](../desktop/src/main/kotlin/com/junkfood/seal/desktop/download/DesktopDownloadController.kt#L810)

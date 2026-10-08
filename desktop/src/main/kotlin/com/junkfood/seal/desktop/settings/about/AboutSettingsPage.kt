@@ -5,58 +5,38 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NewReleases
-import androidx.compose.material.icons.rounded.Update
-import androidx.compose.material.icons.rounded.UpdateDisabled
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
-import com.junkfood.seal.desktop.settings.ChoiceDialog
-import com.junkfood.seal.desktop.settings.DesktopAppSettings
-import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
-import com.junkfood.seal.desktop.settings.SwitchWithDividerCard
-import com.junkfood.seal.desktop.settings.ToggleCard
-import com.junkfood.seal.desktop.settings.UpdateChannelPreview
-import com.junkfood.seal.desktop.settings.UpdateChannelStable
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.about
-import com.junkfood.seal.shared.generated.resources.auto_update
-import com.junkfood.seal.shared.generated.resources.check_for_updates_desc
 import com.junkfood.seal.shared.generated.resources.credits
 import com.junkfood.seal.shared.generated.resources.credits_desc
-import com.junkfood.seal.shared.generated.resources.enable_auto_update
+import com.junkfood.seal.shared.generated.resources.desktop_app_update
+import com.junkfood.seal.shared.generated.resources.desktop_manual_update_desc
 import com.junkfood.seal.shared.generated.resources.matrix_space
-import com.junkfood.seal.shared.generated.resources.pre_release_channel
+import com.junkfood.seal.shared.generated.resources.package_name
 import com.junkfood.seal.shared.generated.resources.readme
 import com.junkfood.seal.shared.generated.resources.readme_desc
-import com.junkfood.seal.shared.generated.resources.release
-import com.junkfood.seal.shared.generated.resources.release_desc
 import com.junkfood.seal.shared.generated.resources.sponsor
 import com.junkfood.seal.shared.generated.resources.sponsor_desc
-import com.junkfood.seal.shared.generated.resources.stable_channel
 import com.junkfood.seal.shared.generated.resources.telegram_channel
-import com.junkfood.seal.shared.generated.resources.update_channel
-import com.junkfood.seal.shared.generated.resources.update_channel_desc
 import com.junkfood.seal.shared.generated.resources.version
 import org.jetbrains.compose.resources.stringResource
 
 private const val repoUrl = "https://github.com/JunkFood02/Seal"
-private const val releaseUrl = "https://github.com/JunkFood02/Seal/releases"
+internal const val desktopReleaseUrl = "https://github.com/Axiaobo7788/Seal-Desktop/releases"
 private const val sponsorUrl = "https://github.com/sponsors/JunkFood02"
 private const val telegramUrl = "https://t.me/seal_app"
 private const val matrixUrl = "https://matrix.to/#/#seal-space:matrix.org"
 
 @Composable
 internal fun AboutSettingsPage(
-    settings: DesktopAppSettings,
-    onUpdate: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     onOpenCredits: () -> Unit,
     onOpenUpdate: () -> Unit,
     onBack: () -> Unit,
@@ -76,12 +56,6 @@ internal fun AboutSettingsPage(
             description = stringResource(Res.string.readme_desc),
             icon = Icons.Rounded.Description,
             onClick = { uriHandler.openUri(repoUrl) },
-        )
-        SelectionCard(
-            title = stringResource(Res.string.release),
-            description = stringResource(Res.string.release_desc),
-            icon = Icons.Rounded.NewReleases,
-            onClick = { uriHandler.openUri(releaseUrl) },
         )
         SelectionCard(
             title = stringResource(Res.string.sponsor),
@@ -108,15 +82,12 @@ internal fun AboutSettingsPage(
             onClick = onOpenCredits,
         )
 
-        SwitchWithDividerCard(
-            title = stringResource(Res.string.auto_update),
-            description = stringResource(Res.string.check_for_updates_desc),
-            icon = if (settings.autoUpdateEnabled) Icons.Rounded.Update else Icons.Rounded.UpdateDisabled,
-            checked = settings.autoUpdateEnabled,
-            onClick = onOpenUpdate
-        ) { checked ->
-            onUpdate { it.copy(autoUpdateEnabled = checked) }
-        }
+        SelectionCard(
+            title = stringResource(Res.string.desktop_app_update),
+            description = stringResource(Res.string.desktop_manual_update_desc),
+            icon = Icons.Rounded.NewReleases,
+            onClick = onOpenUpdate,
+        )
 
         SelectionCard(
             title = stringResource(Res.string.version),
@@ -126,7 +97,7 @@ internal fun AboutSettingsPage(
         )
 
         SelectionCard(
-            title = "Package name",
+            title = stringResource(Res.string.package_name),
             description = "com.junkfood.seal.desktop",
             icon = null,
             onClick = { clipboardManager.setText(AnnotatedString("com.junkfood.seal.desktop")) },

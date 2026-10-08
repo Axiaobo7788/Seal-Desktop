@@ -13,6 +13,8 @@ import com.junkfood.seal.desktop.storage.DesktopStorageEventLogger
 import com.junkfood.seal.desktop.storage.appSettingsJsonPath
 import com.junkfood.seal.desktop.storage.quarantineCorruptedFile
 import com.junkfood.seal.desktop.storage.writeTextAtomically
+import com.junkfood.seal.desktop.cookies.DesktopCookieCacheMetadata
+import com.junkfood.seal.desktop.cookies.DesktopCookieBrowserPreference
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -49,6 +51,7 @@ data class DesktopAppSettings(
     val downloadTypeInitialization: Int = DownloadTypeNone,
     val downloadNotificationEnabled: Boolean = false,
     val disablePreview: Boolean = false,
+    // Legacy fields retained so existing app-settings JSON/SQLite rows remain readable.
     val autoUpdateEnabled: Boolean = false,
     val updateChannel: Int = UpdateChannelStable,
     val languageTag: String? = null,
@@ -60,6 +63,8 @@ data class DesktopAppSettings(
     val ytDlpAutoUpdate: Boolean = true,
     val ytDlpUpdateInterval: Long = 604800000L,
     val environmentPreference: Int = EnvPrefAuto,
+    val cookieBrowserPreference: DesktopCookieBrowserPreference = DesktopCookieBrowserPreference(),
+    val cookieCacheMetadata: DesktopCookieCacheMetadata = DesktopCookieCacheMetadata(),
 )
 
 private fun appSettingsPath(): Path {

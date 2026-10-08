@@ -45,7 +45,8 @@ fun main() = runBlocking {
 
     val resolution = DesktopDependencyResolver.resolve(EnvPrefBundled)
     check(resolution.isComplete) {
-        "Bundled dependency resolution failed after download: ${resolution.missingNames.joinToString()}"
+        "Bundled dependency resolution failed after download. " +
+            "Missing: ${resolution.missingNames.joinToString()}; broken: ${resolution.brokenNames.joinToString()}"
     }
     check(resolution.ytDlp?.path?.toAbsolutePath()?.normalize() == ytDlp) {
         "Resolver selected unexpected yt-dlp path: ${resolution.ytDlp?.path}"

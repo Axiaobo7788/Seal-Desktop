@@ -46,6 +46,7 @@ internal fun TroubleshootingSettingsPage(
     onUpdateAppSettings: ((DesktopAppSettings) -> DesktopAppSettings) -> Unit,
     preferences: DownloadPreferences,
     onUpdate: ((DownloadPreferences) -> DownloadPreferences) -> Unit,
+    onOpenCookies: () -> Unit,
     onBack: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -97,7 +98,7 @@ internal fun TroubleshootingSettingsPage(
             title = stringResource(Res.string.cookies),
             description = stringResource(Res.string.cookies_desc),
             icon = Icons.Outlined.Cookie,
-            onClick = { /* Do nothing for now unless we can link to cookies page */ },
+            onClick = onOpenCookies,
         )
 
         PreferenceSubtitle(text = stringResource(Res.string.download_directory))

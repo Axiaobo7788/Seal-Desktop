@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.junkfood.seal.desktop.paths.DesktopAppPaths
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -51,14 +52,7 @@ object DarkThemePreference {
     const val OFF = 3
 }
 
-private fun defaultThemePath(): Path {
-    val xdg = System.getenv("XDG_STATE_HOME")?.takeIf { it.isNotBlank() }
-    val base =
-        if (xdg != null) Path.of(xdg) else Path.of(System.getProperty("user.home"), ".local", "state")
-    return base.resolve("seal").resolve("theme.json")
-}
-
-class DesktopThemeStorage(private val path: Path = defaultThemePath()) {
+class DesktopThemeStorage(private val path: Path = DesktopAppPaths.themeSettingsFile()) {
     suspend fun load(): DesktopThemePreferences? =
         withContext(Dispatchers.IO) {
             if (!path.exists()) return@withContext null

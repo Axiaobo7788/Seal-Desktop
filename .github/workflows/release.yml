@@ -49,7 +49,7 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "release_type=${release_type}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve latest successful workflow runs
+      - name: Resolve successful workflow runs for build commit
         id: resolve_runs
         uses: actions/github-script@v9
         with:
@@ -57,19 +57,23 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            async function findLatestSuccessfulRun(workflowFile) {
+            async function findSuccessfulRunForCommit(workflowFile) {
               const res = await github.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
                 workflow_id: workflowFile,
                 branch: "main",
                 status: "completed",
-                per_page: 50,
+                per_page: 100,
               });
 
-              const run = res.data.workflow_runs.find((workflowRun) => workflowRun.conclusion === "success");
+              const run = res.data.workflow_runs.find((workflowRun) =>
+                workflowRun.conclusion === "success" && workflowRun.head_sha === targetCommit
+              );
               if (!run) {
-                throw new Error(`No successful run found for ${workflowFile} on branch main`);
+                throw new Error(
+                  `No successful run found for ${workflowFile} at build commit ${targetCommit}`
+                );
               }
 
               core.info(`Selected ${workflowFile} run: ${run.id} (${run.html_url})`);
@@ -93,9 +97,22 @@ jobs:
               return String(artifact.id);
             }
 
-            const linuxRunId = await findLatestSuccessfulRun("linux_x64_portable.yml");
-            const windowsRunId = await findLatestSuccessfulRun("windows_x64_portable.yml");
-            const macosRunId = await findLatestSuccessfulRun("macos_portable.yml");
+            const targetCommit = context.eventName === "release"
+              ? (await github.rest.repos.getCommit({
+                  owner,
+                  repo,
+                  ref: context.payload.release.tag_name,
+                })).data.sha
+              : context.sha;
+            core.info(`Release build commit: ${targetCommit}`);
+            core.setOutput("build_commit", targetCommit);
+
+            const linuxRunId = await findSuccessfulRunForCommit("linux_x64_portable.yml");
+            const windowsRunId = await findSuccessfulRunForCommit("windows_x64_portable.yml");
+            const macosRunId = await findSuccessfulRunForCommit("macos_portable.yml");
+            core.setOutput("linux_run_id", linuxRunId);
+            core.setOutput("windows_run_id", windowsRunId);
+            core.setOutput("macos_run_id", macosRunId);
 
             async function safeFindArtifactId(runId, artifactName) {
               try { return await findArtifactId(runId, artifactName); } catch (e) { return null; }
@@ -167,6 +184,26 @@ jobs:
           download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_pkg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-pkg"
           download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_pkg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-pkg"
 
+      - name: Record release provenance and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-assets/BUILD_PROVENANCE.txt <<EOF
+          format_version=1
+          release_version=${{ steps.release_meta.outputs.version }}
+          release_type=${{ steps.release_meta.outputs.release_type }}
+          build_commit=${{ steps.resolve_runs.outputs.build_commit }}
+          linux_workflow_run=${{ steps.resolve_runs.outputs.linux_run_id }}
+          windows_workflow_run=${{ steps.resolve_runs.outputs.windows_run_id }}
+          macos_workflow_run=${{ steps.resolve_runs.outputs.macos_run_id }}
+          EOF
+          (
+            cd release-assets
+            sha256sum ./*.zip > SHA256SUMS
+          )
+          cat release-assets/BUILD_PROVENANCE.txt
+          cat release-assets/SHA256SUMS
+
       - name: Publish to GitHub Release (workflow_dispatch)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v3
@@ -180,6 +217,8 @@ jobs:
           generate_release_notes: true
           files: |
             release-assets/*.zip
+            release-assets/BUILD_PROVENANCE.txt
+            release-assets/SHA256SUMS
 
       - name: Upload assets to existing release (release event)
         if: ${{ github.event_name == 'release' }}
@@ -190,3 +229,5 @@ jobs:
           make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
           files: |
             release-assets/*.zip
+            release-assets/BUILD_PROVENANCE.txt
+            release-assets/SHA256SUMS

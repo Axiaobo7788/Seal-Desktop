@@ -2,7 +2,7 @@
 
 > Status: active engineering specification
 >
-> Updated: 2026-08-12
+> Updated: 2026-09-28
 >
 > Scope: Android, shared KMP, Desktop JVM, CI, packaging, resources, and project documentation
 
@@ -12,14 +12,17 @@ This document defines how changes are designed and accepted. It is not a progres
 
 | Document | Role | May contain |
 | --- | --- | --- |
-| `AGENTS.md` | Mandatory execution contract | Hard boundaries, minimum validation, completion rules |
+| `AGENTS.md` | Mandatory execution contract | Hard boundaries, operating mode, minimum validation, completion rules |
+| `docs/project-memory.md` | Durable memory | Stable architecture/product decisions and recurring traps |
+| `docs/feature-roadmap.md` | Product capability roadmap | Implemented/Partial/Planned/Bug/Decision-needed capability status and Desktop adaptations |\n| `docs/current-progress.md` | Current resume point | Active priorities, verification debt, current confirmed gaps |
 | `docs/development-guidelines.md` | Detailed engineering specification | Architecture, parity, i18n, testing, task templates |
 | `docs/project-map.md` | Navigation | Module locations, key flows, stable entry points |
-| `docs/desktop-project-audit-2026-06-15.md` | Current action list | Defects, priorities, checkboxes, dated verification evidence |
+| `docs/agent-workflow.md` | Agent workflow | Self-iteration loop, stop conditions, human review packets |
+| `docs/desktop-project-audit-2026-06-15.md` | Historical audit/backlog evidence | Dated investigations, detailed backlog context, old verification evidence |
 | `docs/android-desktop-progress-tracker.md` | Historical baseline | Old migration decisions and snapshots |
-| `docs/android-desktop-backend-defects.md` | Compatibility link | Redirect to the current audit only |
+| `docs/android-desktop-backend-defects.md` | Compatibility link | Redirect to current progress and historical audit |
 
-Rules must not be invented inside a dated progress section. If an audit reveals a reusable boundary, add it here and keep only the defect/status entry in the audit.
+Rules must not be invented inside a dated progress section. Put durable decisions in `project-memory.md`, capability state and planned Desktop semantics in `feature-roadmap.md`, current active status in `current-progress.md`, and reusable engineering boundaries here. Dated audit documents are evidence/history, not the first source of current truth.
 
 ## 2. Change Contract
 
@@ -101,6 +104,38 @@ Parity review must cover:
 - Text labels, helper text, accessibility descriptions, and destructive-action confirmation.
 
 Screenshots establish appearance only. Animation and interaction parity require a recording or hands-on check.
+
+### Task retry contract
+
+A queued task owns an immutable snapshot of the user intent that created it. Format selection, subtitles, output paths, renaming, privacy, post-processing, and similar fields must not silently change because global settings changed later.
+
+- `Resume` continues a canceled or interrupted task with its original intent.
+- `Retry` repeats the failed stage with its original intent unless the UI explicitly says otherwise.
+- `Edit and retry` opens the stored snapshot, lets the user confirm changes, and creates a new snapshot or task revision.
+- Runtime context may be resolved again when execution starts: dependency paths and health, automatic proxy detection, current cookie-file availability, and other environment-owned values.
+- Do not replace an old task with the current new-download screen state. Android also serializes creation-time `DownloadPreferences`; a different Desktop behavior requires an explicit Desktop-adaptation decision.
+- Persist enough phase information to distinguish metadata failure, ready-to-download state, active download, cancellation, and process failure. Backward-compatible defaults are required when the queue schema changes.
+
+### Cookies and request authentication
+
+Desktop does not own an embedded authenticated browser session. Browser extraction is the primary way to create the Seal-managed global Netscape cookies file; manual file import is a fallback for an already valid export.
+
+- Treat browser extraction, the persisted cookie file, user agent, and any future headers or impersonation options as one resolved authentication context.
+- Apply the same context to metadata lookup, custom-format lookup, normal downloads, custom commands, and retry. A setting is not complete if only the final download receives authentication.
+- Enabling Cookies without a usable source must fail early with actionable feedback; file shape validation alone does not prove freshness or site authorization.
+- A user-agent control must persist and reach every authenticated request, or it must not be shown as active UI.
+- Browser export may include cookies for multiple sites. Explain the scope, storage path, replacement behavior, and sensitivity before export or import.
+- Android Cookie Profiles and the Desktop global file are different product models. Record Desktop adaptation explicitly before adding profile-like UI.
+
+### SponsorBlock modes
+
+Do not store SponsorBlock as an unchecked free-form category string without a validated domain model.
+
+- Keep `Disabled`, `Default`, `All`, and `Custom(non-empty categories)` distinct.
+- `default` and `all` are yt-dlp semantic tokens, not localized labels or interchangeable aliases. Verify upstream semantics when changing them.
+- Never emit an empty value for `--sponsorblock-remove`.
+- Validate, normalize, and deduplicate custom tokens while preserving a deliberate strategy for unknown values from newer yt-dlp versions.
+- Persisted empty or legacy strings require an explicit migration decision; do not silently broaden removal behavior to `all`.
 
 ## 5. Internationalization Contract
 
@@ -191,13 +226,29 @@ Platform-specific app-private locations are owned by `DesktopDependencyPaths`; g
 
 `yt-dlp` and `ffmpeg` form the required complete environment. `ffprobe` is distributed with the selected ffmpeg package when needed. `aria2c` is optional and must not make the base environment incomplete.
 
+File existence is not dependency health. Resolver-facing status must distinguish at least `Missing`, `Healthy`, and `Broken`.
+
+- Health probes run outside Compose rendering, use a timeout, capture exit code/stdout/stderr, and cache by normalized path plus a file identity such as mtime and size.
+- A wrapper or shim is acceptable when it launches correctly from the packaged application environment. A file named `yt-dlp` is not accepted merely because it exists.
+- In `auto`, a Broken system dependency may be treated as unresolved and offered a Seal-managed replacement. In `system`, report the path and package-manager repair guidance without downloading. In `selfhost`, only Seal-owned files may be modified.
+- User feedback must distinguish missing tools, broken tools, unsupported architecture, download failure, and version-probe timeout.
+
+Local and CI packaging must preserve the Lite/Full boundary:
+
+- Lite contains the application runtime but no downloaded yt-dlp/ffmpeg payload and never performs an implicit build-time download.
+- Full preparation is an explicit task or workflow step, uses the selected OS/architecture artifacts, and verifies them before packaging.
+- Generated `desktop/appResources/<platform>` payloads are build inputs, not source files, and must not be committed accidentally.
+- Lite smoke verifies startup and missing-environment feedback. Full smoke additionally locates and executes packaged yt-dlp, ffmpeg, and ffprobe from the staged and installed artifact.
+
 Changes to this policy require resolver tests for Linux, Windows, macOS Intel, and macOS arm64, plus the dependency smoke workflow. CI may test command construction without mutating a hosted runner through `winget`, Homebrew, or privileged Linux package installation.
 
 ## 7. Persistence And Migration
 
 - New persistent fields require defaults, serialization/storage changes, backward-compatible reads, and restart tests.
+- Before adding a `DownloadPreferences` field, classify it as shared task intent, runtime context, Android-only, Desktop-only, or migration-only. Do not add an uncategorized cross-platform field merely to back one platform's UI.
 - Compatibility fields must be marked migration-only and must not gain new callers.
 - JSON, dual, and SQLite backends must retain equivalent user-visible behavior while more than one is supported.
+- Desktop state, cache, database, settings, cookies, archive, temporary and app-managed binary paths must come from `DesktopAppPaths`; do not reintroduce local `user.home`/XDG/AppData calculations in feature code.
 - Native installers must not pre-create `seal.db` in an installation directory. SQLite is initialized on first run in the user-writable state directory.
 - Corrupt data handling must preserve recoverable user data and expose a diagnosable failure.
 - Private mode must not leave URLs or task payloads in history, queue recovery, logs, or temporary exports beyond the documented session boundary.
@@ -222,7 +273,7 @@ Use the smallest sufficient command during iteration, then run the full affected
 
 ## 9. Progress And Evidence
 
-The audit document records state, not rules. Each completed checkbox should include:
+`docs/current-progress.md` records the current resume state. Dated audit documents may retain detailed historical evidence. For completed work that needs durable verification evidence, record:
 
 ```md
 - [x] Outcome stated in user terms.
@@ -246,5 +297,5 @@ A change is complete only when all applicable statements are true:
 - Required strings use the resource chain and qualifier mapping.
 - Focused automated tests and the affected validation matrix pass.
 - Required native platforms are verified, or the missing evidence is disclosed.
-- Audit status and durable documentation are synchronized.
+- Current progress, feature-roadmap status, and durable documentation are synchronized when applicable.
 - The diff contains no unrelated reversions, generated noise, secrets, machine-local paths, or temporary debugging behavior.

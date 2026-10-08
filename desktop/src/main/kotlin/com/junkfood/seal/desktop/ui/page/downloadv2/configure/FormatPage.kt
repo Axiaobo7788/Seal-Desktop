@@ -92,8 +92,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
+import com.junkfood.seal.desktop.download.customFormatSelectionPolicy
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
+import com.junkfood.seal.download.SubtitleLanguageMatcher
 import com.junkfood.seal.shared.generated.resources.Res
+import com.junkfood.seal.shared.generated.resources.abs_hint
 import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.auto_subtitle
 import com.junkfood.seal.shared.generated.resources.back
@@ -101,9 +104,12 @@ import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.clear
 import com.junkfood.seal.shared.generated.resources.clip_video
 import com.junkfood.seal.shared.generated.resources.discard
+import com.junkfood.seal.shared.generated.resources.fetch_info_error_msg
+import com.junkfood.seal.shared.generated.resources.fetching_info
 import com.junkfood.seal.shared.generated.resources.format_selection
 import com.junkfood.seal.shared.generated.resources.playlist
 import com.junkfood.seal.shared.generated.resources.rename
+import com.junkfood.seal.shared.generated.resources.retry
 import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.search_in_subtitles
 import com.junkfood.seal.shared.generated.resources.show_all_items
@@ -115,6 +121,7 @@ import com.junkfood.seal.shared.generated.resources.suggested
 import com.junkfood.seal.shared.generated.resources.show_more_actions
 import com.junkfood.seal.shared.generated.resources.thumbnail
 import com.junkfood.seal.shared.generated.resources.title
+import com.junkfood.seal.shared.generated.resources.url_empty
 import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_only
 import com.junkfood.seal.ui.download.queue.DownloadThumbnail
@@ -180,12 +187,14 @@ internal fun CustomFormatSelectionSheet(
             LoadingState(onBack = onBack)
         error != null ->
             ErrorState(message = error.orEmpty(), onRetry = { reloadToken += 1 }, onBack = onBack)
-        videoInfo != null ->
+        videoInfo != null -> {
+            val selectionPolicy = customFormatSelectionPolicy(downloadType, basePreferences)
             FormatPageImpl(
                 videoInfo = videoInfo!!,
                 basePreferences = basePreferences,
+                audioOnly = selectionPolicy.audioOnly,
                 isVideoClipEnabled = isVideoClipEnabled,
-                allowMultiAudio = basePreferences.mergeAudioStream,
+                allowMultiAudio = selectionPolicy.allowMultiAudio,
                 onNavigateBack = onBack,
                 onDownloadPressed = { config ->
                     controller.startDownloadWithSelection(
@@ -205,6 +214,7 @@ internal fun CustomFormatSelectionSheet(
                     onDownloadComplete()
                 },
             )
+        }
         else ->
             EmptyState(onBack = onBack)
     }
@@ -227,7 +237,7 @@ private fun LoadingState(onBack: () -> Unit) {
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CircularProgressIndicator()
-                Text("正在获取视频信息...", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(Res.string.fetching_info), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -250,10 +260,14 @@ private fun ErrorState(message: String, onRetry: () -> Unit, onBack: () -> Unit)
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Icon(Icons.Outlined.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                Text("加载失败：$message", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                Text(
+                    "${stringResource(Res.string.fetch_info_error_msg)}: $message",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onRetry) { Text("重试") }
-                    Button(onClick = onBack) { Text("返回") }
+                    Button(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
+                    Button(onClick = onBack) { Text(stringResource(Res.string.back)) }
                 }
             }
         }
@@ -276,8 +290,8 @@ private fun EmptyState(onBack: () -> Unit) {
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("未获取到可用链接", style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onBack) { Text("返回") }
+                Text(stringResource(Res.string.url_empty), style = MaterialTheme.typography.bodyMedium)
+                Button(onClick = onBack) { Text(stringResource(Res.string.back)) }
             }
         }
     }
@@ -288,6 +302,7 @@ private fun EmptyState(onBack: () -> Unit) {
 private fun FormatPageImpl(
     videoInfo: VideoInfo,
     basePreferences: DownloadPreferences,
+    audioOnly: Boolean,
     allowMultiAudio: Boolean,
     onNavigateBack: () -> Unit,
     onDownloadPressed: (FormatConfig) -> Unit,
@@ -306,7 +321,10 @@ private fun FormatPageImpl(
     val durationSeconds = duration.toInt().coerceAtLeast(0)
     val chapterCount = videoInfo.chapters?.size ?: 0
 
-    val initialSubtitleCodes = remember(basePreferences.subtitleLanguage) { parseLanguageCodes(basePreferences.subtitleLanguage) }
+    val subtitleLanguageMatcher =
+        remember(basePreferences.subtitleLanguage) {
+            SubtitleLanguageMatcher.compile(basePreferences.subtitleLanguage)
+        }
     val subtitleCodes = remember(videoInfo.subtitles) { videoInfo.subtitles.keys.sorted() }
     val autoCaptionCodes = remember(videoInfo.automaticCaptions) { videoInfo.automaticCaptions.keys.sorted() }
     val suggestedSubtitleMap: Map<String, List<SubtitleFormat>> =
@@ -327,24 +345,30 @@ private fun FormatPageImpl(
     var showSubtitleSelectionDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
 
+    val suggestedFormats =
+        videoInfo.requestedFormats.orEmpty().ifEmpty {
+            videoInfo.requestedDownloads.orEmpty().flatMap { it.requestedFormats.orEmpty() }
+        }
     val isSuggestedFormatAvailable =
-        !videoInfo.requestedFormats.isNullOrEmpty() || !videoInfo.requestedDownloads.isNullOrEmpty()
+        suggestedFormats.isNotEmpty() && (!audioOnly || suggestedFormats.all(Format::isAudioOnly))
     var isSuggestedFormatSelected by remember { mutableStateOf(isSuggestedFormatAvailable) }
 
     var selectedVideoAudioFormat by remember { mutableIntStateOf(NotSelected) }
     var selectedVideoOnlyFormat by remember { mutableIntStateOf(NotSelected) }
     val selectedAudioOnlyFormats = remember { mutableStateListOf<Int>() }
     val selectedSubtitles =
-        remember(videoInfo.id, basePreferences.subtitleLanguage) {
+        remember(videoInfo.id, basePreferences.subtitleLanguage, basePreferences.downloadSubtitle) {
             mutableStateListOf<String>().apply {
-                addAll(subtitleCodes.filter { code -> initialSubtitleCodes.contains(code) })
+                if (basePreferences.downloadSubtitle) {
+                    addAll(subtitleCodes.filter(subtitleLanguageMatcher::matches))
+                }
             }
         }
     val selectedAutoCaptions =
         remember(videoInfo.id, basePreferences.subtitleLanguage, basePreferences.autoSubtitle) {
             mutableStateListOf<String>().apply {
-                if (basePreferences.autoSubtitle) {
-                    addAll(autoCaptionCodes.filter { code -> initialSubtitleCodes.contains(code) })
+                if (basePreferences.downloadSubtitle && basePreferences.autoSubtitle) {
+                    addAll(autoCaptionCodes.filter(subtitleLanguageMatcher::matches))
                 }
             }
         }
@@ -370,8 +394,7 @@ private fun FormatPageImpl(
         derivedStateOf {
             mutableListOf<Format>().apply {
                 if (isSuggestedFormatSelected) {
-                    videoInfo.requestedFormats?.let { addAll(it) }
-                        ?: videoInfo.requestedDownloads?.forEach { it.requestedFormats?.let { addAll(it) } }
+                    addAll(suggestedFormats)
                 } else {
                     selectedAudioOnlyFormats.forEach { index -> add(audioOnlyFormats.elementAt(index)) }
                     videoAudioFormats.getOrNull(selectedVideoAudioFormat)?.let { add(it) }
@@ -543,7 +566,7 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (videoOnlyFormats.isNotEmpty()) {
+            if (!audioOnly && videoOnlyFormats.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionRow(
                         title = stringResource(Res.string.video_only),
@@ -572,7 +595,7 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (videoAudioFormats.isNotEmpty()) {
+            if (!audioOnly && videoAudioFormats.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionRow(
                         title = stringResource(Res.string.video),
@@ -600,9 +623,9 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (audioOnlyFormats.isNotEmpty() && videoOnlyFormats.isNotEmpty()) {
+            if (!audioOnly && audioOnlyFormats.isNotEmpty() && videoOnlyFormats.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    FormatHintInfo(text = "音频与无音轨视频可组合下载")
+                    FormatHintInfo(text = stringResource(Res.string.abs_hint))
                 }
             }
      
@@ -1452,13 +1475,6 @@ private fun formatDuration(totalSeconds: Int): String {
     val seconds = totalSeconds % 60
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%02d:%02d".format(minutes, seconds)
 }
-
-private fun parseLanguageCodes(value: String): Set<String> =
-    value
-        .split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .toSet()
 
 private fun buildVideoClips(
     enabled: Boolean,

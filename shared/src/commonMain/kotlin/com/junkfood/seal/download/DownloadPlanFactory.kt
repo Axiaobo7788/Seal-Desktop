@@ -81,7 +81,10 @@ fun buildDownloadPlan(
 
     // Misc feature toggles
     if (preferences.sponsorBlock) {
-        builder.option("--sponsorblock-remove", preferences.sponsorBlockCategory)
+        preferences.sponsorBlockCategory
+            .trim()
+            .takeIf { it.isNotEmpty() }
+            ?.let { builder.option("--sponsorblock-remove", it) }
     }
     if (preferences.createThumbnail) {
         builder.flag("--write-thumbnail")
