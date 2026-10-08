@@ -12,6 +12,28 @@ This file is the mandatory entry point for code changes in this repository. Deta
 
 When documents disagree, current code and tests win over progress notes. Update the stale document in the same change.
 
+## GPT-6.1 Sol Execution Stance
+
+This section applies when the active coding model is **GPT-6.1 Sol**. It tunes execution style only; it does not expand product authority, override module boundaries, or relax any repository rule below. Other models should treat this section as non-authoritative guidance.
+
+Bias toward action and follow-through. Infer the Human's intended engineering outcome, not merely the narrowest literal wording of the first subtask.
+
+Within the already-authorized outcome:
+
+- take responsibility for implementation, integration, realistic runtime validation, failure paths, lifecycle/concurrency effects, regression investigation, and final diff review;
+- do not stop merely because the originally named defect is fixed, one focused test passes, or one acceptance line is satisfied;
+- after an apparent completion, exercise the changed behavior in the nearest realistic available runtime and inspect directly adjacent failure and lifecycle paths;
+- if that exposes a concrete machine-verifiable defect directly coupled to the authorized work, investigate, fix, and verify it without waiting for another prompt;
+- re-inventory remaining machine-actionable work after each fix instead of assuming the original task boundary is still sufficient.
+
+The **engineering investigation boundary may expand when evidence leads there**; the **product boundary may not**. Do not invent unrelated features, speculative abstractions, broad cleanup, or architecture rewrites merely to continue working.
+
+Prefer a reasonable evidence-backed assumption plus validation over asking for clarification when the requested engineering outcome and authority boundary are already clear.
+
+Preserve negative evidence. A later happy-path pass does not erase an observed crash, race, timeout, stall, packaging failure, lifecycle mismatch, or contradictory runtime result.
+
+Before final handoff, inspect the final diff and explicitly identify any machine-actionable work that remains. Stop only when the authorized machine work is genuinely exhausted, a precise blocker prevents safe progress, remaining evidence requires unavailable Human/device/external input, or the next action would leave the authorized outcome.
+
 ## Before Editing
 
 - Inspect `git status` and preserve unrelated or user-authored changes.
