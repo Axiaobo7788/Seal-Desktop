@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,11 +77,13 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.all
+import com.junkfood.seal.shared.generated.resources.audio
 import com.junkfood.seal.shared.generated.resources.cancel
 import com.junkfood.seal.shared.generated.resources.copy_link
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_hint
 import com.junkfood.seal.shared.generated.resources.download_queue
+import com.junkfood.seal.shared.generated.resources.fetching_info
 import com.junkfood.seal.shared.generated.resources.delete
 import com.junkfood.seal.shared.generated.resources.start_download
 import com.junkfood.seal.shared.generated.resources.file
@@ -91,11 +94,14 @@ import com.junkfood.seal.shared.generated.resources.open_url
 import com.junkfood.seal.shared.generated.resources.print_details
 import com.junkfood.seal.shared.generated.resources.restart
 import com.junkfood.seal.shared.generated.resources.status_canceled
+import com.junkfood.seal.shared.generated.resources.status_enqueued
 import com.junkfood.seal.shared.generated.resources.status_paused
 import com.junkfood.seal.shared.generated.resources.status_completed
 import com.junkfood.seal.shared.generated.resources.status_downloading
 import com.junkfood.seal.shared.generated.resources.status_error
+import com.junkfood.seal.shared.generated.resources.show_more_actions
 import com.junkfood.seal.shared.generated.resources.thumbnail
+import com.junkfood.seal.shared.generated.resources.video
 import com.junkfood.seal.shared.generated.resources.video_file_size
 import com.junkfood.seal.shared.generated.resources.video_url
 import com.junkfood.seal.shared.generated.resources.you_ll_find_your_downloads_here
@@ -112,6 +118,7 @@ import com.junkfood.seal.shared.generated.resources.desktop_open_local_file_unav
 import com.junkfood.seal.shared.generated.resources.desktop_delete_queue_item_msg
 import com.junkfood.seal.shared.generated.resources.desktop_error_item_not_found
 import com.junkfood.seal.shared.generated.resources.desktop_error_link_empty
+import com.junkfood.seal.shared.generated.resources.desktop_copy_error
 import com.junkfood.seal.shared.generated.resources.confirm
 
 @Composable
@@ -141,7 +148,10 @@ fun DesktopDownloadScreen(
     var formatUrl by remember { mutableStateOf("") }
     var formatType by remember { mutableStateOf(DesktopDownloadType.Video) }
     var formatPreferences by remember { mutableStateOf(preferences) }
-    var downloadType by remember { mutableStateOf(DesktopDownloadType.Video) }
+    var downloadType by
+        remember(appSettings.downloadTypeInitialization) {
+            mutableStateOf(initialDownloadType(appSettings.downloadTypeInitialization, preferences))
+        }
     var workingPreferences by remember { mutableStateOf(preferences) }
     var detailsItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
     var detailsDialogItem by remember { mutableStateOf<DownloadQueueItemState?>(null) }
@@ -181,6 +191,8 @@ fun DesktopDownloadScreen(
     val linkEmptyMessage = stringResource(Res.string.desktop_error_link_empty)
     val deleteLocalFileUnavailableMessage = stringResource(Res.string.desktop_delete_local_file_unavailable)
     val openLocalFileUnavailableMessage = stringResource(Res.string.desktop_open_local_file_unavailable)
+    val audioLabel = stringResource(Res.string.audio)
+    val videoLabel = stringResource(Res.string.video)
 
 
     val queueStrings =
@@ -195,7 +207,17 @@ fun DesktopDownloadScreen(
             emptyBody = stringResource(Res.string.download_hint),
             gridLabel = stringResource(Res.string.desktop_view_grid),
             listLabel = stringResource(Res.string.desktop_view_list),
+            statusIdle = stringResource(Res.string.status_enqueued),
+            statusFetchingInfo = stringResource(Res.string.fetching_info),
+            statusReady = stringResource(Res.string.status_enqueued),
+            statusRunning = stringResource(Res.string.status_downloading),
+            statusCompleted = stringResource(Res.string.status_completed),
             statusCanceled = stringResource(Res.string.status_paused),
+            statusPaused = stringResource(Res.string.status_paused),
+            statusError = stringResource(Res.string.status_error),
+            videoCountLabel = { count -> "$videoLabel: $count" },
+            audioCountLabel = { count -> "$audioLabel: $count" },
+            openActionsLabel = stringResource(Res.string.show_more_actions),
             resumeLabel = stringResource(Res.string.restart),
             cancelLabel = stringResource(Res.string.cancel),
             deleteLabel = stringResource(Res.string.delete),
@@ -204,6 +226,7 @@ fun DesktopDownloadScreen(
             copyUrlLabel = stringResource(Res.string.copy_link),
             openUrlLabel = stringResource(Res.string.open_url),
             openThumbLabel = stringResource(Res.string.thumbnail),
+            copyErrorLabel = stringResource(Res.string.desktop_copy_error),
             showDetailsLabel = stringResource(Res.string.print_details),
         )
 
@@ -222,10 +245,11 @@ fun DesktopDownloadScreen(
             when (page) {
                 DownloadMainPage.Queue -> {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        val itemsForUi =
-                            remember(controller.queueItems, disablePreview) {
-                                if (!disablePreview) controller.queueItems
-                                else controller.queueItems.map { it.copy(thumbnailUrl = null) }
+                        val itemsForUi by
+                            remember(disablePreview) {
+                                derivedStateOf {
+                                    projectQueueItemsForPreview(controller.queueItems, disablePreview)
+                                }
                             }
 
                         DownloadQueueScreenShared(
@@ -257,7 +281,9 @@ fun DesktopDownloadScreen(
                                     }
                                     DownloadQueueAction.ShareFile -> {
                                         val localPathResolution = resolveLocalPathFromItem(item)
-                                        val localPath = localPathResolution.selectedPath
+                                        val localPath =
+                                            localPathResolution.outputDirectory
+                                                ?: localPathResolution.selectedPath
                                         val result =
                                             localPath
                                                 ?.let { safeRevealInFolder(it, openLocalFileUnavailableMessage) }
@@ -293,6 +319,7 @@ fun DesktopDownloadScreen(
                                 }
                             },
                             onAddClick = {
+                                downloadType = initialDownloadType(appSettings.downloadTypeInitialization, workingPreferences)
                                 sheetPage = DownloadSheetPage.Input
                                 showSheet = true
                             },
@@ -304,6 +331,7 @@ fun DesktopDownloadScreen(
 
                         ExtendedFloatingActionButton(
                             onClick = {
+                                downloadType = initialDownloadType(appSettings.downloadTypeInitialization, workingPreferences)
                                 sheetPage = DownloadSheetPage.Input
                                 showSheet = true
                             },
@@ -322,11 +350,6 @@ fun DesktopDownloadScreen(
                         downloadType = formatType,
                         basePreferences = formatPreferences,
                         isVideoClipEnabled = isVideoClipEnabled,
-                        onPreferencesUpdated = { updated ->
-                            formatPreferences = updated
-                            workingPreferences = updated
-                            onPreferencesChange(updated)
-                        },
                         onBack = {
                             mainPage = DownloadMainPage.Queue
                             sheetPage = DownloadSheetPage.Options
@@ -382,18 +405,8 @@ fun DesktopDownloadScreen(
                     DownloadSheetPage.Input ->
                         DownloadInputSheet(
                             url = inputUrl,
-                            onUrlChange = { newValue ->
-                                val urls = com.junkfood.seal.util.findURLsFromString(newValue)
-                                if (urls.isNotEmpty() && kotlin.math.abs(newValue.length - inputUrl.length) > 1) {
-                                    inputUrl = urls.joinToString("\n")
-                                } else {
-                                    inputUrl = newValue
-                                }
-                            },
-                            onPasteIntoUrl = { pasted ->
-                                val urls = com.junkfood.seal.util.findURLsFromString(pasted)
-                                inputUrl = if (urls.isNotEmpty()) urls.joinToString("\n") else pasted
-                            },
+                            onUrlChange = { inputUrl = it },
+                            onPasteIntoUrl = { inputUrl = it },
                             onDismissRequest = {
                                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                                     showSheet = false
@@ -402,8 +415,42 @@ fun DesktopDownloadScreen(
                                 }
                             },
                             onProceed = {
-                                pendingUrl = inputUrl
-                                sheetPage = DownloadSheetPage.Options
+                                val validation = validateDesktopDownloadInput(inputUrl)
+                                if (validation.canProceed) {
+                                    pendingUrl = validation.normalizedInput
+                                    if (
+                                        downloadInputDestination(
+                                            configureBeforeDownload = appSettings.configureBeforeDownload,
+                                            customCommandEnabled = customCommandEnabled,
+                                            customCommandTemplateAvailable = customCommandTemplate != null,
+                                            requiresFormatSelection =
+                                                appSettings.isFormatSelectionEnabled &&
+                                                    downloadType != DesktopDownloadType.Playlist,
+                                        ) == DownloadInputDestination.Configure
+                                    ) {
+                                        sheetPage = DownloadSheetPage.Options
+                                    } else {
+                                        val url = validation.normalizedInput
+                                        if (customCommandEnabled && customCommandTemplate != null) {
+                                            DesktopCustomCommandTaskManager.start(
+                                                urlInput = url,
+                                                template = customCommandTemplate,
+                                                preferences = workingPreferences,
+                                                appSettings = appSettings,
+                                            ).onFailure { error ->
+                                                actionErrorMessage = error.message ?: error.toString()
+                                            }
+                                        } else {
+                                            controller.startDownload(url, downloadType, workingPreferences)
+                                        }
+                                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                            pendingUrl = null
+                                            showSheet = false
+                                            sheetPage = DownloadSheetPage.Input
+                                            inputUrl = ""
+                                        }
+                                    }
+                                }
                             },
                         )
 
@@ -413,7 +460,7 @@ fun DesktopDownloadScreen(
                             downloadType = downloadType,
                             onTypeChange = { newType ->
                                 downloadType = newType
-                                val updated = preferencesForType(workingPreferences, newType)
+                                val updated = preferencesForAutomaticDownload(workingPreferences, newType)
                                 workingPreferences = updated
                                 onPreferencesChange(updated)
                             },
@@ -456,10 +503,11 @@ fun DesktopDownloadScreen(
                             onCustomFormatClick = {
                                 formatUrl = pendingUrl.orEmpty()
                                 formatType = downloadType
-                                formatPreferences = workingPreferences
+                                formatPreferences = preferencesForAutomaticDownload(workingPreferences, downloadType)
                                 mainPage = DownloadMainPage.Format
                                 scope.launch { sheetState.hide() }.invokeOnCompletion { showSheet = false }
                             },
+                            preferCustomFormat = appSettings.isFormatSelectionEnabled,
                         )
                 }
             }
@@ -587,6 +635,12 @@ fun DesktopDownloadScreen(
         )
     }
 }
+
+internal fun projectQueueItemsForPreview(
+    items: List<DownloadQueueItemState>,
+    disablePreview: Boolean,
+): List<DownloadQueueItemState> =
+    if (disablePreview) items.map { it.copy(thumbnailUrl = null) } else items.toList()
 
 private enum class DownloadSheetPage {
     Input,
@@ -732,10 +786,11 @@ private fun openWithSystem(target: String): Result<Unit> =
 
 private data class LocalPathResolution(
     val selectedPath: String?,
+    val outputDirectory: String?,
 )
 
 private fun resolveLocalPathFromItem(item: DownloadQueueItemState?): LocalPathResolution {
-    if (item == null) return LocalPathResolution(selectedPath = null)
+    if (item == null) return LocalPathResolution(selectedPath = null, outputDirectory = null)
     val rawCandidates = buildList<String> {
         item.filePath?.trim()?.takeIf { it.isNotBlank() }?.let(::add)
         extractDestinationPathFromLogs(item.logLines)?.let(::add)
@@ -747,6 +802,7 @@ private fun resolveLocalPathFromItem(item: DownloadQueueItemState?): LocalPathRe
 
     return LocalPathResolution(
         selectedPath = verified ?: rawCandidates.firstOrNull(),
+        outputDirectory = item.outputDirectory?.trim()?.takeIf { it.isNotBlank() },
     )
 }
 

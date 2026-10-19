@@ -32,6 +32,7 @@ data class DownloadQueueItemState(
     val status: DownloadQueueStatus = DownloadQueueStatus.Idle,
     val thumbnailUrl: String? = null,
     val filePath: String? = null,
+    val outputDirectory: String? = null,
     val errorMessage: String? = null,
     val exitCode: Int? = null,
     val cliArgs: List<String>? = null,

@@ -11,6 +11,7 @@ import kotlin.io.path.exists
  * Desktop-side path conventions for yt-dlp assets and downloads.
  */
 object DesktopYtDlpPaths {
+    private val windowsUnsafePathCharacters = setOf('<', '>', ':', '"', '/', '\\', '|', '?', '*')
     private val downloadsRoot: Path by lazy { resolveDownloadsRoot() }
 
     fun clearTempFiles(): Int {
@@ -50,7 +51,11 @@ object DesktopYtDlpPaths {
         return ensureDirectory(dir)
     }
 
-    fun downloadDirectoryFor(preferences: DownloadPreferences, hint: String?): Path {
+    fun downloadDirectoryFor(
+        preferences: DownloadPreferences,
+        hint: String?,
+        extractorKey: String? = null,
+    ): Path {
         val configuredDirectory =
             when (hint) {
                 "audio" -> preferences.audioDirectory
@@ -58,8 +63,34 @@ object DesktopYtDlpPaths {
                 else -> ""
             }
 
-        return configuredDownloadDirectory(configuredDirectory)
+        val baseDirectory = configuredDownloadDirectory(configuredDirectory).toAbsolutePath().normalize()
+        if (!preferences.subdirectoryExtractor) return baseDirectory
+
+        val extractorSegment = safeExtractorDirectorySegment(extractorKey) ?: return baseDirectory
+        val extractorDirectory = baseDirectory.resolve(extractorSegment).normalize()
+        if (!extractorDirectory.startsWith(baseDirectory)) return baseDirectory
+        return ensureDirectory(extractorDirectory)
     }
+
+    internal fun safeExtractorDirectorySegment(extractorKey: String?): String? {
+        val segment = extractorKey?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        if (segment == "." || segment == ".." || segment.length > 80) return null
+        if (segment.any { it.code < 32 || it in windowsUnsafePathCharacters }) return null
+        return runCatching { Path.of(segment) }
+            .getOrNull()
+            ?.takeIf { !it.isAbsolute && it.nameCount == 1 && it.fileName.toString() == segment }
+            ?.toString()
+    }
+
+    internal fun subdirectoryPreviewSuffix(
+        includeExtractor: Boolean,
+        includePlaylistTitle: Boolean,
+    ): String =
+        buildString {
+            if (includeExtractor) append("website/")
+            if (includePlaylistTitle) append("playlist_title/")
+            append("file_name")
+        }
 
     private fun ensureDirectory(dir: Path): Path {
         if (!dir.exists()) Files.createDirectories(dir)

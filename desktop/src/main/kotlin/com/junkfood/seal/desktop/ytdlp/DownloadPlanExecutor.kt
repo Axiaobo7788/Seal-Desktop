@@ -109,11 +109,12 @@ class DownloadPlanExecutor(
         url: String,
         paths: DesktopYtDlpPaths = DesktopYtDlpPaths,
         preferences: DownloadPreferences? = null,
+        extractorKey: String? = null,
         cookieContext: DesktopCookieContext = DesktopCookieContext.Disabled(),
     ): ExecutionConfig =
         ExecutionConfig(
             workingDirectory =
-                preferences?.let { paths.downloadDirectoryFor(it, plan.downloadPathHint) }
+                preferences?.let { paths.downloadDirectoryFor(it, plan.downloadPathHint, extractorKey) }
                     ?: paths.defaultDownloadDirectory(),
             cookieContext = cookieContext,
             archiveFile = if (plan.needsArchiveFile) paths.archiveFile() else null,

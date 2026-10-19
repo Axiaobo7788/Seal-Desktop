@@ -12,6 +12,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
@@ -80,6 +84,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,11 +93,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadController
 import com.junkfood.seal.desktop.download.DesktopDownloadType
 import com.junkfood.seal.desktop.download.customFormatSelectionPolicy
+import com.junkfood.seal.desktop.download.clip.ClipEditor
+import com.junkfood.seal.desktop.download.clip.ClipEditorState
+import com.junkfood.seal.desktop.download.clip.ClipRangePolicy
+import com.junkfood.seal.desktop.download.clip.VideoEditMode
+import com.junkfood.seal.desktop.download.clip.VideoEditModePolicy
 import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.download.SubtitleLanguageMatcher
 import com.junkfood.seal.shared.generated.resources.Res
@@ -112,6 +125,9 @@ import com.junkfood.seal.shared.generated.resources.rename
 import com.junkfood.seal.shared.generated.resources.retry
 import com.junkfood.seal.shared.generated.resources.save
 import com.junkfood.seal.shared.generated.resources.search_in_subtitles
+import com.junkfood.seal.shared.generated.resources.search_in_formats
+import com.junkfood.seal.shared.generated.resources.no_matching_formats
+import com.junkfood.seal.shared.generated.resources.no_available_formats
 import com.junkfood.seal.shared.generated.resources.show_all_items
 import com.junkfood.seal.shared.generated.resources.split_video
 import com.junkfood.seal.shared.generated.resources.split_video_msg
@@ -135,11 +151,13 @@ import com.junkfood.seal.util.VideoInfo
 import com.junkfood.seal.util.connectWithDelimiter
 import com.junkfood.seal.util.toHttpsUrl
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.min
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.CancellationException
+import kotlin.coroutines.coroutineContext
 
 private const val NotSelected = -1
 
-private data class FormatConfig(
+internal data class FormatConfig(
     val formatList: List<Format>,
     val videoClips: List<VideoClip>,
     val splitByChapter: Boolean,
@@ -155,68 +173,87 @@ internal fun CustomFormatSelectionSheet(
     downloadType: DesktopDownloadType,
     basePreferences: DownloadPreferences,
     isVideoClipEnabled: Boolean = false,
-    onPreferencesUpdated: (DownloadPreferences) -> Unit,
     onBack: () -> Unit,
     onDownloadComplete: () -> Unit,
 ) {
-    var videoInfo by remember { mutableStateOf<VideoInfo?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var reloadToken by remember { mutableIntStateOf(0) }
+    CustomFormatSelectionContent(
+        url = url,
+        downloadType = downloadType,
+        basePreferences = basePreferences,
+        isVideoClipEnabled = isVideoClipEnabled,
+        fetchVideoInfo = { input, preferences -> controller.fetchVideoInfo(input, preferences) },
+        onBack = onBack,
+        onDownload = { info, config ->
+            controller.startDownloadWithSelection(
+                url = url,
+                type = downloadType,
+                basePreferences = basePreferences,
+                videoInfo = info,
+                formatList = config.formatList,
+                videoClips = config.videoClips,
+                splitByChapter = config.splitByChapter,
+                newTitle = config.newTitle,
+                selectedSubtitles = config.selectedSubtitles,
+                selectedAutoCaptions = config.selectedAutoCaptions,
+            )
+            onDownloadComplete()
+        },
+    )
+}
 
-    LaunchedEffect(url, reloadToken) {
-        videoInfo = null
-        error = null
-        if (url.isBlank()) {
-            isLoading = false
-            return@LaunchedEffect
-        }
-        isLoading = true
-        val result = controller.fetchVideoInfo(url, basePreferences)
-        result.onSuccess {
-            videoInfo = it
-            isLoading = false
-        }.onFailure {
-            error = it.message
-            isLoading = false
-        }
+private sealed interface FormatLoadState {
+    data object Loading : FormatLoadState
+    data object EmptyUrl : FormatLoadState
+    data class Failed(val message: String) : FormatLoadState
+    data class Ready(val info: VideoInfo) : FormatLoadState
+}
+
+@Composable
+internal fun CustomFormatSelectionContent(
+    url: String,
+    downloadType: DesktopDownloadType,
+    basePreferences: DownloadPreferences,
+    isVideoClipEnabled: Boolean,
+    fetchVideoInfo: suspend (String, DownloadPreferences) -> Result<VideoInfo>,
+    onBack: () -> Unit,
+    onDownload: (VideoInfo, FormatConfig) -> Unit,
+) {
+    var state by remember(url, downloadType, basePreferences) {
+        mutableStateOf<FormatLoadState>(if (url.isBlank()) FormatLoadState.EmptyUrl else FormatLoadState.Loading)
     }
-
-    when {
-        isLoading ->
-            LoadingState(onBack = onBack)
-        error != null ->
-            ErrorState(message = error.orEmpty(), onRetry = { reloadToken += 1 }, onBack = onBack)
-        videoInfo != null -> {
+    var reloadToken by remember(url) { mutableIntStateOf(0) }
+    LaunchedEffect(url, downloadType, basePreferences, reloadToken) {
+        if (url.isBlank()) return@LaunchedEffect
+        state = FormatLoadState.Loading
+        val result = try {
+            fetchVideoInfo(url, basePreferences)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Result.failure(failure)
+        }
+        // A canceled request must not publish stale results into the next URL/context.
+        coroutineContext.ensureActive()
+        state = result.fold({ FormatLoadState.Ready(it) }, { FormatLoadState.Failed(it.message.orEmpty()) })
+    }
+    val retry = { reloadToken += 1 }
+    when (val current = state) {
+        FormatLoadState.Loading -> LoadingState(onBack)
+        FormatLoadState.EmptyUrl -> EmptyState(onBack)
+        is FormatLoadState.Failed -> ErrorState(current.message, retry, onBack)
+        is FormatLoadState.Ready -> key(url, downloadType, basePreferences, current.info) {
             val selectionPolicy = customFormatSelectionPolicy(downloadType, basePreferences)
             FormatPageImpl(
-                videoInfo = videoInfo!!,
+                videoInfo = current.info,
                 basePreferences = basePreferences,
                 audioOnly = selectionPolicy.audioOnly,
                 isVideoClipEnabled = isVideoClipEnabled,
                 allowMultiAudio = selectionPolicy.allowMultiAudio,
                 onNavigateBack = onBack,
-                onDownloadPressed = { config ->
-                    controller.startDownloadWithSelection(
-                        url = url,
-                        type = downloadType,
-                        basePreferences = basePreferences,
-
-                        videoInfo = videoInfo!!,
-                        formatList = config.formatList,
-                        videoClips = config.videoClips,
-                        splitByChapter = config.splitByChapter,
-                        newTitle = config.newTitle,
-                        selectedSubtitles = config.selectedSubtitles,
-                        selectedAutoCaptions = config.selectedAutoCaptions,
-                        onSelectionApplied = onPreferencesUpdated,
-                    )
-                    onDownloadComplete()
-                },
+                onRetry = retry,
+                onDownloadPressed = { onDownload(current.info, it) },
             )
         }
-        else ->
-            EmptyState(onBack = onBack)
     }
 }
 
@@ -258,12 +295,13 @@ private fun ErrorState(message: String, onRetry: () -> Unit, onBack: () -> Unit)
         },
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Icon(Icons.Outlined.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                 Text(
-                    "${stringResource(Res.string.fetch_info_error_msg)}: $message",
+                    listOf(stringResource(Res.string.fetch_info_error_msg), message).filter { it.isNotBlank() }.joinToString(": "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
@@ -275,7 +313,12 @@ private fun ErrorState(message: String, onRetry: () -> Unit, onBack: () -> Unit)
 }
 
 @Composable
-private fun EmptyState(onBack: () -> Unit) {
+private fun NoFormatsState(onRetry: () -> Unit, onBack: () -> Unit) {
+    EmptyState(onBack, onRetry, stringResource(Res.string.no_available_formats))
+}
+
+@Composable
+private fun EmptyState(onBack: () -> Unit, onRetry: (() -> Unit)? = null, message: String = stringResource(Res.string.url_empty)) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -290,8 +333,11 @@ private fun EmptyState(onBack: () -> Unit) {
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(stringResource(Res.string.url_empty), style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onBack) { Text(stringResource(Res.string.back)) }
+                Text(message, style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (onRetry != null) Button(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
+                    OutlinedButton(onClick = onBack) { Text(stringResource(Res.string.back)) }
+                }
             }
         }
     }
@@ -299,7 +345,7 @@ private fun EmptyState(onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FormatPageImpl(
+internal fun FormatPageImpl(
     videoInfo: VideoInfo,
     basePreferences: DownloadPreferences,
     audioOnly: Boolean,
@@ -307,18 +353,27 @@ private fun FormatPageImpl(
     onNavigateBack: () -> Unit,
     onDownloadPressed: (FormatConfig) -> Unit,
     isVideoClipEnabled: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val uriHandler = LocalUriHandler.current
     val formats = videoInfo.formats.orEmpty()
-    if (formats.isEmpty()) return
+    if (formats.isEmpty()) {
+        NoFormatsState(onRetry, onNavigateBack)
+        return
+    }
 
     val videoOnlyFormats = formats.filter { it.containsVideo() && it.isVideoOnly() }.reversed()
     val audioOnlyFormats = formats.filter { it.containsAudio() && it.isAudioOnly() }.reversed()
     val videoAudioFormats = formats.filter { it.containsAudio() && it.containsVideo() }.reversed()
+    if (audioOnlyFormats.isEmpty() && (audioOnly || (videoOnlyFormats.isEmpty() && videoAudioFormats.isEmpty()))) {
+        NoFormatsState(onRetry, onNavigateBack)
+        return
+    }
 
     val duration = videoInfo.duration ?: 0.0
-    val durationSeconds = duration.toInt().coerceAtLeast(0)
+    val clipAvailable = isVideoClipEnabled && ClipRangePolicy.available(videoInfo.duration, videoInfo.liveStatus)
+    val durationSeconds = if (clipAvailable) duration.toInt() else 0
     val chapterCount = videoInfo.chapters?.size ?: 0
 
     val subtitleLanguageMatcher =
@@ -342,6 +397,11 @@ private fun FormatPageImpl(
     var videoOnlyItemLimit by remember { mutableIntStateOf(6) }
     var audioOnlyItemLimit by remember { mutableIntStateOf(6) }
     var videoAudioItemLimit by remember { mutableIntStateOf(6) }
+    var searchQuery by remember { mutableStateOf("") }
+    val showSearch = formats.size > 12 || listOf(audioOnlyItemLimit, videoOnlyItemLimit, videoAudioItemLimit).any { it == Int.MAX_VALUE }
+    val visibleAudio = FormatSearchMatcher.visible(audioOnlyFormats, searchQuery, audioOnlyItemLimit)
+    val visibleVideo = FormatSearchMatcher.visible(videoOnlyFormats, searchQuery, videoOnlyItemLimit)
+    val visibleCombined = FormatSearchMatcher.visible(videoAudioFormats, searchQuery, videoAudioItemLimit)
     var showSubtitleSelectionDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
 
@@ -351,6 +411,7 @@ private fun FormatPageImpl(
         }
     val isSuggestedFormatAvailable =
         suggestedFormats.isNotEmpty() && (!audioOnly || suggestedFormats.all(Format::isAudioOnly))
+    val showSuggested = isSuggestedFormatAvailable && (searchQuery.isBlank() || suggestedFormats.any { FormatSearchMatcher.matches(it, searchQuery) })
     var isSuggestedFormatSelected by remember { mutableStateOf(isSuggestedFormatAvailable) }
 
     var selectedVideoAudioFormat by remember { mutableIntStateOf(NotSelected) }
@@ -372,19 +433,14 @@ private fun FormatPageImpl(
                 }
             }
         }
-    var splitByChapter by remember(videoInfo.id) { mutableStateOf(basePreferences.splitByChapter && chapterCount > 0) }
-    var clipVideo by remember(videoInfo.id) { mutableStateOf(basePreferences.videoClips.isNotEmpty()) }
-    var clipStartText by remember(videoInfo.id) {
-        mutableStateOf(basePreferences.videoClips.firstOrNull()?.start?.coerceAtLeast(0)?.toString() ?: "0")
+    var editMode by remember(videoInfo.id) {
+        mutableStateOf(VideoEditModePolicy.restore(basePreferences.videoClips, basePreferences.splitByChapter, clipAvailable, chapterCount))
     }
-    var clipEndText by remember(videoInfo.id) {
-        mutableStateOf(
-            (
-                basePreferences.videoClips.firstOrNull()?.end?.takeIf { it > 0 }
-                    ?: durationSeconds
-            ).toString(),
-        )
+    var clipState by remember(videoInfo.id, durationSeconds) {
+        mutableStateOf(if (clipAvailable) ClipEditorState.create(durationSeconds, basePreferences.videoClips.firstOrNull()) else null)
     }
+    val splitByChapter = editMode == VideoEditMode.Chapters
+    val clipVideo = editMode == VideoEditMode.Clip && clipAvailable
     var newTitle by remember(videoInfo.id) { mutableStateOf(basePreferences.newTitle.takeIf { it.isNotBlank() } ?: "") }
 
     val lazyGridState = rememberLazyGridState()
@@ -418,15 +474,10 @@ private fun FormatPageImpl(
             )
         },
         floatingActionButton = {
-            if (selectedFormats.isNotEmpty()) {
+            if (selectedFormats.isNotEmpty() && (!clipVideo || clipState?.validDraft != null)) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        val clips = buildVideoClips(
-                            enabled = clipVideo,
-                            startText = clipStartText,
-                            endText = clipEndText,
-                            maxSeconds = durationSeconds,
-                        )
+                        val clips = if (clipVideo) listOfNotNull(clipState?.validDraft) else emptyList()
                         onDownloadPressed(
                             FormatConfig(
                                 formatList = selectedFormats,
@@ -438,7 +489,7 @@ private fun FormatPageImpl(
                             ),
                         )
                     },
-                    icon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.FileDownload, contentDescription = if (isFabExpanded) null else stringResource(Res.string.start_download)) },
                     text = { Text(stringResource(Res.string.start_download)) },
                     expanded = isFabExpanded,
                 )
@@ -459,39 +510,55 @@ private fun FormatPageImpl(
                     bottom = 12.dp,
                 ),
             ) {
+            if (showSearch) {
+                item(key = "format-search", span = { GridItemSpan(maxLineSpan) }) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text(stringResource(Res.string.search_in_formats)) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Outlined.Clear, contentDescription = stringResource(Res.string.clear))
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 FormatPreviewHeader(
                     videoInfo = videoInfo,
                     title = newTitle.ifBlank { videoInfo.title },
                     splitByChapter = splitByChapter,
                     clipVideo = clipVideo,
-                    isVideoClipEnabled = isVideoClipEnabled,
+                    isVideoClipEnabled = clipAvailable,
                     isSplitByChapterAvailable = chapterCount > 0,
                     onRename = { showRenameDialog = true },
                     onOpenThumbnail = {
                         videoInfo.getBestThumbnailUrl().toHttpsUrl().takeIf { it.isNotBlank() }?.let(uriHandler::openUri)
                     },
                     onSplitByChapterToggle = {
-                        splitByChapter = !splitByChapter
-                        if (splitByChapter) {
-                            clipVideo = false
-                        }
+                        editMode = VideoEditModePolicy.toggle(editMode, VideoEditMode.Chapters)
                     },
                     onClipVideoToggle = {
-                        clipVideo = !clipVideo
-                        if (clipVideo) {
-                            splitByChapter = false
-                        }
+                        editMode = VideoEditModePolicy.toggle(editMode, VideoEditMode.Clip)
                     },
                 )
             }
 
-            if (chapterCount > 0) {
+            if (clipVideo) {
+                item(key = "clip-editor", span = { GridItemSpan(maxLineSpan) }) {
+                    ClipEditor(requireNotNull(clipState)) { clipState = it }
+                }
+            }
+            if (splitByChapter && chapterCount > 0) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SplitVideoInfoRow(
                         visible = splitByChapter,
                         chapterCount = chapterCount,
-                        onDiscard = { splitByChapter = false },
+                        onDiscard = { editMode = VideoEditMode.None },
                     )
                 }
             }
@@ -517,7 +584,7 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (isSuggestedFormatAvailable) {
+            if (showSuggested) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionTitle(stringResource(Res.string.suggested))
                 }
@@ -535,17 +602,18 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (audioOnlyFormats.isNotEmpty()) {
+            if (visibleAudio.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionRow(
                         title = stringResource(Res.string.audio),
                         icon = Icons.Outlined.AudioFile,
-                        showAll = audioOnlyItemLimit < audioOnlyFormats.size,
+                        showAll = searchQuery.isBlank() && audioOnlyItemLimit < audioOnlyFormats.size,
                         showAllText = stringResource(Res.string.show_all_items, audioOnlyFormats.size),
                         onShowAll = { audioOnlyItemLimit = Int.MAX_VALUE },
                     )
                 }
-                itemsIndexed(audioOnlyFormats.subList(0, min(audioOnlyItemLimit, audioOnlyFormats.size))) { index, format ->
+                itemsIndexed(visibleAudio, key = { _, entry -> "audio-${entry.index}" }) { _, entry ->
+                    val (index, format) = entry
                     FormatItemCard(
                         formatInfo = format,
                         duration = duration,
@@ -566,17 +634,18 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (!audioOnly && videoOnlyFormats.isNotEmpty()) {
+            if (!audioOnly && visibleVideo.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionRow(
                         title = stringResource(Res.string.video_only),
                         icon = Icons.Outlined.Videocam,
-                        showAll = videoOnlyItemLimit < videoOnlyFormats.size,
+                        showAll = searchQuery.isBlank() && videoOnlyItemLimit < videoOnlyFormats.size,
                         showAllText = stringResource(Res.string.show_all_items, videoOnlyFormats.size),
                         onShowAll = { videoOnlyItemLimit = Int.MAX_VALUE },
                     )
                 }
-                itemsIndexed(videoOnlyFormats.subList(0, min(videoOnlyItemLimit, videoOnlyFormats.size))) { index, format ->
+                itemsIndexed(visibleVideo, key = { _, entry -> "video-${entry.index}" }) { _, entry ->
+                    val (index, format) = entry
                     FormatItemCard(
                         formatInfo = format,
                         duration = duration,
@@ -595,17 +664,18 @@ private fun FormatPageImpl(
                 }
             }
 
-            if (!audioOnly && videoAudioFormats.isNotEmpty()) {
+            if (!audioOnly && visibleCombined.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionRow(
                         title = stringResource(Res.string.video),
                         icon = Icons.Outlined.Movie,
-                        showAll = videoAudioItemLimit < videoAudioFormats.size,
+                        showAll = searchQuery.isBlank() && videoAudioItemLimit < videoAudioFormats.size,
                         showAllText = stringResource(Res.string.show_all_items, videoAudioFormats.size),
                         onShowAll = { videoAudioItemLimit = Int.MAX_VALUE },
                     )
                 }
-                itemsIndexed(videoAudioFormats.subList(0, min(videoAudioItemLimit, videoAudioFormats.size))) { index, format ->
+                itemsIndexed(visibleCombined, key = { _, entry -> "combined-${entry.index}" }) { _, entry ->
+                    val (index, format) = entry
                     FormatItemCard(
                         formatInfo = format,
                         duration = duration,
@@ -620,6 +690,12 @@ private fun FormatPageImpl(
                                 index
                             }
                     }
+                }
+            }
+
+            if (searchQuery.isNotBlank() && !showSuggested && visibleAudio.isEmpty() && (audioOnly || (visibleVideo.isEmpty() && visibleCombined.isEmpty()))) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(stringResource(Res.string.no_matching_formats), modifier = Modifier.padding(16.dp))
                 }
             }
 
@@ -775,9 +851,11 @@ private fun FormatPreviewHeader(
                                 onOpenThumbnail()
                             },
                         )
-                        if (isVideoClipEnabled && !clipVideo && !splitByChapter) {
+                        if (isVideoClipEnabled) {
                             DropdownMenuItem(
+                                modifier = Modifier.semantics { selected = clipVideo },
                                 leadingIcon = { Icon(Icons.Outlined.ContentCut, contentDescription = null) },
+                                trailingIcon = { if (clipVideo) Icon(Icons.Outlined.Check, contentDescription = null) },
                                 text = { Text(stringResource(Res.string.clip_video)) },
                                 onClick = {
                                     menuExpanded = false
@@ -785,9 +863,11 @@ private fun FormatPreviewHeader(
                                 },
                             )
                         }
-                        if (isSplitByChapterAvailable && !clipVideo && !splitByChapter) {
+                        if (isSplitByChapterAvailable) {
                             DropdownMenuItem(
+                                modifier = Modifier.semantics { selected = splitByChapter },
                                 leadingIcon = { Icon(Icons.Outlined.VerticalSplit, contentDescription = null) },
+                                trailingIcon = { if (splitByChapter) Icon(Icons.Outlined.Check, contentDescription = null) },
                                 text = { Text(stringResource(Res.string.split_video)) },
                                 onClick = {
                                     menuExpanded = false
@@ -1316,9 +1396,9 @@ private fun SuggestedFormatCard(
     onClick: () -> Unit,
 ) {
     val requestedFormats =
-        videoInfo.requestedFormats
-            ?: videoInfo.requestedDownloads?.flatMap { it.requestedFormats.orEmpty() }
-            ?: emptyList()
+        videoInfo.requestedFormats.orEmpty().ifEmpty {
+            videoInfo.requestedDownloads.orEmpty().flatMap { it.requestedFormats.orEmpty() }
+        }
     if (requestedFormats.isEmpty()) return
 
     val duration = videoInfo.duration ?: 0.0
@@ -1414,7 +1494,8 @@ private fun FormatItemCard(
     )
 
     Surface(
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).border(1.dp, animatedOutlineColor, MaterialTheme.shapes.large).clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).border(1.dp, animatedOutlineColor, MaterialTheme.shapes.large)
+            .selectable(selected = selected, role = Role.Checkbox, onClick = onClick),
         color = animatedContainerColor,
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1437,6 +1518,7 @@ private fun FormatItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (selected) Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                     if (containsVideo) Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                     if (containsAudio) Icon(Icons.Outlined.AudioFile, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
@@ -1474,19 +1556,4 @@ private fun formatDuration(totalSeconds: Int): String {
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds) else "%02d:%02d".format(minutes, seconds)
-}
-
-private fun buildVideoClips(
-    enabled: Boolean,
-    startText: String,
-    endText: String,
-    maxSeconds: Int,
-): List<VideoClip> {
-    if (!enabled || maxSeconds <= 0) return emptyList()
-    val rawStart = startText.toIntOrNull() ?: 0
-    val rawEnd = endText.toIntOrNull() ?: maxSeconds
-    val start = rawStart.coerceIn(0, maxSeconds)
-    val end = rawEnd.coerceIn(0, maxSeconds)
-    if (end <= start) return emptyList()
-    return listOf(VideoClip(start = start, end = end))
 }

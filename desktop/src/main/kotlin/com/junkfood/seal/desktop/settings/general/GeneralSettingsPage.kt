@@ -19,37 +19,22 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.junkfood.seal.desktop.settings.DesktopAppSettings
-import com.junkfood.seal.desktop.settings.PreferenceInfo
 import com.junkfood.seal.desktop.settings.PreferenceSubtitle
 import com.junkfood.seal.desktop.settings.SelectionCard
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
-import com.junkfood.seal.desktop.settings.ChoiceDialog
 import com.junkfood.seal.desktop.settings.EnvPrefAuto
 import com.junkfood.seal.desktop.settings.EnvPrefBundled
 import com.junkfood.seal.desktop.settings.EnvPrefSystem
 import com.junkfood.seal.desktop.settings.ToggleCard
 import com.junkfood.seal.desktop.settings.ActionCard
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolution
-import com.junkfood.seal.desktop.ytdlp.DesktopDependencyHealthStatus
 import com.junkfood.seal.desktop.ytdlp.DesktopDependencyResolver
-import com.junkfood.seal.desktop.ytdlp.DesktopDependencySource
-import com.junkfood.seal.desktop.ytdlp.ResolvedDesktopDependency
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.advanced_settings
 import com.junkfood.seal.shared.generated.resources.create_thumbnail
 import com.junkfood.seal.shared.generated.resources.create_thumbnail_summary
 import com.junkfood.seal.shared.generated.resources.disable_preview
 import com.junkfood.seal.shared.generated.resources.disable_preview_desc
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_broken_summary
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_missing_summary
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_optional
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_packaged
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_selfhost
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_source_system
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_broken
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_detecting
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_healthy
-import com.junkfood.seal.shared.generated.resources.desktop_dependency_status_missing
 import com.junkfood.seal.shared.generated.resources.env_pref_auto
 import com.junkfood.seal.shared.generated.resources.env_pref_bundled
 import com.junkfood.seal.shared.generated.resources.env_pref_system
@@ -91,14 +76,15 @@ internal fun GeneralSettingsPage(
     var showArchiveDialog by remember { mutableStateOf(false) }
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
     var showEnvPrefDialog by remember { mutableStateOf(false) }
+    var environmentRefreshKey by remember { mutableStateOf(0) }
     val envResolution by
-        produceState<DesktopDependencyResolution?>(null, appSettings.environmentPreference) {
+        produceState<DesktopDependencyResolution?>(null, appSettings.environmentPreference, environmentRefreshKey) {
             value =
                 withContext(Dispatchers.IO) {
                     DesktopDependencyResolver.resolve(appSettings.environmentPreference)
                 }
         }
-    val envDetectionSummary = envResolution?.let { dependencyDetectionSummary(it) }.orEmpty()
+    val envDetectionSummary = environmentSummaryText(envResolution)
 
     SettingsPageScaffold(title = stringResource(Res.string.general_settings), onBack = onBack) {
         PreferenceSubtitle(text = stringResource(Res.string.general_settings))
@@ -119,10 +105,8 @@ internal fun GeneralSettingsPage(
             description =
                 buildString {
                     append(envPrefLabel)
-                    if (envDetectionSummary.isNotBlank()) {
-                        append('\n')
-                        append(envDetectionSummary)
-                    }
+                    append(" · ")
+                    append(envDetectionSummary)
                 },
             icon = Icons.Rounded.SettingsApplications,
             onClick = { showEnvPrefDialog = true }
@@ -229,99 +213,14 @@ internal fun GeneralSettingsPage(
         )
     }
 
-    if (showEnvPrefDialog) {
-        ChoiceDialog(
-            visible = showEnvPrefDialog,
-            title = stringResource(Res.string.env_preference),
-            options = listOf(
-                stringResource(Res.string.env_pref_auto) to EnvPrefAuto,
-                stringResource(Res.string.env_pref_bundled) to EnvPrefBundled,
-                stringResource(Res.string.env_pref_system) to EnvPrefSystem,
-            ),
-            selected = appSettings.environmentPreference,
-            onSelect = { pref -> onUpdateAppSettings { it.copy(environmentPreference = pref) } },
-            onDismiss = { showEnvPrefDialog = false },
-            footer = { selectedPreference ->
-                val selectedResolution by
-                    produceState<DesktopDependencyResolution?>(null, selectedPreference) {
-                        value =
-                            withContext(Dispatchers.IO) {
-                                DesktopDependencyResolver.resolve(selectedPreference)
-                            }
-                    }
-                PreferenceInfo(
-                    text =
-                        selectedResolution
-                            ?.let { dependencyDetectionSummary(it) }
-                            ?: stringResource(Res.string.desktop_dependency_status_detecting),
-                    applyPaddings = false,
-                )
-            }
-        )
-    }
-}
-
-@Composable
-private fun dependencyDetectionSummary(resolution: DesktopDependencyResolution): String {
-    val missing = stringResource(Res.string.desktop_dependency_status_missing)
-    val healthy = stringResource(Res.string.desktop_dependency_status_healthy)
-    val broken = stringResource(Res.string.desktop_dependency_status_broken)
-    val optional = stringResource(Res.string.desktop_dependency_optional)
-    val selfhost = stringResource(Res.string.desktop_dependency_source_selfhost)
-    val packaged = stringResource(Res.string.desktop_dependency_source_packaged)
-    val system = stringResource(Res.string.desktop_dependency_source_system)
-
-    fun sourceLabel(source: DesktopDependencySource): String =
-        when (source) {
-            DesktopDependencySource.AppPrivate -> selfhost
-            DesktopDependencySource.Packaged -> packaged
-            DesktopDependencySource.SystemPath -> system
-        }
-
-    fun dependencyLine(name: String, dependency: ResolvedDesktopDependency?): String {
-        if (dependency == null) return "$name: $missing"
-        val status =
-            when (dependency.health.status) {
-                DesktopDependencyHealthStatus.Healthy -> healthy
-                DesktopDependencyHealthStatus.Broken -> broken
-                DesktopDependencyHealthStatus.Missing -> missing
-            }
-        val detail =
-            dependency.health.version
-                ?.takeIf { it.isNotBlank() }
-                ?: dependency.health.diagnostic?.takeIf { it.isNotBlank() }
-        return buildString {
-            append("$name: ${sourceLabel(dependency.source)} · $status")
-            detail?.let { append(" · ${it.lineSequence().first().take(160)}") }
-            append("\n${dependency.path.toAbsolutePath()}")
-        }
-    }
-
-    val ytDlpLine = dependencyLine("yt-dlp", resolution.ytDlp)
-    val ffmpegLine = dependencyLine("ffmpeg", resolution.ffmpeg)
-    val aria2cLine =
-        resolution.aria2c?.let { dependencyLine("aria2c", it) }
-            ?: "aria2c: $missing ($optional)"
-    val missingSummary =
-        resolution.missingNames.takeIf { it.isNotEmpty() }?.let { names ->
-            stringResource(Res.string.desktop_dependency_missing_summary, names.joinToString())
-        }
-    val brokenSummary =
-        resolution.brokenNames.takeIf { it.isNotEmpty() }?.let { names ->
-            stringResource(Res.string.desktop_dependency_broken_summary, names.joinToString())
-        }
-
-    return buildString {
-        appendLine(ytDlpLine)
-        appendLine(ffmpegLine)
-        append(aria2cLine)
-        if (missingSummary != null) {
-            appendLine()
-            append(missingSummary)
-        }
-        if (brokenSummary != null) {
-            appendLine()
-            append(brokenSummary)
-        }
-    }
+    EnvironmentPreferenceDialog(
+        visible = showEnvPrefDialog,
+        selected = appSettings.environmentPreference,
+        onSelect = { pref ->
+            onUpdateAppSettings { it.copy(environmentPreference = pref) }
+            environmentRefreshKey += 1
+        },
+        onDismiss = { showEnvPrefDialog = false },
+        onHealthInvalidated = { environmentRefreshKey += 1 },
+    )
 }

@@ -1,7 +1,11 @@
 @file:Suppress("UnstableApiUsage")
 
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
 import org.gradle.jvm.tasks.Jar
+import org.gradle.api.tasks.Sync
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 import java.util.zip.ZipFile
 
 plugins {
@@ -129,6 +133,7 @@ dependencies {
     implementation(files(platformSqliteJdbc.flatMap { it.archiveFile }).builtBy(platformSqliteJdbc))
 
     testImplementation(kotlin("test"))
+    testImplementation(compose.desktop.uiTestJUnit4)
 }
 
 val desktopPackageVersion = "${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}"
@@ -223,6 +228,42 @@ tasks.register<JavaExec>("desktopDependencyDownloadSelfCheck") {
     val mainSourceSet = sourceSets.named("main").get()
     classpath = mainSourceSet.runtimeClasspath
     mainClass.set("com.junkfood.seal.desktop.ytdlp.DesktopDependencyDownloadSelfCheckMainKt")
+}
+
+// Compose's app-resource Sync otherwise normalizes downloaded Unix tools to 0644.
+// Preserve executable payloads before jpackage builds either the app image or installer.
+tasks.withType<Sync>().configureEach {
+    if (name == "prepareAppResources") {
+        eachFile {
+            if (name in setOf("yt-dlp", "yt-dlp_macos", "ffmpeg", "ffprobe")) {
+                permissions { unix("rwxr-xr-x") }
+            }
+        }
+    }
+}
+
+// jpackage normalizes --app-content files back to 0644 on Unix even when the
+// prepared app resources are executable. Repair the actual app image so
+// portable artifacts and native packages both consume executable tools.
+if (!desktopBuildOsName.contains("win")) {
+    val releaseAppImageName = if (desktopBuildOsName.contains("mac")) "Seal.app" else "Seal"
+
+    tasks.withType<AbstractJPackageTask>().configureEach {
+        if (targetFormat == TargetFormat.AppImage) {
+            doLast {
+                val toolNames = setOf("yt-dlp", "yt-dlp_macos", "ffmpeg", "ffprobe")
+                val executablePermissions = PosixFilePermissions.fromString("rwxr-xr-x")
+
+                destinationDir.get().asFile
+                    .walkTopDown()
+                    .filter { it.isFile && it.name in toolNames }
+                    .forEach { tool -> Files.setPosixFilePermissions(tool.toPath(), executablePermissions) }
+            }
+        } else if (name.startsWith("packageRelease")) {
+            dependsOn("createReleaseDistributable")
+            appImage.set(layout.buildDirectory.dir("compose/binaries/main-release/app/$releaseAppImageName"))
+        }
+    }
 }
 
 // Override the bundled ProGuard version to one that understands Java 21 class files.

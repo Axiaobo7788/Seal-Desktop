@@ -424,7 +424,7 @@ private fun QueueCardShared(
                     StatusRowShared(item = item, strings = strings)
                 }
                 IconButton(onClick = onMoreClick) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                    Icon(Icons.Outlined.MoreVert, contentDescription = strings.openActionsLabel)
                 }
             }
         }
@@ -474,7 +474,7 @@ private fun QueueListItemShared(
             StatusRowShared(item = item, strings = strings)
         }
         IconButton(onClick = onMoreClick) {
-            Icon(Icons.Outlined.MoreVert, contentDescription = null)
+            Icon(Icons.Outlined.MoreVert, contentDescription = strings.openActionsLabel)
         }
     }
 }

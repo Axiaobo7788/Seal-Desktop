@@ -127,4 +127,33 @@ class DownloadPlanFactoryTest {
             ),
         )
     }
+
+    @Test
+    fun `playlist item index reaches yt-dlp without pinning an automatic format`() {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = VideoInfo(vcodec = "avc1"),
+                preferences =
+                    DownloadPreferences.EMPTY.copy(
+                        downloadPlaylist = true,
+                        videoResolution = 1080,
+                    ),
+                playlistItem = 7,
+            )
+
+        val args = plan.asCliArgs()
+        assertTrue(args.containsAll(listOf("--playlist-items", "7")))
+        assertFalse(args.contains("-f"))
+    }
+
+    @Test
+    fun `explicit custom format id remains in the task plan`() {
+        val plan =
+            buildDownloadPlan(
+                videoInfo = VideoInfo(vcodec = "avc1"),
+                preferences = DownloadPreferences.EMPTY.copy(formatIdString = "30077+30280"),
+            )
+
+        assertTrue(plan.asCliArgs().containsAll(listOf("-f", "30077+30280")))
+    }
 }

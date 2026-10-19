@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 private data class AndroidBackup(
     val downloadHistory: List<AndroidDownloadedVideoInfo>? = emptyList(),
+    val desktopHistory: List<DesktopDownloadHistoryEntry>? = null,
 )
 
 @Serializable
@@ -96,6 +97,7 @@ data class DesktopDownloadHistoryEntry(
     val extractor: String = "",
     val thumbnailUrl: String? = null,
     val filePath: String? = null,
+    val outputDirectory: String? = null,
     val fileSizeBytes: Long? = null,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
 )
@@ -118,7 +120,11 @@ private fun DesktopDownloadHistoryEntry.toAndroidEntry(): AndroidDownloadedVideo
 }
 
 internal fun encodeHistoryEntries(entries: List<DesktopDownloadHistoryEntry>): String {
-    val backup = AndroidBackup(downloadHistory = entries.map { it.toAndroidEntry() })
+    val backup =
+        AndroidBackup(
+            downloadHistory = entries.map { it.toAndroidEntry() },
+            desktopHistory = entries,
+        )
     return historyJson.encodeToString(backup)
 }
 
@@ -132,6 +138,7 @@ internal fun decodeHistoryEntries(text: String): List<DesktopDownloadHistoryEntr
             // Compatibility: Android exports download history as Backup(downloadHistory=[DownloadedVideoInfo...]).
             runCatching { historyJson.decodeFromString<AndroidBackup>(trimmed) }
                 .map { backup ->
+                    backup.desktopHistory?.let { return@map it }
                     val historyList = backup.downloadHistory ?: emptyList()
                     if (historyList.isEmpty()) throw desktopErr
                     val now = System.currentTimeMillis()

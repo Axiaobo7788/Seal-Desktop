@@ -246,7 +246,10 @@ jobs:
               echo "Bundled tool not found in app: $name"
               exit 1
             fi
-            chmod +x "$packaged_tool"
+            if [[ ! -x "$packaged_tool" ]]; then
+              echo "Bundled tool is not executable in the final app image: $packaged_tool"
+              exit 1
+            fi
           done
           provenance="$(find "$app_bundle" -type f -name THIRD_PARTY_VERSIONS.txt | head -n 1)"
           [[ -n "$provenance" ]]

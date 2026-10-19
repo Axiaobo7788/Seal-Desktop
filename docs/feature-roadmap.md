@@ -2,7 +2,7 @@
 
 > Role: product capability status and planned Desktop adaptations.
 >
-> Refreshed: 2026-10-04
+> Refreshed: 2026-10-19
 >
 > This document answers a question that bug trackers do not answer well: **is a behavior broken, or has the planned Desktop feature never been completed?**
 >
@@ -111,7 +111,7 @@ The UI may be desktop-native rather than a literal copy of the Android page.
 
 ### Multi-URL input and Saved URLs — **Planned**
 
-Desktop currently has a simplified single-line input flow.
+Desktop remains a single-URL flow. The current parser detects multiple URL-like lines, de-duplicates them and rejects the input with a localized explanation instead of forwarding the newline-containing text as one yt-dlp argument. This is an honest safety guard, not Multi-URL implementation.
 
 Planned capability includes:
 
@@ -124,7 +124,7 @@ Swipe gestures from Android are not required on Desktop; hover/context-menu/keyb
 
 ### Download history bulk workflow — **Partial**
 
-Desktop already has history, search, import and export.
+Desktop already has history, search, import and export. Import now returns explicit imported/duplicate/skipped/truncated/invalid counts, retains the newest 500 records by policy, and reports malformed input instead of silently succeeding. Entries also retain an output directory so multi-file tasks do not expose only one final file path.
 
 Still-planned parity/product work includes:
 
@@ -138,15 +138,15 @@ Desktop may use a side panel, dialog or context actions instead of Android's dra
 
 ### Custom format selection — **Partial**
 
-The page exists but is not finished parity.
+**Clip/search implementation complete; visual interaction acceptance pending** (2026-10-08, `feat/rc-ui-polish`).
 
-Known planned gaps include:
+The page derives `audioOnly`/`allowMultiAudio` from the existing download-type policy and retains the shared subtitle matcher. Desktop now provides RangeSlider plus precise seconds/mm:ss/hh:mm:ss inputs, validated draft/range separation, finite/non-live eligibility, reset, and reversible clip/chapter mutual exclusion. Retry keeps clip ranges as task intent.
 
-- validate the current download-type wiring and audio/video filtering on a working build host;
-- better clip-range editing;
-- remaining visual/interaction parity and localization.
+Automatic/preset flows clear any persisted concrete format ID before metadata or execution, while an explicit Custom Format selection preserves the chosen ID as task intent. Metadata receives network/auth/IPv4/sorting options but never that concrete `-f`; an explicitly unavailable ID still fails visibly instead of silently falling back. A public Bilibili multi-part sample passed local standalone/playlist-entry metadata smoke, but the reporter's exact failing collection remains Human-check.
 
-The active worktree derives `audioOnly`/`allowMultiAudio` from an explicit download-type policy before entering `FormatPageImpl`. Android and Desktop now also share a tested, malformed-pattern-safe subtitle matcher for exact and regex-like preferences, including normal and automatic captions. Desktop compilation, the focused pure policy/matcher tests and Android `genericDebug` Kotlin compilation passed locally on 2026-09-29. The capability remains Partial because clip editing and visual/interaction parity are still unfinished.
+Long lists expose format search without replacing Suggested/Audio/Video-only/Video+Audio categories. Filtering keeps original format identities and selections even while hidden. Empty formats, errors and loading have explicit feedback and request-preserving retry/back. Selection uses the existing short color transitions plus a check indicator. The download-options fold retains its Desktop structure with an enabled-only summary; no Cookies/SponsorBlock/subtitle/metadata behavior was redefined.
+
+Automated state/render/input checks and the exact remaining visual/native matrix are recorded in [the UI evidence note](history/rc-ui-polish-2026-10-08.md). These do not establish real-media accuracy, native process cleanup, system DPI, accessibility feel or animation quality. The capability remains Partial until that review is recorded.
 
 Visual parity items require human-check mode.
 
@@ -163,11 +163,11 @@ A separate decision is required on whether Desktop should:
 
 This is distinct from `privateMode`, which controls persistence/history behavior.
 
-### Desktop UI parity component map — **Planned maintenance/product work**
+### Desktop UI parity component map — **Partial / Scoped comparison**
 
 Desktop currently mixes shared components, Desktop-native components and local Android-like recreations.
 
-A future parity map should identify:
+A scoped A–D comparison and intentional Desktop differences are recorded in the [2026-10-08 UI note](history/rc-ui-polish-2026-10-08.md). History selection remains optional/deferred; Queue, navigation, Settings and Cookies architecture were not replaced. Further comparisons should continue to identify:
 
 - must-share behavior;
 - exact visual parity candidates;
@@ -212,9 +212,9 @@ The current repair omits `--sponsorblock-remove` when the category is blank and 
 
 Release workflows and local contributor builds do not currently have the same dependency-population guarantees.
 
-The active worktree now probes yt-dlp/ffmpeg/aria2c and distinguishes `Missing`, `Healthy` and `Broken`. A broken system dependency remains system-owned, a broken selfhost dependency can be repaired in the app-private directory, and packaged dependencies stay read-only. The probe is cached by file identity metadata and explicitly invalidated after app-managed replacement.
+The active worktree now probes yt-dlp/ffmpeg/aria2c and distinguishes `Missing`, `Healthy` and `Broken`. A broken system dependency remains system-owned, a broken selfhost dependency can be repaired in the app-private directory, and packaged dependencies stay read-only. The probe is cached by file identity metadata and explicitly invalidated after app-managed replacement. General Settings now consumes a pure presentation model with a compact summary, asynchronous detail resolution and explicit refresh/invalidation rather than rendering one unstructured diagnostics block.
 
-Focused health, ownership-policy and full Desktop tests passed locally on 2026-09-29. Full workflow artifacts now also contain actual tool versions, SHA256 values, source classification/URLs and the build commit; release assembly requires all platforms to come from one commit and emits release checksums. This closes the unsafe "exists means usable" assumption and adds provenance in implementation, but the updated Windows/Linux/macOS dependency smoke matrix still needs a branch run. Broader dependency bootstrap/reproducibility work still includes:
+Focused health, ownership-policy, presentation and full Desktop tests passed locally. Full workflow artifacts now also contain actual tool versions, SHA256 values, source classification/URLs and the build commit; release assembly requires all platforms to come from one commit and emits release checksums. A real Linux Full app-image exposed jpackage normalizing bundled tools to non-executable `0644`; the corrected build repairs the final app-image and makes DEB/other native-package tasks consume it. Rebuilt Linux Full app-image and DEB tools executed at `0755`, while Lite remained tool-free. This closes the local Linux executable-bit defect, but the updated Windows/Linux/macOS dependency/package matrix and the new dialog still need native/visual review. Broader dependency bootstrap/reproducibility work still includes:
 
 - an explicit contributor setup/fetch task;
 - deciding which stable release dependencies must be pinned instead of merely recorded, plus action SHA pinning.

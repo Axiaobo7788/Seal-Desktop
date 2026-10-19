@@ -79,7 +79,8 @@ import com.junkfood.seal.shared.generated.resources.clipboard
 import com.junkfood.seal.shared.generated.resources.close
 import com.junkfood.seal.shared.generated.resources.copy_link
 import com.junkfood.seal.shared.generated.resources.delete
-import com.junkfood.seal.shared.generated.resources.download_history_imported
+import com.junkfood.seal.shared.generated.resources.desktop_open_output_directory
+import com.junkfood.seal.shared.generated.resources.desktop_open_output_directory_failed
 import com.junkfood.seal.shared.generated.resources.desktop_open_navigation
 import com.junkfood.seal.shared.generated.resources.downloads_history
 import com.junkfood.seal.shared.generated.resources.export_backup
@@ -137,8 +138,8 @@ fun DesktopDownloadHistoryPage(
     onDelete: (String) -> Unit,
     onExportToFile: (DesktopHistoryExportType, Path, (Result<Unit>) -> Unit) -> Unit,
     onExportToClipboard: (DesktopHistoryExportType, (Result<Unit>) -> Unit) -> Unit,
-    onImportFromFile: (Path, (Result<Int>) -> Unit) -> Unit,
-    onImportFromClipboard: (String, (Result<Int>) -> Unit) -> Unit,
+    onImportFromFile: (Path, (Result<HistoryImportResult>) -> Unit) -> Unit,
+    onImportFromClipboard: (String, (Result<HistoryImportResult>) -> Unit) -> Unit,
     disablePreview: Boolean = false,
     onMenuClick: () -> Unit = {},
     isCompact: Boolean = false,
@@ -164,7 +165,6 @@ fun DesktopDownloadHistoryPage(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val historyListState = rememberLazyListState()
-    val importedSnackbarTemplate = stringResource(Res.string.download_history_imported)
 
     LaunchedEffect(showImportDialog) {
         if (showImportDialog) importDialogHost = true
@@ -367,7 +367,13 @@ fun DesktopDownloadHistoryPage(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             items(filtered, key = { it.id }) { entry ->
-                                HistoryRow(entry = entry, onDelete = onDelete, showPlatform = showPlatformInRows, disablePreview = disablePreview)
+                                HistoryRow(
+                                    entry = entry,
+                                    onDelete = onDelete,
+                                    showPlatform = showPlatformInRows,
+                                    disablePreview = disablePreview,
+                                    onActionError = { errorDialog = it },
+                                )
                             }
                             item { Spacer(Modifier.height(12.dp)) }
                         }
@@ -423,13 +429,9 @@ fun DesktopDownloadHistoryPage(
                         val path = pickOpenPath(importFileDialogTitle)
                         if (path != null) {
                             onImportFromFile(path) { res ->
-                                res.onSuccess { count ->
-                                    if (count > 0) {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                importedSnackbarTemplate.format(count.toString()),
-                                            )
-                                        }
+                                res.onSuccess { result ->
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(historyImportMessage(result))
                                     }
                                 }.onFailure { e ->
                                     errorDialog = e.message ?: e.toString()
@@ -441,13 +443,9 @@ fun DesktopDownloadHistoryPage(
                     DesktopHistoryIoDestination.Clipboard -> {
                         val text = clipboard.getText()?.text.orEmpty()
                         onImportFromClipboard(text) { res ->
-                            res.onSuccess { count ->
-                                if (count > 0) {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            importedSnackbarTemplate.format(count.toString()),
-                                        )
-                                    }
+                            res.onSuccess { result ->
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(historyImportMessage(result))
                                 }
                             }.onFailure { e ->
                                 errorDialog = e.message ?: e.toString()
@@ -478,6 +476,7 @@ private fun HistoryRow(
     onDelete: (String) -> Unit,
     showPlatform: Boolean,
     disablePreview: Boolean,
+    onActionError: (String) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -485,6 +484,7 @@ private fun HistoryRow(
     val clipboard = LocalClipboardManager.current
     val thumbnailLabel = stringResource(Res.string.thumbnail)
     val moreActionsLabel = stringResource(Res.string.show_more_actions)
+    val openOutputDirectoryFailed = stringResource(Res.string.desktop_open_output_directory_failed)
     val exists = entry.filePath?.let { runCatching { Files.exists(Path.of(it)) }.getOrDefault(false) } ?: false
     val thumbnailUrl = entry.thumbnailUrl?.takeIf { !disablePreview && it.isNotBlank() }
     val metaLine =
@@ -612,6 +612,16 @@ private fun HistoryRow(
                     Icon(Icons.Outlined.MoreVert, contentDescription = moreActionsLabel, modifier = Modifier.size(18.dp))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    entry.outputDirectory?.let { directory ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.desktop_open_output_directory)) },
+                            enabled = runCatching { Files.isDirectory(Path.of(directory)) }.getOrDefault(false),
+                            onClick = {
+                                menuOpen = false
+                                if (!openFile(directory)) onActionError(openOutputDirectoryFailed)
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
                         text = { Text(stringResource(Res.string.open_file)) },
@@ -908,12 +918,14 @@ private fun humanSize(bytes: Long): String {
     }
 }
 
-private fun openFile(path: String) {
+private fun openFile(path: String): Boolean =
     runCatching {
-        if (!Desktop.isDesktopSupported()) return
+        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            return@runCatching false
+        }
         Desktop.getDesktop().open(File(path))
-    }
-}
+        true
+    }.getOrDefault(false)
 
 private fun safeBrowse(url: String) {
     runCatching {

@@ -9,12 +9,12 @@ import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryEntry
 import com.junkfood.seal.desktop.download.history.DesktopDownloadHistoryStorage
 import com.junkfood.seal.desktop.download.history.DesktopHistoryExportType
 import com.junkfood.seal.desktop.download.history.DesktopHistoryImportMode
+import com.junkfood.seal.desktop.download.history.HistoryImportResult
 import com.junkfood.seal.desktop.download.history.DesktopHistoryMediaType
 import com.junkfood.seal.desktop.download.history.DesktopHistoryPlatform
-import com.junkfood.seal.desktop.download.history.decodeHistoryEntries
-import com.junkfood.seal.desktop.download.history.decodeHistoryUrls
 import com.junkfood.seal.desktop.download.history.encodeHistoryEntries
 import com.junkfood.seal.desktop.download.history.encodeHistoryUrls
+import com.junkfood.seal.desktop.download.history.importHistory
 import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveException
 import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchivePrecheck
 import com.junkfood.seal.desktop.download.archive.DesktopDownloadArchiveService
@@ -29,6 +29,7 @@ import com.junkfood.seal.desktop.util.DesktopNotifier
 import com.junkfood.seal.desktop.ytdlp.DESKTOP_ARIA2C_DOWNLOADER
 import com.junkfood.seal.desktop.ytdlp.DesktopYtDlpPaths
 import com.junkfood.seal.desktop.ytdlp.DownloadPlanExecutor
+import com.junkfood.seal.desktop.ytdlp.MetadataRuntimeOptions
 import com.junkfood.seal.desktop.ytdlp.YtDlpFetcher
 import com.junkfood.seal.desktop.ytdlp.YtDlpMetadataFetcher
 import com.junkfood.seal.desktop.ytdlp.buildDownloadExecutionArgs
@@ -46,6 +47,7 @@ import com.junkfood.seal.util.VideoInfo
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 import kotlinx.coroutines.CancellationException
@@ -63,6 +65,8 @@ import kotlinx.coroutines.withContext
 
 private const val MAX_CONCURRENT_DOWNLOADS = 3
 private const val MAX_HISTORY_ENTRIES = 500
+
+internal fun newDesktopDownloadTaskId(): String = UUID.randomUUID().toString()
 
 class DesktopDownloadController(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -201,15 +205,21 @@ class DesktopDownloadController(
         }
     }
 
-    suspend fun fetchVideoInfo(url: String, basePreferences: DownloadPreferences): Result<VideoInfo> = withContext(Dispatchers.IO) {
-        runCatching {
+    suspend fun fetchVideoInfo(url: String, basePreferences: DownloadPreferences): Result<VideoInfo> {
+        return try {
             val appSettings = appSettingsProvider()
             val runtimeProxy = DesktopProxyResolver.resolveProxyUrl(basePreferences, appSettings)
-            metadataFetcher.fetch(
-                url,
-                proxyUrl = runtimeProxy,
-                cookieContext = cookieResolver.resolve(basePreferences),
+            Result.success(
+                metadataFetcher.fetchCancellable(
+                    url,
+                    cookieContext = cookieResolver.resolve(basePreferences),
+                    runtimeOptions = MetadataRuntimeOptions.from(basePreferences, runtimeProxy),
+                ),
             )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 
@@ -301,65 +311,18 @@ class DesktopDownloadController(
     fun importHistoryText(
         text: String,
         mode: DesktopHistoryImportMode = DesktopHistoryImportMode.Merge,
-    ): Int {
-        val trimmed = text.trim()
-        if (trimmed.isBlank()) return 0
-
-        val importedEntries =
-            runCatching { decodeHistoryEntries(trimmed) }
-                .recoverCatching {
-                    val urls = decodeHistoryUrls(trimmed)
-                    urls.mapIndexed { index, url ->
-                        DesktopDownloadHistoryEntry(
-                            id = (System.currentTimeMillis() + index).toString(),
-                            title = url,
-                            url = url,
-                            mediaType = DesktopHistoryMediaType.Video,
-                            platform = DesktopHistoryPlatform.Other,
-                        )
-                    }
-                }
-                .getOrDefault(emptyList())
-
-        if (importedEntries.isEmpty()) return 0
-
-        val beforeSize = historyEntries.size
-
-        val merged =
-            when (mode) {
-                DesktopHistoryImportMode.Replace -> importedEntries
-                DesktopHistoryImportMode.Merge -> {
-                    val existingIds = historyEntries.asSequence().map { it.id }.toHashSet()
-                    val existingKeys =
-                        historyEntries
-                            .asSequence()
-                            .map { it.url.takeIf { u -> u.isNotBlank() } ?: it.title }
-                            .toHashSet()
-
-                    val newOnes =
-                        importedEntries.filter { e ->
-                            val idOk = e.id.isNotBlank() && !existingIds.contains(e.id)
-                            val key = e.url.takeIf { it.isNotBlank() } ?: e.title
-                            val keyOk = key.isNotBlank() && !existingKeys.contains(key)
-                            idOk && keyOk
-                        }
-
-                    // Imported entries go to the front, same as download completion behavior.
-                    newOnes + historyEntries.toList()
-                }
-            }
-
+    ): HistoryImportResult {
+        val update = importHistory(text, historyEntries.toList(), mode)
         historyEntries.clear()
-        historyEntries.addAll(merged.take(500))
+        historyEntries.addAll(update.entries)
         scope.launch { historyStorage.save(historyEntries.toList()) }
-
-        return historyEntries.size - beforeSize
+        return update.result
     }
 
     fun importHistoryFromFile(
         source: Path,
         mode: DesktopHistoryImportMode = DesktopHistoryImportMode.Merge,
-        onComplete: (Result<Int>) -> Unit = {},
+        onComplete: (Result<HistoryImportResult>) -> Unit = {},
     ) {
         scope.launch {
             val result =
@@ -375,10 +338,14 @@ class DesktopDownloadController(
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
 
-        val itemId = System.currentTimeMillis().toString()
+        val itemId = newDesktopDownloadTaskId()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
         val appSettings = appSettingsProvider()
-        val effectivePreferences = DesktopProxyResolver.applyToPreferences(preferencesForType(basePreferences, type), appSettings)
+        val effectivePreferences =
+            DesktopProxyResolver.applyToPreferences(
+                preferencesForAutomaticDownload(basePreferences, type),
+                appSettings,
+            )
 
         queueItems.add(
             DownloadQueueItemState(
@@ -406,13 +373,12 @@ class DesktopDownloadController(
         newTitle: String = "",
         selectedSubtitles: List<String> = emptyList(),
         selectedAutoCaptions: List<String> = emptyList(),
-        onSelectionApplied: (DownloadPreferences) -> Unit = {},
     ) {
         val trimmed = url.trim()
         if (trimmed.isBlank()) return
         if (formatList.isEmpty()) return
 
-        val itemId = System.currentTimeMillis().toString()
+        val itemId = newDesktopDownloadTaskId()
         val mediaType = if (type == DesktopDownloadType.Audio) DownloadQueueMediaType.Audio else DownloadQueueMediaType.Video
 
         val selection =
@@ -428,8 +394,11 @@ class DesktopDownloadController(
             )
 
         val appSettings = appSettingsProvider()
-        val effectivePreferences = DesktopProxyResolver.applyToPreferences(preferencesForType(selection.preferences, type), appSettings)
-        onSelectionApplied(selection.preferences)
+        val effectivePreferences =
+            DesktopProxyResolver.applyToPreferences(
+                preferencesForExplicitSelection(selection.preferences, type),
+                appSettings,
+            )
 
         queueItems.add(
             DownloadQueueItemState(
@@ -488,6 +457,7 @@ class DesktopDownloadController(
                         url = trimmed,
                         paths = DesktopYtDlpPaths,
                         preferences = effectivePreferences,
+                        extractorKey = selection.videoInfo.extractorKey,
                         cookieContext = cookieResolver.resolve(effectivePreferences),
                     ).also { resolvedConfig ->
                         val cliArgs = buildCliArgs(plan, resolvedConfig)
@@ -556,6 +526,7 @@ class DesktopDownloadController(
                             else if (archiveSkipped) AndroidStrings.get("download_archive_error")
                             else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
+                        outputDirectory = config.normalizedWorkingDirectory(),
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
                         errorMessage = if (success) it.errorMessage else (it.errorMessage ?: lastError),
@@ -569,6 +540,7 @@ class DesktopDownloadController(
                         mediaType = if (type == DesktopDownloadType.Audio) DesktopHistoryMediaType.Audio else DesktopHistoryMediaType.Video,
                         filePath = filePath,
                         fileSizeBytes = fileSize,
+                        outputDirectory = config.normalizedWorkingDirectory(),
                     )
                     appendHistoryEntryIfAllowed(effectivePreferences, entry)
                 }
@@ -688,13 +660,11 @@ class DesktopDownloadController(
             val cookieContext = cookieResolver.resolve(effectivePreferences)
             val videoInfo =
                 try {
-                    withContext(Dispatchers.IO) {
-                        metadataFetcher.fetch(
+                    metadataFetcher.fetchCancellable(
                             trimmed,
-                            proxyUrl = runtimeProxy,
                             cookieContext = cookieContext,
+                            runtimeOptions = MetadataRuntimeOptions.from(effectivePreferences, runtimeProxy),
                         )
-                    }
                 } catch (e: com.junkfood.seal.desktop.ytdlp.EnvironmentMissingException) {
                     val dependencyMessage =
                         e.message?.takeIf { it.isNotBlank() }
@@ -717,6 +687,8 @@ class DesktopDownloadController(
                         it.copy(status = DownloadQueueStatus.Error, progressText = message, errorMessage = message)
                     }
                     return@launchManagedDownload
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     appendLog(
                         AndroidStrings.format(
@@ -765,6 +737,7 @@ class DesktopDownloadController(
                     url = trimmed,
                     paths = DesktopYtDlpPaths,
                     preferences = preferencesWithProxy,
+                    extractorKey = videoInfo.extractorKey,
                     cookieContext = cookieContext,
                 )
             val cliArgs = buildCliArgs(plan, config)
@@ -823,6 +796,7 @@ class DesktopDownloadController(
                             else if (archiveSkipped) AndroidStrings.get("download_archive_error")
                             else "${AndroidStrings.get("desktop_download_detail_exit_code")}: $exitCode",
                         filePath = filePath,
+                        outputDirectory = config.normalizedWorkingDirectory(),
                         fileSizeApproxBytes = fileSize?.toDouble() ?: it.fileSizeApproxBytes,
                         exitCode = exitCode,
                         errorMessage = if (success) it.errorMessage else (it.errorMessage ?: lastError),
@@ -836,6 +810,7 @@ class DesktopDownloadController(
                         mediaType = if (type == DesktopDownloadType.Audio) DesktopHistoryMediaType.Audio else DesktopHistoryMediaType.Video,
                         filePath = filePath,
                         fileSizeBytes = fileSize,
+                        outputDirectory = config.normalizedWorkingDirectory(),
                     )
                     appendHistoryEntryIfAllowed(preferencesWithProxy, entry)
                 }
@@ -1071,6 +1046,7 @@ private fun VideoInfo.toHistoryEntry(
     mediaType: DesktopHistoryMediaType,
     filePath: String?,
     fileSizeBytes: Long?,
+    outputDirectory: String?,
 ): DesktopDownloadHistoryEntry {
     val platform =
         when {
@@ -1088,9 +1064,13 @@ private fun VideoInfo.toHistoryEntry(
         extractor = extractorKey,
         thumbnailUrl = getBestThumbnailUrl(),
         filePath = filePath,
+        outputDirectory = outputDirectory,
         fileSizeBytes = fileSizeBytes,
     )
 }
+
+private fun DownloadPlanExecutor.ExecutionConfig.normalizedWorkingDirectory(): String? =
+    workingDirectory?.toAbsolutePath()?.normalize()?.toString()
 
 private fun extractDestinationPath(lines: List<String>, workingDir: Path?): String? {
     // yt-dlp/forks may print different final-path lines depending on postprocessing.

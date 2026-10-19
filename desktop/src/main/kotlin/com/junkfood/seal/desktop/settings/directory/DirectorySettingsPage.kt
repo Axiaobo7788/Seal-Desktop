@@ -409,11 +409,12 @@ private fun DirectoryPreferenceDialog(
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     Spacer(modifier = Modifier.height(4.dp))
-                    val dirStr = StringBuilder(".../").run {
-                        if (website) append("website/")
-                        if (playlist) append("playlist_title/")
-                        append("file_name")
-                    }.toString()
+                    val dirStr =
+                        ".../" +
+                            DesktopYtDlpPaths.subdirectoryPreviewSuffix(
+                                includeExtractor = website,
+                                includePlaylistTitle = playlist,
+                            )
                     Text(
                         text = stringResource(Res.string.subdirectory_hint) + "\n" + dirStr,
                         style = MaterialTheme.typography.labelMedium,

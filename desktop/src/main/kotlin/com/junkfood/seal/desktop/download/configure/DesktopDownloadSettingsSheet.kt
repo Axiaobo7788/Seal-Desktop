@@ -72,12 +72,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.junkfood.seal.desktop.download.DesktopDownloadType
+import com.junkfood.seal.desktop.download.DesktopFormatChoice
+import com.junkfood.seal.desktop.download.initialFormatChoice
+import com.junkfood.seal.desktop.download.validateDesktopDownloadInput
 import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.additional_settings
@@ -92,6 +97,7 @@ import com.junkfood.seal.shared.generated.resources.custom_command_enabled_hint
 import com.junkfood.seal.shared.generated.resources.custom_command_template
 import com.junkfood.seal.shared.generated.resources.download
 import com.junkfood.seal.shared.generated.resources.download_subtitles
+import com.junkfood.seal.shared.generated.resources.desktop_single_url_only
 import com.junkfood.seal.shared.generated.resources.edit_preset
 import com.junkfood.seal.shared.generated.resources.embed_metadata
 import com.junkfood.seal.shared.generated.resources.format_selection
@@ -138,6 +144,7 @@ internal fun DownloadInputSheet(
     onProceed: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
+    val inputValidation = validateDesktopDownloadInput(url)
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -148,6 +155,13 @@ internal fun DownloadInputSheet(
             value = url,
             onValueChange = onUrlChange,
             label = { Text(stringResource(Res.string.video_url)) },
+            isError = inputValidation.hasMultipleUrls,
+            supportingText =
+                if (inputValidation.hasMultipleUrls) {
+                    { Text(stringResource(Res.string.desktop_single_url_only)) }
+                } else {
+                    null
+                },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -168,7 +182,7 @@ internal fun DownloadInputSheet(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(Res.string.cancel))
                 }
-                Button(onClick = onProceed, enabled = url.isNotBlank()) {
+                Button(onClick = onProceed, enabled = inputValidation.canProceed) {
                     Text(stringResource(Res.string.proceed))
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
@@ -190,9 +204,14 @@ internal fun DownloadOptionsSheet(
     onDismissRequest: () -> Unit,
     onDownload: () -> Unit,
     onCustomFormatClick: () -> Unit,
+    preferCustomFormat: Boolean = false,
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
     var showPresetDialog by remember { mutableStateOf(false) }
+    var formatChoice by
+        remember(preferCustomFormat, downloadType) {
+            mutableStateOf(initialFormatChoice(preferCustomFormat, downloadType))
+        }
     val formatSummary = formatSummary(preferences, downloadType)
     val isCustomCommandMode = customCommandEnabled
     val canStart = !isCustomCommandMode || customCommandTemplate != null
@@ -229,9 +248,10 @@ internal fun DownloadOptionsSheet(
             SectionTitle(text = stringResource(Res.string.format_selection))
             FormatSelectionSection(
                 summary = formatSummary,
-                onPresetClick = { },
+                selected = formatChoice,
+                onPresetClick = { formatChoice = DesktopFormatChoice.Preset },
                 onPresetMenuClick = { showPresetDialog = true },
-                onCustomClick = onCustomFormatClick,
+                onCustomClick = { formatChoice = DesktopFormatChoice.Custom },
                 showEdit = downloadType != DesktopDownloadType.Playlist,
             )
 
@@ -240,12 +260,35 @@ internal fun DownloadOptionsSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 44.dp)
-                        .clickable { showAdvanced = !showAdvanced }
+                        .clickable(role = Role.Button) { showAdvanced = !showAdvanced }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    SectionTitle(text = stringResource(Res.string.additional_settings))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SectionTitle(text = stringResource(Res.string.additional_settings))
+                        run {
+                            val summary = enabledAdditionalSettings(preferences).map { setting ->
+                                stringResource(when (setting) {
+                                    AdditionalSetting.Cookies -> Res.string.cookies
+                                    AdditionalSetting.Subtitles -> Res.string.download_subtitles
+                                    AdditionalSetting.Thumbnail -> Res.string.create_thumbnail
+                                    AdditionalSetting.Metadata -> Res.string.embed_metadata
+                                    AdditionalSetting.SponsorBlock -> Res.string.sponsorblock
+                                })
+                            }.joinToString(" · ")
+                            if (summary.isNotEmpty()) Text(
+                                summary,
+                                // Reserve the same header height during fold/unfold animations.
+                                modifier = Modifier.alpha(if (showAdvanced) 0f else 1f)
+                                    .then(if (showAdvanced) Modifier.clearAndSetSemantics {} else Modifier),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                     Icon(
                         imageVector = Icons.Outlined.ExpandMore,
                         contentDescription = null,
@@ -313,13 +356,27 @@ internal fun DownloadOptionsSheet(
                 Text(stringResource(Res.string.cancel))
             }
             Button(
-                onClick = onDownload,
+                onClick = {
+                    if (formatChoice == DesktopFormatChoice.Custom && !isCustomCommandMode) {
+                        onCustomFormatClick()
+                    } else {
+                        onDownload()
+                    }
+                },
                 modifier = Modifier.weight(1f).height(44.dp),
                 enabled = canStart,
             ) {
                 Icon(Icons.Outlined.FileDownload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(if (isCustomCommandMode) Res.string.start else Res.string.start_download))
+                Text(
+                    stringResource(
+                        when {
+                            isCustomCommandMode -> Res.string.start
+                            formatChoice == DesktopFormatChoice.Custom -> Res.string.proceed
+                            else -> Res.string.start_download
+                        },
+                    ),
+                )
             }
         }
     }
@@ -530,6 +587,7 @@ private fun DownloadTypeSegmentedRow(selected: DesktopDownloadType, onSelect: (D
 @Composable
 private fun FormatSelectionSection(
     summary: String,
+    selected: DesktopFormatChoice,
     onPresetClick: () -> Unit,
     onPresetMenuClick: () -> Unit,
     onCustomClick: () -> Unit,
@@ -540,6 +598,9 @@ private fun FormatSelectionSection(
             modifier = Modifier.fillMaxWidth(),
             tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.large,
+            color =
+                if (selected == DesktopFormatChoice.Preset) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surface,
             onClick = onPresetClick,
         ) {
             Row(
@@ -568,6 +629,9 @@ private fun FormatSelectionSection(
                         )
                     }
                 }
+                androidx.compose.animation.AnimatedVisibility(visible = selected == DesktopFormatChoice.Preset) {
+                    Icon(Icons.Outlined.Check, contentDescription = null)
+                }
             }
         }
 
@@ -575,6 +639,9 @@ private fun FormatSelectionSection(
             modifier = Modifier.fillMaxWidth(),
             tonalElevation = 0.dp,
             shape = MaterialTheme.shapes.large,
+            color =
+                if (selected == DesktopFormatChoice.Custom) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surface,
             onClick = onCustomClick,
             enabled = showEdit,
         ) {
@@ -593,6 +660,9 @@ private fun FormatSelectionSection(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+                androidx.compose.animation.AnimatedVisibility(visible = selected == DesktopFormatChoice.Custom) {
+                    Icon(Icons.Outlined.Check, contentDescription = null)
                 }
             }
         }

@@ -69,6 +69,7 @@ import com.junkfood.seal.desktop.ui.AnimatedAlertDialog
 import com.junkfood.seal.ui.PlatformVerticalScrollbar
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cancel
+import com.junkfood.seal.shared.generated.resources.close
 import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_desc
@@ -81,21 +82,15 @@ import com.junkfood.seal.shared.generated.resources.new_template
 import com.junkfood.seal.shared.generated.resources.template_label
 import com.junkfood.seal.shared.generated.resources.use_custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_template
+import com.junkfood.seal.shared.generated.resources.desktop_command_import_empty
+import com.junkfood.seal.shared.generated.resources.desktop_command_import_invalid
+import com.junkfood.seal.shared.generated.resources.desktop_command_import_schema
+import com.junkfood.seal.shared.generated.resources.status_error
+import com.junkfood.seal.shared.generated.resources.template_imported
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.stringResource
-
-import kotlinx.serialization.Serializable
-
-@Serializable
-private data class DesktopOptionShortcutBackup(val id: Long = 0, val option: String)
-
-@Serializable
-private data class DesktopCommandBackup(
-    val templates: List<DesktopCommandTemplate>? = null,
-    val shortcuts: List<DesktopOptionShortcutBackup>? = null,
-)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -107,8 +102,12 @@ internal fun CommandSettingsPage(
 ) {
     val clipboardManager = LocalClipboardManager.current
     var isMenuExpanded by remember { mutableStateOf(false) }
-
     var showShortcutsDialog by remember { mutableStateOf(false) }
+    var importFeedback by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    val importSchemaError = stringResource(Res.string.desktop_command_import_schema)
+    val importEmptyError = stringResource(Res.string.desktop_command_import_empty)
+    val importInvalidError = stringResource(Res.string.desktop_command_import_invalid)
+    val importedTemplateMessage = stringResource(Res.string.template_imported)
 
     LaunchedEffect(
         settings.customCommandTemplates,
@@ -158,41 +157,21 @@ internal fun CommandSettingsPage(
                     text = { Text(stringResource(Res.string.import_from_clipboard)) },
                     onClick = {
                         clipboardManager.getText()?.text?.let { text ->
-                            runCatching {
-                                val backup = Json { ignoreUnknownKeys = true }.decodeFromString<DesktopCommandBackup>(text)
-                                val importedTemplates = backup.templates ?: emptyList()
-                                val importedShortcuts = backup.shortcuts?.map { it.option } ?: emptyList()
-                                
-                                if (importedTemplates.isNotEmpty() || importedShortcuts.isNotEmpty()) {
-                                    onUpdate {
-                                        val maxId = it.customCommandTemplates.maxOfOrNull { t -> t.id } ?: 0
-                                        val newTemplates = importedTemplates.mapIndexed { index, t -> t.copy(id = maxId + index + 1) }
-                                        val allTemplates = it.customCommandTemplates + newTemplates
-                                        val newSelection = newTemplates.firstOrNull()
-                                        it.copy(
-                                            customCommandTemplates = allTemplates,
-                                            customCommandShortcuts = (it.customCommandShortcuts + importedShortcuts).distinct(),
-                                            customCommandTemplateId = newSelection?.id ?: it.customCommandTemplateId,
-                                            customCommandLabel = newSelection?.label ?: it.customCommandLabel,
-                                            customCommandTemplate = newSelection?.template ?: it.customCommandTemplate
-                                        )
-                                    }
+                            runCatching { decodeCommandTemplateImport(text) }
+                                .onSuccess { imported ->
+                                    onUpdate { mergeCommandTemplateImport(it, imported) }
+                                    importFeedback =
+                                        false to importedTemplateMessage.format(imported.templates.size)
                                 }
-                            }.onFailure {
-                                runCatching {
-                                    val template = Json { ignoreUnknownKeys = true }.decodeFromString<DesktopCommandTemplate>(text)
-                                    val newId = (settings.customCommandTemplates.maxOfOrNull { t -> t.id } ?: 0) + 1
-                                    val newTemplate = template.copy(id = newId)
-                                    onUpdate {
-                                        it.copy(
-                                            customCommandTemplates = it.customCommandTemplates + newTemplate,
-                                            customCommandTemplateId = newId,
-                                            customCommandLabel = newTemplate.label,
-                                            customCommandTemplate = newTemplate.template
-                                        )
-                                    }
+                                .onFailure { error ->
+                                    val message =
+                                        when ((error as? CommandImportException)?.reason) {
+                                            CommandImportError.UnsupportedSchema -> importSchemaError
+                                            CommandImportError.Empty -> importEmptyError
+                                            else -> importInvalidError
+                                        }
+                                    importFeedback = true to message
                                 }
-                            }
                         }
                         isMenuExpanded = false
                     },
@@ -254,6 +233,26 @@ internal fun CommandSettingsPage(
             onUpdateShortcuts = { updatedList ->
                 onUpdate { it.copy(customCommandShortcuts = updatedList) }
             }
+        )
+    }
+
+    importFeedback?.let { (isError, message) ->
+        AnimatedAlertDialog(
+            visible = true,
+            onDismissRequest = { importFeedback = null },
+            title = {
+                Text(
+                    if (isError) stringResource(Res.string.status_error)
+                    else stringResource(Res.string.custom_command),
+                )
+            },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { importFeedback = null }) {
+                    Text(stringResource(Res.string.close))
+                }
+            },
+            dismissButton = null,
         )
     }
 }
