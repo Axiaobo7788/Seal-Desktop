@@ -6,7 +6,26 @@ import argparse
 import configparser
 import pathlib
 
-from write_tool_provenance import sha256, tool_version
+from write_tool_provenance import macos_unsigned_sha256, sha256, tool_version
+
+
+def payload_matches(path: pathlib.Path, recorded: configparser.SectionProxy, platform: str) -> tuple[bool, str]:
+    actual_hash = sha256(path)
+    expected_hash = recorded["sha256"]
+    expected_size = int(recorded["size_bytes"])
+    if path.stat().st_size == expected_size and actual_hash == expected_hash:
+        return True, actual_hash
+
+    # macOS PKG construction may ad-hoc sign nested Mach-O tools. That changes
+    # the raw file size/hash without changing the unsigned executable payload.
+    # Only accept this explicitly recorded, platform-specific transformation.
+    if platform == "macos":
+        expected_unsigned_hash = recorded.get("unsigned_sha256", "").strip()
+        actual_unsigned_hash = macos_unsigned_sha256(path)
+        if expected_unsigned_hash and actual_unsigned_hash == expected_unsigned_hash:
+            return True, f"{actual_hash} (macOS signed; unsigned SHA256 {actual_unsigned_hash})"
+
+    return False, actual_hash
 
 
 def verify(app_root: pathlib.Path, flavor: str, expected_commit: str) -> None:
@@ -26,20 +45,22 @@ def verify(app_root: pathlib.Path, flavor: str, expected_commit: str) -> None:
         raise ValueError("Unsupported tool provenance format")
     if not expected_commit or manifest["build"]["build_commit"] != expected_commit:
         raise ValueError("Tool provenance does not match the workflow build commit")
+    platform = manifest["build"].get("platform", "").strip().lower()
     for name, arguments in [("yt-dlp", ["--version"]), ("ffmpeg", ["-version"]), ("ffprobe", ["-version"])]:
         candidates = [path for path in payloads if path.name in {name, f"{name}.exe", f"{name}_macos"}]
         if len(candidates) != 1:
             raise ValueError(f"Expected one packaged {name}, found {len(candidates)}")
         path = candidates[0]
         recorded = manifest[name]
-        if path.stat().st_size != int(recorded["size_bytes"]) or sha256(path) != recorded["sha256"]:
-            raise ValueError(f"Packaged {name} does not match its recorded size/SHA256")
+        matches, actual_hash_description = payload_matches(path, recorded, platform)
+        if not matches:
+            raise ValueError(f"Packaged {name} does not match its recorded payload hash")
         actual_version = tool_version(path, arguments)
         if actual_version != recorded["version"]:
             raise ValueError(f"Packaged {name} version differs from the provenance manifest")
         if not recorded["source_type"] or not recorded["source_url"].startswith("https://"):
             raise ValueError(f"Missing source provenance for {name}")
-        print(f"Verified packaged {name}: {actual_version}; SHA256 {recorded['sha256']}")
+        print(f"Verified packaged {name}: {actual_version}; SHA256 {actual_hash_description}")
 
 
 def main() -> None:

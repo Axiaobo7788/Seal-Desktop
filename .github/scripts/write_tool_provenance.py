@@ -3,7 +3,9 @@
 import argparse
 import hashlib
 import pathlib
+import shutil
 import subprocess
+import tempfile
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,6 +36,33 @@ def sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def macos_unsigned_sha256(path: pathlib.Path) -> str | None:
+    """Hash Mach-O content after removing any embedded code signature.
+
+    jpackage may ad-hoc sign nested Mach-O files while constructing a PKG.
+    The raw bytes can therefore differ from the source artifact even though the
+    executable payload is otherwise unchanged. Canonicalizing a temporary copy
+    lets installed PKG verification distinguish that expected transformation
+    from a real payload change without weakening exact hashes elsewhere.
+    """
+    try:
+        with tempfile.TemporaryDirectory(prefix="seal-codesign-") as temp_dir:
+            candidate = pathlib.Path(temp_dir) / path.name
+            shutil.copy2(path, candidate)
+            result = subprocess.run(
+                ["codesign", "--remove-signature", str(candidate)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                return None
+            return sha256(candidate)
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return None
+
+
 def tool_version(path: pathlib.Path, arguments: list[str]) -> str:
     result = subprocess.run(
         [str(path), *arguments],
@@ -56,18 +85,26 @@ def tool_section(
     source_url: str,
     source_type: str,
     version_arguments: list[str],
+    platform: str,
 ) -> list[str]:
     if not path.is_file():
         raise FileNotFoundError(f"Bundled tool not found: {path}")
-    return [
+    lines = [
         f"[{name}]",
         f"version={clean(tool_version(path, version_arguments))}",
         f"sha256={sha256(path)}",
         f"size_bytes={path.stat().st_size}",
+    ]
+    if platform == "macos":
+        unsigned_hash = macos_unsigned_sha256(path)
+        if unsigned_hash:
+            lines.append(f"unsigned_sha256={unsigned_hash}")
+    lines += [
         f"source_type={clean(source_type)}",
         f"source_url={clean(source_url)}",
         "",
     ]
+    return lines
 
 
 def main() -> None:
@@ -90,6 +127,7 @@ def main() -> None:
         args.yt_dlp_url,
         args.yt_dlp_source_type,
         ["--version"],
+        args.platform,
     )
     lines += tool_section(
         "ffmpeg",
@@ -97,6 +135,7 @@ def main() -> None:
         args.ffmpeg_url,
         args.ffmpeg_source_type,
         ["-version"],
+        args.platform,
     )
     lines += tool_section(
         "ffprobe",
@@ -104,6 +143,7 @@ def main() -> None:
         args.ffprobe_url,
         args.ffprobe_source_type,
         ["-version"],
+        args.platform,
     )
     output.write_text("\n".join(lines), encoding="utf-8")
 
