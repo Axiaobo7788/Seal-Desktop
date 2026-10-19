@@ -230,10 +230,11 @@ jobs:
           smoke_app() {
             local app_bundle="$1"
             local label="$2"
+            local reference_root="${3:-}"
             local executable
             executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Contents/Info.plist")"
             bash .github/scripts/smoke_unix_app_image.sh \
-              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Full
+              "$app_bundle" "$app_bundle/Contents/MacOS/$executable" "$label" 12 true Full "$reference_root"
           }
 
           app_bundle="$(find desktop/build/compose/binaries -type d -name '*.app' | head -n 1)"
@@ -255,9 +256,18 @@ jobs:
           [[ -n "$provenance" ]]
           smoke_app "$app_bundle" "Full app image (${{ matrix.arch }})"
 
+          pkg_expanded="$(mktemp -d "${RUNNER_TEMP:-/tmp}/seal-full-pkg-XXXXXX")"
+          trap 'rm -rf "$pkg_expanded"' EXIT
+          pkgutil --expand-full "$pkg" "$pkg_expanded"
+          pkg_app="$(find "$pkg_expanded" -type d -name 'Seal.app' | head -n 1)"
+          if [[ -z "$pkg_app" ]]; then
+            echo "Could not locate Seal.app in expanded Full PKG"
+            exit 1
+          fi
+
           sudo rm -rf /Applications/Seal.app
           sudo installer -pkg "$pkg" -target /
-          smoke_app /Applications/Seal.app "Installed Full PKG (${{ matrix.arch }})"
+          smoke_app /Applications/Seal.app "Installed Full PKG (${{ matrix.arch }})" "$pkg_app"
           sudo rm -rf /Applications/Seal.app
 
       - name: Print jpackage logs on failure

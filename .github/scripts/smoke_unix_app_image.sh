@@ -8,6 +8,7 @@ label="${3:-Unix app image}"
 timeout_seconds="${4:-12}"
 verify_sqlite="${5:-false}"
 flavor="${6:-}"
+reference_root="${7:-}"
 
 case "$verify_sqlite" in
   true|TRUE|True|1|yes|YES|Yes|on|ON|On) verify_sqlite=true ;;
@@ -27,14 +28,22 @@ if [[ ! -x "$launcher" ]]; then
   exit 1
 fi
 
-# The smoke test changes its working directory to the app root. Resolve both
-# inputs first so a relative launcher does not become relative to app_root twice.
 app_root="$(cd "$app_root" && pwd -P)"
 launcher_dir="$(cd "$(dirname "$launcher")" && pwd -P)"
 launcher="$launcher_dir/$(basename "$launcher")"
+if [[ -n "$reference_root" ]]; then
+  reference_root="$(cd "$reference_root" && pwd -P)"
+fi
 if [[ -n "$flavor" ]]; then
-  python3 "$(dirname "$0")/verify_packaged_tools.py" \
-    --app-root "$app_root" --flavor "$flavor" --expected-commit "${GITHUB_SHA:?Build commit is required}"
+  verify_args=(
+    --app-root "$app_root"
+    --flavor "$flavor"
+    --expected-commit "${GITHUB_SHA:?Build commit is required}"
+  )
+  if [[ -n "$reference_root" ]]; then
+    verify_args+=(--reference-root "$reference_root")
+  fi
+  python3 "$(dirname "$0")/verify_packaged_tools.py" "${verify_args[@]}"
 fi
 
 stdout_log="${RUNNER_TEMP:-/tmp}/seal-smoke-${RANDOM}-stdout.log"
