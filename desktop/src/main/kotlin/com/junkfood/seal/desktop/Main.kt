@@ -90,6 +90,7 @@ import com.junkfood.seal.shared.generated.resources.confirm
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.desktop_menu
 import com.junkfood.seal.shared.generated.resources.desktop_navigation
+import com.junkfood.seal.shared.generated.resources.desktop_command_default_template
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_count
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_running_generic
 import com.junkfood.seal.shared.generated.resources.desktop_exit_confirm_title
@@ -440,6 +441,7 @@ private fun ContentArea(
     val contentModifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
     val clipboard = LocalClipboardManager.current
     val order = remember { Destination.entries.toList() }
+    val defaultTemplateLabel = stringResource(Res.string.desktop_command_default_template)
     val activeCustomCommandTemplate =
         appSettingsState.settings.customCommandTemplates.find {
             it.id == appSettingsState.settings.customCommandTemplateId
@@ -450,7 +452,7 @@ private fun ContentArea(
                 ?.let { legacyTemplate ->
                     com.junkfood.seal.desktop.settings.DesktopCommandTemplate(
                         id = appSettingsState.settings.customCommandTemplateId.takeIf { it > 0 } ?: 1,
-                        label = appSettingsState.settings.customCommandLabel.ifBlank { "Default" },
+                        label = appSettingsState.settings.customCommandLabel.ifBlank { defaultTemplateLabel },
                         template = legacyTemplate,
                     )
                 }

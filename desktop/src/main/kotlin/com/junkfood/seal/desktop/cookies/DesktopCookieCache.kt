@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.cookies
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileSystems
 import java.nio.file.Files
@@ -37,7 +38,9 @@ class DesktopCookieCache(
 
     fun importFrom(source: Path, target: Path): Result<DesktopCookieFileResult> =
         runCatching {
-            require(DesktopCookiesParser.isValidCookiesFile(source)) { "Invalid Netscape cookies file" }
+            require(DesktopCookiesParser.isValidCookiesFile(source)) {
+                AndroidStrings.get("desktop_cookies_invalid_file")
+            }
             if (source.toAbsolutePath().normalize() == target.toAbsolutePath().normalize()) {
                 return@runCatching DesktopCookieFileResult(
                     stats = DesktopCookiesParser.parseStats(target),
@@ -56,7 +59,9 @@ class DesktopCookieCache(
 
     fun promoteGeneratedFile(source: Path, target: Path): Result<DesktopCookieFileResult> =
         runCatching {
-            require(DesktopCookiesParser.isValidCookiesFile(source)) { "Generated cookies file is empty or invalid" }
+            require(DesktopCookiesParser.isValidCookiesFile(source)) {
+                AndroidStrings.get("desktop_cookies_generated_invalid")
+            }
             target.parent?.createDirectories()
             try {
                 Files.move(source, target, REPLACE_EXISTING, ATOMIC_MOVE)

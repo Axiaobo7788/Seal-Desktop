@@ -2,23 +2,23 @@
 
 > Role: short current-state page for resuming work.
 >
-> Refreshed: 2026-10-19
+> Refreshed: 2026-10-20
 >
-> GitHub main checked this round: `eadc8b632e9b9521b144506d93a55070a2f80adf`.
+> GitHub main checked this round: `c34e88e7d1d02d5eaec8a5234b83231979bed58e`.
 >
-> Active resume branch: `feat/rc-ui-polish`, created from GitHub `origin/main`; this round's changes are uncommitted. Local `main` cannot fast-forward because it retains `d6f8231e`; no reset/merge/rebase occurred. Local RC commits through `2a282ee1` remain on `chore/agent-governance-refresh` and are **not all in this baseline**. Do not claim their unrelated backend/playlist/history capabilities as present on this branch.
+> Active release branch: `release/0.1.0-rc.1`, created from GitHub `origin/main` at the reviewed baseline above. The target user-visible version is `0.1.0-rc.1`. No tag, GitHub Release, merge or push is part of this preparation task.
 >
 > This page is the current resume point. Revalidate entries against code before changing behavior. Product capability status lives in `feature-roadmap.md`.
 
 ## Resume Summary
 
-The current uncommitted RC batch extends the [2026-10-08 UI iteration](history/rc-ui-polish-2026-10-08.md) with functional reliability work. Automatic/preset downloads no longer inherit a concrete Custom Format ID, metadata requests never receive that stale `-f`, and an explicit user-selected Custom Format remains frozen task intent and fails visibly when unavailable. A public Bilibili multi-part sample succeeded for separate entries and playlist selection; the reporter's exact failing collection is unavailable, so that exact case remains Human-check rather than a claimed reproduction.
+Core Desktop functionality is considered mature enough for the first release candidate. This freeze is limited to localization correctness, release-facing wording, version correctness and low-level regressions already visible in the RC. Playlist item selection, true multi-URL tasks, Saved URLs, History bulk actions, automatic application updates and private-directory semantics remain Planned or Deferred rather than release blockers.
 
-Other locally closed defects in this batch include extractor-based subdirectories reaching the final video/audio/custom output path with traversal-safe segment handling; `configureBeforeDownload` and the default format-selection preference affecting the actual flow; multi-URL input being detected and rejected honestly instead of passed as one newline-containing yt-dlp argument; reactive thumbnail suppression; UUID task IDs; explicit command-template JSON shape handling; bounded History import outcomes/retention; output-directory access for multi-file results; and a compact, refreshable dependency-health presentation model. Playlist item selection and true multi-URL task creation remain Planned.
+The final pre-freeze product baseline is `c34e88e7d1d02d5eaec8a5234b83231979bed58e`. Native portable/package workflows passed on that exact SHA: Windows x64 run `39284835064`, Linux x64 run `39284835054`, and macOS x64 plus arm64 run `39284835186`. Those runs prove the reviewed baseline only; the final localization/version SHA still requires the same native matrix and dependency-download smoke before release.
 
-Final local evidence on 2026-10-19: Android-to-Compose resource sync, Desktop compilation, Android `genericDebug` Kotlin compilation, all Desktop tests and all Shared target tests passed. The reports contain 195 Desktop tests and 22 tests each for Shared Desktop, Android Debug and Android Release, all with zero failures/errors/skips. Json, Dual and SQLite storage self-checks passed; the Dual run's injected corrupt JSON produced expected quarantine/fallback diagnostics. Packaged-tool verifier tests passed 8/8. No real browser/account, original Bilibili case, Windows/macOS package, system-DPI or final visual evidence is claimed.
+The `0.1.0-rc.1` preparation audits Desktop and shared Desktop UI strings against Android XML as the source of truth, validates literal and known dynamic `AndroidStrings` keys, preserves default fallback for untranslated locales, and verifies the user-visible version separately from the transformed macOS package version. Remaining acceptance is a short English/Simplified Chinese/Traditional Chinese/Follow System UI pass, real browser Cookies checks where relevant, and native package verification on the final SHA.
 
-Next: review this batch as one uncommitted diff, then select one RC SHA and run native dependency/package workflows for Windows x64, Linux x64, macOS x64 and macOS arm64. The exact Bilibili report, dependency dialog, clip/custom-format UI, Cookies browsers and representative real downloads remain Human-check gates. No push, merge or release occurred.
+Local release-freeze validation on 2026-10-20 passed Android-to-Compose resource sync, Desktop compilation, all Desktop tests, all Shared target tests, and Android `genericDebug` Kotlin compilation. The reports contain 199 Desktop tests plus 22 tests each for Shared Desktop, Android Debug and Android Release, all with zero failures, errors or skips. Resource-directory parity is 62/62, XML parsing and regular-string placeholder contracts pass, and version tasks report display `0.1.0-rc.1`, native package `0.1.0` and macOS package `1.1.0`. This local evidence does not replace the final-SHA native matrix or Human localization review.
 
 The following sections retain older maintenance evidence where still relevant. The project resumed on 2026-09-28 after more than one month of limited activity.
 
@@ -32,7 +32,20 @@ Upstream Seal activity observed after the pause is mostly README sponsor automat
 
 ### Native release evidence
 
-Latest inspected native packaging evidence at the expected main baseline (`2a7d1c45`, 2026-08-17):
+Current pre-freeze evidence on `c34e88e7d1d02d5eaec8a5234b83231979bed58e`:
+
+| Platform | Workflow evidence | Result |
+| --- | --- | --- |
+| Windows x64 | run `39284835064` | portable/package passed |
+| Linux x64 | run `39284835054` | portable/package passed |
+| macOS x64 | run `39284835186` | portable/package passed |
+| macOS arm64 | run `39284835186` | portable/package passed |
+
+The final `0.1.0-rc.1` localization/version commit is a new SHA and must not inherit those results by implication. Run all four native targets plus `desktop-dependency-download-smoke` again on the final SHA, and keep all release artifacts tied to that same commit.
+
+#### Superseded native investigation retained for history
+
+Earlier inspected native packaging evidence at the then-current main baseline (`2a7d1c45`, 2026-08-17):
 
 - [Windows x64 portable/package run 32002024682](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/32002024682): success;
 - [Linux x64 portable/package run 32002024745](https://github.com/Axiaobo7788/Seal-Desktop/actions/runs/32002024745): success;

@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.ytdlp
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import java.io.IOException
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
@@ -39,7 +40,9 @@ class JvmMetadataProcessRunner(
             val finished = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
             if (!finished) terminate(process)
             readers.forEach { it.join(1_000) }
-            if (readers.any { it.isAlive }) throw IOException("Metadata output pipes did not close")
+            if (readers.any { it.isAlive }) {
+                throw IOException(AndroidStrings.get("desktop_metadata_pipe_close_failed"))
+            }
             stdout.failure.get()?.let { throw it }
             stderr.failure.get()?.let { throw it }
             return MetadataProcessResult(

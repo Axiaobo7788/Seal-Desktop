@@ -21,6 +21,9 @@ object AndroidStrings {
     fun format(key: String, vararg args: Any?, locale: Locale = Locale.getDefault()): String =
         String.format(locale, get(key, locale), *args)
 
+    internal fun hasDefaultKey(key: String): Boolean =
+        cacheByPath.getOrPut(DEFAULT_RESOURCE_PATH) { loadStringsMap(DEFAULT_RESOURCE_PATH) }.containsKey(key)
+
     internal fun candidatePaths(locale: Locale): List<String> {
         val canonicalLanguage = locale.language.orEmpty()
         val region = locale.country.orEmpty()
@@ -101,4 +104,6 @@ object AndroidStrings {
             .replace("\\\\\"", "\"")
             .replace("\\\\\\\\", "\\")
     }
+
+    private const val DEFAULT_RESOURCE_PATH = "values/strings.xml"
 }

@@ -652,6 +652,7 @@
     <string name="media_info">Media info</string>
     <string name="trouble_shooting">Troubleshooting</string>
     <string name="issue_tracker">Issue tracker</string>
+    <string name="desktop_issue_tracker_label">%1$s Issue Tracker</string>
     <string name="trouble_shooting_desc">Fix common errors and check for known issues</string>
     <string name="issue_tracker_hint">Encountered an error? Before reporting a new issue, please search our issue tracker. Many common problems have already been addressed and documented there.</string>
     <string name="saved_urls">Saved links</string>
@@ -692,4 +693,15 @@
     <string name="env_setup_btn_close">Close</string>
     <string name="env_setup_btn_later">Later</string>
     <string name="env_setup_log_start">Starting environment configuration...\n</string>
+    <string name="desktop_command_default_template">yt-dlp Default</string>
+    <string name="desktop_metadata_pipe_close_failed">Media information output did not close correctly. Retry the request.</string>
+    <string name="desktop_cookies_invalid_file">The selected file is not a valid Netscape cookies file.</string>
+    <string name="desktop_cookies_generated_invalid">The generated cookies file is empty or invalid.</string>
+    <string name="desktop_browser_profile_default">Default</string>
+    <string name="desktop_browser_profile_default_release">Default Release</string>
+    <string name="desktop_browser_profile_unnamed">Profile</string>
+    <string name="desktop_browser_profile_number">Profile %1$s</string>
+    <string name="desktop_browser_source_standard">Standard location</string>
+    <string name="desktop_browser_source_system">System</string>
+    <string name="desktop_browser_source_application">Application</string>
 </resources>

@@ -85,6 +85,7 @@ import com.junkfood.seal.shared.generated.resources.custom_command_template
 import com.junkfood.seal.shared.generated.resources.desktop_command_import_empty
 import com.junkfood.seal.shared.generated.resources.desktop_command_import_invalid
 import com.junkfood.seal.shared.generated.resources.desktop_command_import_schema
+import com.junkfood.seal.shared.generated.resources.desktop_command_default_template
 import com.junkfood.seal.shared.generated.resources.status_error
 import com.junkfood.seal.shared.generated.resources.template_imported
 import kotlinx.coroutines.launch
@@ -104,6 +105,7 @@ internal fun CommandSettingsPage(
     var isMenuExpanded by remember { mutableStateOf(false) }
     var showShortcutsDialog by remember { mutableStateOf(false) }
     var importFeedback by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    val defaultTemplateLabel = stringResource(Res.string.desktop_command_default_template)
     val importSchemaError = stringResource(Res.string.desktop_command_import_schema)
     val importEmptyError = stringResource(Res.string.desktop_command_import_empty)
     val importInvalidError = stringResource(Res.string.desktop_command_import_invalid)
@@ -117,9 +119,9 @@ internal fun CommandSettingsPage(
         if (settings.customCommandTemplates.isEmpty()) {
             val hasLegacy = settings.customCommandLabel.isNotBlank() || settings.customCommandTemplate.isNotBlank()
             val template = if (hasLegacy) {
-                DesktopCommandTemplate(1, settings.customCommandLabel.ifEmpty { "Default" }, settings.customCommandTemplate)
+                DesktopCommandTemplate(1, settings.customCommandLabel.ifEmpty { defaultTemplateLabel }, settings.customCommandTemplate)
             } else {
-                DesktopCommandTemplate(1, "yt-dlp Default", "-f bestvideo*+bestaudio/best %(url)s")
+                DesktopCommandTemplate(1, defaultTemplateLabel, "-f bestvideo*+bestaudio/best %(url)s")
             }
             onUpdate {
                 it.copy(

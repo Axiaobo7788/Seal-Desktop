@@ -160,7 +160,7 @@
     <string name="app_up_to_date">Du kjører nyeste versjon</string>
     <string name="check_for_updates_desc">Installer nyeste versjon fra GitHub</string>
     <string name="clear_temp_files_count">Slettet %1$d midlertidig(e) fil(er)</string>
-    <string name="clear_temp_files_info">Midlertidige filer kan brukes til å gjenoppta avbrutte nedlastinger. Vil du fjerne alle disse filene\?</string>
+    <string name="clear_temp_files_info">Midlertidige filer kan brukes til å gjenoppta avbrutte nedlastinger. Vil du fjerne alle disse filene\?\n\n%1$s</string>
     <string name="open_file">Åpne fil</string>
     <string name="restart">Start på ny</string>
     <string name="clear_temp_files">Tøm midlertidige filer</string>

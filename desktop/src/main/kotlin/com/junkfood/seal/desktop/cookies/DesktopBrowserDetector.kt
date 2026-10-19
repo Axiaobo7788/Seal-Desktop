@@ -1,5 +1,6 @@
 package com.junkfood.seal.desktop.cookies
 
+import com.junkfood.seal.desktop.i18n.AndroidStrings
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -170,7 +171,12 @@ internal class DesktopBrowserDetector(
             val isDefault = browser == SupportedBrowser.Opera || rawName == "Default"
             browserProfile(
                 path = directory,
-                displayName = if (isDefault) "Default" else rawName,
+                displayName =
+                    if (isDefault) {
+                        AndroidStrings.get("desktop_browser_profile_default")
+                    } else {
+                        chromiumProfileDisplayName(rawName)
+                    },
                 isDefault = isDefault,
                 source = root.source,
             )
@@ -223,7 +229,7 @@ internal class DesktopBrowserDetector(
         return listOf(
             BrowserProfile(
                 id = stableProfileId(root.source, root.path),
-                displayName = "Default",
+                displayName = AndroidStrings.get("desktop_browser_profile_default"),
                 isDefault = true,
                 extractionValue = null,
                 source = root.source,
@@ -238,7 +244,7 @@ internal class DesktopBrowserDetector(
         source: BrowserInstallationSource,
     ) = BrowserProfile(
         id = stableProfileId(source, path),
-        displayName = sanitizeProfileName(displayName).ifBlank { "Profile" },
+        displayName = sanitizeProfileName(displayName).ifBlank { AndroidStrings.get("desktop_browser_profile_unnamed") },
         isDefault = isDefault,
         extractionValue = path.toAbsolutePath().normalize().toString(),
         source = source,
@@ -430,11 +436,16 @@ private fun parseIniSections(contents: String): List<Map<String, String>> {
 private fun sanitizeProfileName(value: String): String =
     value.replace(Regex("[\\/\\r\\n\\t]"), " ").trim().take(80)
 
+private fun chromiumProfileDisplayName(directoryName: String): String =
+    Regex("^Profile (\\d+)$").matchEntire(directoryName)?.groupValues?.get(1)?.let { number ->
+        AndroidStrings.format("desktop_browser_profile_number", number)
+    } ?: sanitizeProfileName(directoryName)
+
 private fun firefoxFallbackName(directoryName: String): String {
     val suffix = directoryName.substringAfter('.', directoryName)
     return when {
-        suffix.equals("default-release", ignoreCase = true) -> "Default Release"
-        suffix.equals("default", ignoreCase = true) -> "Default"
+        suffix.equals("default-release", ignoreCase = true) -> AndroidStrings.get("desktop_browser_profile_default_release")
+        suffix.equals("default", ignoreCase = true) -> AndroidStrings.get("desktop_browser_profile_default")
         else -> sanitizeProfileName(suffix)
     }
 }
@@ -447,12 +458,12 @@ private fun stableProfileId(source: BrowserInstallationSource, path: Path): Stri
 
 private fun BrowserInstallationSource.displayLabel(): String =
     when (this) {
-        BrowserInstallationSource.StandardLocation -> "Native"
+        BrowserInstallationSource.StandardLocation -> AndroidStrings.get("desktop_browser_source_standard")
         BrowserInstallationSource.Path -> "PATH"
-        BrowserInstallationSource.WindowsRegistry -> "System"
+        BrowserInstallationSource.WindowsRegistry -> AndroidStrings.get("desktop_browser_source_system")
         BrowserInstallationSource.Flatpak -> "Flatpak"
         BrowserInstallationSource.Snap -> "Snap"
-        BrowserInstallationSource.MacApplication -> "Application"
+        BrowserInstallationSource.MacApplication -> AndroidStrings.get("desktop_browser_source_application")
     }
 
 private class DefaultDesktopBrowserSystem : DesktopBrowserSystem {

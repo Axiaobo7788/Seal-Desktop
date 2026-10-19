@@ -219,7 +219,7 @@
     <string name="template_exported">Eksporterede %1$d skabelon(er)</string>
     <string name="check_for_updates">Søg efter opdateringer</string>
     <string name="clear_temp_files_count">Slettede %1$d midlertidig(e) fil(er)</string>
-    <string name="clear_temp_files_info">Midlertidige filer kan bruges til at genoptage annullerede downloads. Bekræft at du vil slette disse filer\?</string>
+    <string name="clear_temp_files_info">Midlertidige filer kan bruges til at genoptage annullerede downloads. Bekræft at du vil slette disse filer\?\n\n%1$s</string>
     <string name="generate_new_cookies">Generer nye cookies</string>
     <string name="format_selection_desc">Vælg det format, der skal downloades, før du starter download</string>
     <string name="use_cookies">Brug Cookies</string>

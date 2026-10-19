@@ -63,7 +63,7 @@
     <string name="update">යාවත්කාලීන කරන්න</string>
     <string name="aria2_desc">බාහිර බාගැනීම් සදහා aria2c භාවිතා කරන්න</string>
     <string name="cookies_desc">බාගැනීම් සඳහා Netscape ආකෘතිගත Cookies භාවිතා කරන්න</string>
-    <string name="clear_temp_files_info">අවලංගු කළ බාගැනීම් නැවත ආරම්භ කිරීමට තාවකාලික ගොනු භාවිතා කළ හැක. මෙම ගොනු සියල්ල මකන්නද\?</string>
+    <string name="clear_temp_files_info">අවලංගු කළ බාගැනීම් නැවත ආරම්භ කිරීමට තාවකාලික ගොනු භාවිතා කළ හැක. මෙම ගොනු සියල්ල මකන්නද\?\n\n%1$s</string>
     <string name="multiselect_mode">බහුවරණ තේරීම්</string>
     <string name="private_mode_desc">බාගැනීම් ඉතිහාසය අක්‍රිය කරන්න</string>
     <string name="dynamic_color">ගතික වර්ණ</string>

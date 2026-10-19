@@ -65,6 +65,19 @@ class DesktopResourceEnvironmentAdapterTest {
         assertFalse(controller.installProvider())
         assertSame(base, controller.currentEnvironmentOrNull())
     }
+
+    @Test
+    fun `clearing the override restores the captured system environment`() {
+        val base = Any()
+        val override = Any()
+        val controller = DesktopResourceEnvironmentController(FakeResourceEnvironmentBridge(base, override))
+
+        controller.setLanguageOverride("zh-Hans")
+        assertSame(override, controller.currentEnvironmentOrNull())
+
+        controller.setLanguageOverride(null)
+        assertSame(base, controller.currentEnvironmentOrNull())
+    }
 }
 
 private class FakeResourceEnvironmentBridge(

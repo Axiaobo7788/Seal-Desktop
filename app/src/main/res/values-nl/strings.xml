@@ -155,7 +155,7 @@
     <string name="download_task_count">%1$d download taken</string>
     <string name="recently_added">Onlangs Toegevoegd</string>
     <string name="multiselect_mode">Multi-select modus</string>
-    <string name="clear_temp_files_info">Tijdelijke bestanden kunnen gebruikt worden om geannuleerde downloads opnieuw laten te beginnen. Weet je zeker dat je all deze bestanden wilt verwijderen\?</string>
+    <string name="clear_temp_files_info">Tijdelijke bestanden kunnen gebruikt worden om geannuleerde downloads opnieuw laten te beginnen. Weet je zeker dat je all deze bestanden wilt verwijderen\?\n\n%1$s</string>
     <string name="private_mode_desc">Zet downloadgeschiedenis uit</string>
     <string name="new_template">Nieuwe sjabloon</string>
     <string name="template_label">Label</string>

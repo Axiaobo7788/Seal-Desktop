@@ -32,6 +32,7 @@ import com.junkfood.seal.desktop.settings.DesktopCommandTemplate
 import com.junkfood.seal.desktop.settings.SettingsPageScaffold
 import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.custom_command_template
+import com.junkfood.seal.shared.generated.resources.desktop_command_default_template
 import com.junkfood.seal.shared.generated.resources.edit_shortcuts
 import com.junkfood.seal.shared.generated.resources.edit_template_desc
 import com.junkfood.seal.shared.generated.resources.new_template
@@ -60,6 +61,7 @@ internal fun TemplateEditPage(
     var templateText by remember(initialTemplate) { mutableStateOf(initialTemplate.template) }
     val uriHandler = LocalUriHandler.current
     val shortcuts = settings.customCommandShortcuts
+    val defaultTemplateLabel = stringResource(Res.string.desktop_command_default_template)
 
     SettingsPageScaffold(
         title = if (initialTemplate.label.isEmpty()) stringResource(Res.string.new_template) else initialTemplate.label,
@@ -89,7 +91,7 @@ internal fun TemplateEditPage(
                     } else {
                         val defaultTemplate = DesktopCommandTemplate(
                             id = 1,
-                            label = "yt-dlp Default",
+                            label = defaultTemplateLabel,
                             template = "-f bestvideo*+bestaudio/best %(url)s"
                         )
                         onUpdate {

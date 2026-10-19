@@ -57,4 +57,9 @@ private const val BETA = VARIANT * 2
 private const val RELEASE_CANDIDATE = VARIANT * 3
 
 val currentVersion: Version =
-    Version.Stable(versionMajor = 0, versionMinor = 0, versionPatch = 5)
+    Version.ReleaseCandidate(
+        versionMajor = 0,
+        versionMinor = 1,
+        versionPatch = 0,
+        versionBuild = 1,
+    )

@@ -130,7 +130,7 @@
     <string name="sponsorblock_categories_desc">Oppgjev kva slags SponsorBlock-slag som skal verte tekne bort ifrå videofila</string>
     <string name="aria2_desc">Bruk aria2c som den ytre hentaren</string>
     <string name="clear_temp_files_desc">Slett alle mellombels filer ifrå hentingsmappa</string>
-    <string name="clear_temp_files_info">Mellombels filer kan verta nytta til å halde fram med avbrotne hentingar. Er du trygg på at du vil slette alle desse filene\?</string>
+    <string name="clear_temp_files_info">Mellombels filer kan verta nytta til å halde fram med avbrotne hentingar. Er du trygg på at du vil slette alle desse filene\?\n\n%1$s</string>
     <string name="private_mode_desc">Slå av hentingshistorikk</string>
     <string name="download_with_cellular">Hent med mobildata</string>
     <string name="file_unavailable">Fila er ikkje lenger tilgjengeleg</string>

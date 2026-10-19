@@ -193,7 +193,7 @@
     <string name="cookies_desc">Gunakan kuki berformat Netscape untuk muat turun</string>
     <string name="clear_temp_files">Kosongkan fail sementara</string>
     <string name="clear_temp_files_desc">Kosongkan semua fail sementara daripada direktori dalaman</string>
-    <string name="clear_temp_files_info">Fail-fail sementara boleh digunakan untuk meneruskan muat turun yang telah dibatalkan. Adakah anda pasti untuk membuang semua\?</string>
+    <string name="clear_temp_files_info">Fail-fail sementara boleh digunakan untuk meneruskan muat turun yang telah dibatalkan. Adakah anda pasti untuk membuang semua\?\n\n%1$s</string>
     <string name="dynamic_color">Warna dinamik</string>
     <string name="dynamic_color_desc">Guna warna-warna dari kertas dinding sebagai tema aplikasi</string>
     <string name="network">Rangkaian</string>

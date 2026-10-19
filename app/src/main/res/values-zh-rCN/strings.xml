@@ -651,6 +651,7 @@
     <string name="media_info">媒体信息</string>
     <string name="trouble_shooting">故障排除</string>
     <string name="issue_tracker">问题跟踪器</string>
+    <string name="desktop_issue_tracker_label">%1$s 问题跟踪器</string>
     <string name="trouble_shooting_desc">修复常见问题并检查已知问题</string>
     <string name="issue_tracker_hint">遇到问题了？报告新问题前，请搜索我们的问题跟踪器。许多常见问题已在那里被解决并有记录。</string>
     <string name="saved_urls">保存的链接</string>
@@ -679,4 +680,15 @@
     <string name="env_setup_btn_close">关闭</string>
     <string name="env_setup_btn_later">以后再说</string>
     <string name="env_setup_log_start">开始环境配置...\n</string>
+    <string name="desktop_command_default_template">yt-dlp 默认</string>
+    <string name="desktop_metadata_pipe_close_failed">媒体信息输出未正常关闭，请重试。</string>
+    <string name="desktop_cookies_invalid_file">所选文件不是有效的 Netscape Cookies 文件。</string>
+    <string name="desktop_cookies_generated_invalid">生成的 Cookies 文件为空或无效。</string>
+    <string name="desktop_browser_profile_default">默认</string>
+    <string name="desktop_browser_profile_default_release">默认发行版</string>
+    <string name="desktop_browser_profile_unnamed">配置文件</string>
+    <string name="desktop_browser_profile_number">配置文件 %1$s</string>
+    <string name="desktop_browser_source_standard">标准位置</string>
+    <string name="desktop_browser_source_system">系统</string>
+    <string name="desktop_browser_source_application">应用程序</string>
 </resources>

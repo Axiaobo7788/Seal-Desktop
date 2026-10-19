@@ -385,7 +385,9 @@ internal fun CookiesSettingsPage(
                                         stringResource(
                                             Res.string.desktop_cookies_source_unavailable,
                                             browser.displayName,
-                                            preference.profileName.ifBlank { "Default" },
+                                            preference.profileName.ifBlank {
+                                                stringResource(Res.string.desktop_browser_profile_default)
+                                            },
                                         ),
                                         color = MaterialTheme.colorScheme.error,
                                         style = MaterialTheme.typography.titleSmall,

@@ -95,6 +95,7 @@ import com.junkfood.seal.shared.generated.resources.copy_log
 import com.junkfood.seal.shared.generated.resources.custom_command
 import com.junkfood.seal.shared.generated.resources.custom_command_desc
 import com.junkfood.seal.shared.generated.resources.custom_command_template
+import com.junkfood.seal.shared.generated.resources.desktop_command_default_template
 import com.junkfood.seal.shared.generated.resources.edit
 import com.junkfood.seal.shared.generated.resources.edit_template
 import com.junkfood.seal.shared.generated.resources.edit_template_desc
@@ -130,6 +131,7 @@ fun DesktopCustomCommandScreen(
     val tasks = DesktopCustomCommandTaskManager.tasks
     val clipboardManager = LocalClipboardManager.current
     val taskListState = rememberLazyListState()
+    val defaultTemplateLabel = stringResource(Res.string.desktop_command_default_template)
 
     var showNewTaskDialog by remember { mutableStateOf(false) }
     var logDialogTask by remember { mutableStateOf<DesktopCustomCommandTask?>(null) }
@@ -148,13 +150,13 @@ fun DesktopCustomCommandScreen(
                 if (hasLegacyTemplate) {
                     DesktopCommandTemplate(
                         id = 1,
-                        label = appSettingsState.settings.customCommandLabel.ifBlank { "Default" },
+                        label = appSettingsState.settings.customCommandLabel.ifBlank { defaultTemplateLabel },
                         template = appSettingsState.settings.customCommandTemplate,
                     )
                 } else {
                     DesktopCommandTemplate(
                         id = 1,
-                        label = "yt-dlp Default",
+                        label = defaultTemplateLabel,
                         template = "-f bestvideo*+bestaudio/best %(url)s",
                     )
                 }

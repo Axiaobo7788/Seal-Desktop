@@ -28,6 +28,7 @@ import com.junkfood.seal.shared.generated.resources.Res
 import com.junkfood.seal.shared.generated.resources.cookies
 import com.junkfood.seal.shared.generated.resources.cookies_desc
 import com.junkfood.seal.shared.generated.resources.download_directory
+import com.junkfood.seal.shared.generated.resources.desktop_issue_tracker_label
 import com.junkfood.seal.shared.generated.resources.issue_tracker_hint
 import com.junkfood.seal.shared.generated.resources.network
 import com.junkfood.seal.shared.generated.resources.restrict_filenames
@@ -72,13 +73,13 @@ internal fun TroubleshootingSettingsPage(
                 }
 
                 ActionCard(
-                    title = "Seal Issue Tracker",
+                    title = stringResource(Res.string.desktop_issue_tracker_label, "Seal"),
                     description = null,
                     icon = Icons.AutoMirrored.Rounded.OpenInNew,
                     onClick = { uriHandler.openUri(sealIssueUrl) }
                 )
                 ActionCard(
-                    title = "yt-dlp Issue Tracker",
+                    title = stringResource(Res.string.desktop_issue_tracker_label, "yt-dlp"),
                     description = null,
                     icon = Icons.AutoMirrored.Rounded.OpenInNew,
                     onClick = { uriHandler.openUri(ytdlpIssueUrl) }
