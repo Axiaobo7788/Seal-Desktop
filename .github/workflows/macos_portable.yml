@@ -256,14 +256,18 @@ jobs:
           [[ -n "$provenance" ]]
           smoke_app "$app_bundle" "Full app image (${{ matrix.arch }})"
 
-          pkg_expanded="$(mktemp -d "${RUNNER_TEMP:-/tmp}/seal-full-pkg-XXXXXX")"
-          trap 'rm -rf "$pkg_expanded"' EXIT
+          pkg_expand_root="$(mktemp -d "${RUNNER_TEMP:-/tmp}/seal-full-pkg-XXXXXX")"
+          pkg_expanded="$pkg_expand_root/expanded"
+          trap 'rm -rf "$pkg_expand_root"' EXIT
+          # pkgutil requires its expansion target not to exist yet.
           pkgutil --expand-full "$pkg" "$pkg_expanded"
           pkg_app="$(find "$pkg_expanded" -type d -name 'Seal.app' | head -n 1)"
           if [[ -z "$pkg_app" ]]; then
             echo "Could not locate Seal.app in expanded Full PKG"
+            find "$pkg_expanded" -maxdepth 8 -print | head -n 300
             exit 1
           fi
+          echo "Expanded Full PKG app payload: $pkg_app"
 
           sudo rm -rf /Applications/Seal.app
           sudo installer -pkg "$pkg" -target /
