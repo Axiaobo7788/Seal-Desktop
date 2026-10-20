@@ -15,6 +15,10 @@ on:
         options:
           - stable
           - prerelease
+      build_commit:
+        description: Existing native-build commit SHA to reuse (optional; defaults to the tag or workflow commit)
+        required: false
+        type: string
   release:
     types:
       - published
@@ -105,18 +109,28 @@ jobs:
                 ref: context.payload.release.tag_name,
               })).data.sha;
             } else {
-              const requestedTag = `v${{ steps.release_meta.outputs.version }}`;
-              try {
+              const requestedBuildCommit = `${{ inputs.build_commit }}`.trim();
+              if (requestedBuildCommit) {
                 targetCommit = (await github.rest.repos.getCommit({
                   owner,
                   repo,
-                  ref: requestedTag,
+                  ref: requestedBuildCommit,
                 })).data.sha;
-                core.info(`Existing tag ${requestedTag} resolves to ${targetCommit}; reusing its build artifacts.`);
-              } catch (error) {
-                if (error.status !== 404 && error.status !== 422) throw error;
-                targetCommit = context.sha;
-                core.info(`Tag ${requestedTag} does not exist yet; using workflow commit ${targetCommit}.`);
+                core.info(`Explicit build commit ${requestedBuildCommit} resolves to ${targetCommit}; reusing its native artifacts.`);
+              } else {
+                const requestedTag = `v${{ steps.release_meta.outputs.version }}`;
+                try {
+                  targetCommit = (await github.rest.repos.getCommit({
+                    owner,
+                    repo,
+                    ref: requestedTag,
+                  })).data.sha;
+                  core.info(`Existing tag ${requestedTag} resolves to ${targetCommit}; reusing its build artifacts.`);
+                } catch (error) {
+                  if (error.status !== 404 && error.status !== 422) throw error;
+                  targetCommit = context.sha;
+                  core.info(`Tag ${requestedTag} does not exist yet and no build_commit was supplied; using workflow commit ${targetCommit}.`);
+                }
               }
             }
             core.info(`Release build commit: ${targetCommit}`);
