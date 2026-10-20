@@ -61,7 +61,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            async function findSuccessfulRunForCommit(workflowFile) {
+            async function listSuccessfulRuns(workflowFile) {
               const res = await github.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
@@ -70,10 +70,36 @@ jobs:
                 status: "completed",
                 per_page: 100,
               });
-
-              const run = res.data.workflow_runs.find((workflowRun) =>
-                workflowRun.conclusion === "success" && workflowRun.head_sha === targetCommit
+              return res.data.workflow_runs.filter((workflowRun) =>
+                workflowRun.conclusion === "success"
               );
+            }
+
+            async function findLatestCommonSuccessfulBuildCommit() {
+              const [linuxRuns, windowsRuns, macosRuns] = await Promise.all([
+                listSuccessfulRuns("linux_x64_portable.yml"),
+                listSuccessfulRuns("windows_x64_portable.yml"),
+                listSuccessfulRuns("macos_portable.yml"),
+              ]);
+              const windowsShas = new Set(windowsRuns.map((run) => run.head_sha));
+              const macosShas = new Set(macosRuns.map((run) => run.head_sha));
+              const candidate = linuxRuns
+                .filter((run) => windowsShas.has(run.head_sha) && macosShas.has(run.head_sha))
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+              if (!candidate) {
+                throw new Error("No commit has successful Linux, Windows, and macOS native workflows.");
+              }
+
+              core.info(
+                `Latest common successful native-build commit: ${candidate.head_sha} (${candidate.created_at})`
+              );
+              return candidate.head_sha;
+            }
+
+            async function findSuccessfulRunForCommit(workflowFile) {
+              const runs = await listSuccessfulRuns(workflowFile);
+              const run = runs.find((workflowRun) => workflowRun.head_sha === targetCommit);
               if (!run) {
                 throw new Error(
                   `No successful run found for ${workflowFile} at build commit ${targetCommit}`
@@ -128,8 +154,10 @@ jobs:
                   core.info(`Existing tag ${requestedTag} resolves to ${targetCommit}; reusing its build artifacts.`);
                 } catch (error) {
                   if (error.status !== 404 && error.status !== 422) throw error;
-                  targetCommit = context.sha;
-                  core.info(`Tag ${requestedTag} does not exist yet and no build_commit was supplied; using workflow commit ${targetCommit}.`);
+                  targetCommit = await findLatestCommonSuccessfulBuildCommit();
+                  core.info(
+                    `Tag ${requestedTag} does not exist yet and no build_commit was supplied; reusing latest common native-build commit ${targetCommit}.`
+                  );
                 }
               }
             }
