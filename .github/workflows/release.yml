@@ -97,13 +97,28 @@ jobs:
               return String(artifact.id);
             }
 
-            const targetCommit = context.eventName === "release"
-              ? (await github.rest.repos.getCommit({
+            let targetCommit;
+            if (context.eventName === "release") {
+              targetCommit = (await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: context.payload.release.tag_name,
+              })).data.sha;
+            } else {
+              const requestedTag = `v${{ steps.release_meta.outputs.version }}`;
+              try {
+                targetCommit = (await github.rest.repos.getCommit({
                   owner,
                   repo,
-                  ref: context.payload.release.tag_name,
-                })).data.sha
-              : context.sha;
+                  ref: requestedTag,
+                })).data.sha;
+                core.info(`Existing tag ${requestedTag} resolves to ${targetCommit}; reusing its build artifacts.`);
+              } catch (error) {
+                if (error.status !== 404 && error.status !== 422) throw error;
+                targetCommit = context.sha;
+                core.info(`Tag ${requestedTag} does not exist yet; using workflow commit ${targetCommit}.`);
+              }
+            }
             core.info(`Release build commit: ${targetCommit}`);
             core.setOutput("build_commit", targetCommit);
 
@@ -140,49 +155,96 @@ jobs:
               if (id) core.setOutput(a.out, id);
             }
 
-      - name: Download raw artifact zips (no repack)
+      - name: Prepare user-facing release assets
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p release-assets
+          mkdir -p release-assets artifact-zips artifact-unpacked
 
-          download_artifact() {
+          download_artifact_zip() {
             local id="$1"
-            local name="$2"
-            if [ -n "$id" ]; then
-              curl -L \
-                -H "Authorization: Bearer ${GH_TOKEN}" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
-                -o "release-assets/${name}.zip"
+            local output="$2"
+            if [ -z "$id" ]; then
+              return 1
             fi
+            curl --fail --retry 3 --retry-delay 2 --retry-all-errors -L \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+              -o "$output"
+          }
+
+          keep_portable_zip() {
+            local id="$1"
+            local output_name="$2"
+            if [ -z "$id" ]; then
+              return 0
+            fi
+            download_artifact_zip "$id" "release-assets/$output_name"
+          }
+
+          extract_installer() {
+            local id="$1"
+            local pattern="$2"
+            local output_name="$3"
+            if [ -z "$id" ]; then
+              return 0
+            fi
+
+            local zip_path="artifact-zips/$output_name.zip"
+            local unpack_dir="artifact-unpacked/$output_name"
+            mkdir -p "$unpack_dir"
+            download_artifact_zip "$id" "$zip_path"
+            unzip -q "$zip_path" -d "$unpack_dir"
+
+            mapfile -d '' matches < <(find "$unpack_dir" -type f -name "$pattern" -print0)
+            if [ "${#matches[@]}" -ne 1 ]; then
+              echo "Expected exactly one $pattern in artifact $id, found ${#matches[@]}"
+              find "$unpack_dir" -maxdepth 5 -type f -print
+              exit 1
+            fi
+
+            cp "${matches[0]}" "release-assets/$output_name"
           }
 
           v="${{ steps.release_meta.outputs.version }}"
-          r="${{ steps.release_meta.outputs.release_type }}"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.linux_portable_full }}" "seal-desktop-linux-x64-portable-full-v${v}-${r}"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.win_portable_full }}" "seal-desktop-windows-x64-portable-full-v${v}-${r}"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_portable_full }}" "seal-desktop-macos-x64-portable-full-v${v}-${r}"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_portable_full }}" "seal-desktop-macos-arm64-portable-full-v${v}-${r}"
 
-          download_artifact "${{ steps.resolve_runs.outputs.linux_lite_deb }}" "seal-desktop-linux-x64-installer-lite-v${v}-${r}-deb"
-          download_artifact "${{ steps.resolve_runs.outputs.linux_full_deb }}" "seal-desktop-linux-x64-installer-full-v${v}-${r}-deb"
-          download_artifact "${{ steps.resolve_runs.outputs.linux_lite_rpm }}" "seal-desktop-linux-x64-installer-lite-v${v}-${r}-rpm"
-          download_artifact "${{ steps.resolve_runs.outputs.linux_full_rpm }}" "seal-desktop-linux-x64-installer-full-v${v}-${r}-rpm"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.win_lite_exe }}" "seal-desktop-windows-x64-installer-lite-v${v}-${r}-exe"
-          download_artifact "${{ steps.resolve_runs.outputs.win_full_exe }}" "seal-desktop-windows-x64-installer-full-v${v}-${r}-exe"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_lite_pkg }}" "seal-desktop-macos-x64-installer-lite-v${v}-${r}-pkg"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_x64_full_pkg }}" "seal-desktop-macos-x64-installer-full-v${v}-${r}-pkg"
-          
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_lite_pkg }}" "seal-desktop-macos-arm64-installer-lite-v${v}-${r}-pkg"
-          download_artifact "${{ steps.resolve_runs.outputs.mac_arm64_full_pkg }}" "seal-desktop-macos-arm64-installer-full-v${v}-${r}-pkg"
+          keep_portable_zip "${{ steps.resolve_runs.outputs.linux_portable_full }}" \
+            "seal-desktop-linux-x64-portable-full-v${v}.zip"
+          keep_portable_zip "${{ steps.resolve_runs.outputs.win_portable_full }}" \
+            "seal-desktop-windows-x64-portable-full-v${v}.zip"
+          keep_portable_zip "${{ steps.resolve_runs.outputs.mac_x64_portable_full }}" \
+            "seal-desktop-macos-x64-portable-full-v${v}.zip"
+          keep_portable_zip "${{ steps.resolve_runs.outputs.mac_arm64_portable_full }}" \
+            "seal-desktop-macos-arm64-portable-full-v${v}.zip"
+
+          extract_installer "${{ steps.resolve_runs.outputs.linux_lite_deb }}" "*.deb" \
+            "seal-desktop-linux-x64-installer-lite-v${v}.deb"
+          extract_installer "${{ steps.resolve_runs.outputs.linux_full_deb }}" "*.deb" \
+            "seal-desktop-linux-x64-installer-full-v${v}.deb"
+          extract_installer "${{ steps.resolve_runs.outputs.linux_lite_rpm }}" "*.rpm" \
+            "seal-desktop-linux-x64-installer-lite-v${v}.rpm"
+          extract_installer "${{ steps.resolve_runs.outputs.linux_full_rpm }}" "*.rpm" \
+            "seal-desktop-linux-x64-installer-full-v${v}.rpm"
+
+          extract_installer "${{ steps.resolve_runs.outputs.win_lite_exe }}" "*.exe" \
+            "seal-desktop-windows-x64-installer-lite-v${v}.exe"
+          extract_installer "${{ steps.resolve_runs.outputs.win_full_exe }}" "*.exe" \
+            "seal-desktop-windows-x64-installer-full-v${v}.exe"
+
+          extract_installer "${{ steps.resolve_runs.outputs.mac_x64_lite_pkg }}" "*.pkg" \
+            "seal-desktop-macos-x64-installer-lite-v${v}.pkg"
+          extract_installer "${{ steps.resolve_runs.outputs.mac_x64_full_pkg }}" "*.pkg" \
+            "seal-desktop-macos-x64-installer-full-v${v}.pkg"
+          extract_installer "${{ steps.resolve_runs.outputs.mac_arm64_lite_pkg }}" "*.pkg" \
+            "seal-desktop-macos-arm64-installer-lite-v${v}.pkg"
+          extract_installer "${{ steps.resolve_runs.outputs.mac_arm64_full_pkg }}" "*.pkg" \
+            "seal-desktop-macos-arm64-installer-full-v${v}.pkg"
+
+          echo "Prepared release assets:"
+          ls -lh release-assets
 
       - name: Record release provenance and checksums
         shell: bash
@@ -199,7 +261,7 @@ jobs:
           EOF
           (
             cd release-assets
-            sha256sum ./*.zip > SHA256SUMS
+            sha256sum BUILD_PROVENANCE.txt seal-desktop-* > SHA256SUMS
           )
           cat release-assets/BUILD_PROVENANCE.txt
           cat release-assets/SHA256SUMS
@@ -215,10 +277,9 @@ jobs:
           body: |
             <!-- manual-release -->
           generate_release_notes: true
+          overwrite_files: true
           files: |
-            release-assets/*.zip
-            release-assets/BUILD_PROVENANCE.txt
-            release-assets/SHA256SUMS
+            release-assets/*
 
       - name: Upload assets to existing release (release event)
         if: ${{ github.event_name == 'release' }}
@@ -227,7 +288,39 @@ jobs:
           tag_name: v${{ steps.release_meta.outputs.version }}
           prerelease: ${{ steps.release_meta.outputs.release_type == 'prerelease' }}
           make_latest: ${{ steps.release_meta.outputs.release_type == 'stable' }}
+          overwrite_files: true
           files: |
-            release-assets/*.zip
-            release-assets/BUILD_PROVENANCE.txt
-            release-assets/SHA256SUMS
+            release-assets/*
+
+      - name: Remove legacy wrapped release assets
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = `v${{ steps.release_meta.outputs.version }}`;
+            const legacyToken = `-v${{ steps.release_meta.outputs.version }}-${{ steps.release_meta.outputs.release_type }}`;
+
+            const release = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              owner,
+              repo,
+              release_id: release.data.id,
+              per_page: 100,
+            });
+
+            const legacyAssets = assets.filter((asset) =>
+              asset.name.startsWith("seal-desktop-") &&
+              asset.name.includes(legacyToken)
+            );
+
+            for (const asset of legacyAssets) {
+              core.info(`Deleting legacy wrapped asset: ${asset.name}`);
+              await github.rest.repos.deleteReleaseAsset({
+                owner,
+                repo,
+                asset_id: asset.id,
+              });
+            }
+
+            core.info(`Removed ${legacyAssets.length} legacy wrapped asset(s).`);
